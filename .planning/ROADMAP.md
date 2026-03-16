@@ -16,10 +16,10 @@ layer is added.
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Local Gate Infrastructure** - Codex review, bd preflight, beads gate creation/resolution, and the two skills that wrap them
+- [x] **Phase 1: Local Gate Infrastructure** - Codex review, bd preflight, beads gate creation/resolution, and the two skills that wrap them
 - [x] **Phase 2: Safety Net Hooks** - Claude Code hooks that intercept agent-initiated closes and session stops (completed 2026-03-16)
-- [ ] **Phase 3: PR Skill** - Create GitHub PR with quality gate status summary in description
-- [ ] **Phase 4: Superpowers + Subagent-Driven c4flow:code** - Integrate `superpowers` and `subagent-driven-development` into the `c4flow:code` skill workflow
+- [x] **Phase 3: PR Skill** - Create GitHub PR with quality gate status summary in description
+- [x] **Phase 4: Superpowers + Subagent-Driven c4flow:code** - Integrate `superpowers` and `subagent-driven-development` into the `c4flow:code` skill workflow (completed 2026-03-16)
 
 ## Phase Details
 
@@ -33,13 +33,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `bd close` refuses to close an issue when any quality gate is unresolved (without `--force`)
   4. If `codex` or `bd` is not installed, skills warn the user and fall back to manual verification instructions rather than silently failing
   5. Every `bd gate resolve` and `bd close` call writes a reason string to the gate resolution audit trail
-**Plans:** 3/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
-- [ ] 01-01-PLAN.md — Foundational contracts: quality-gate-status.json schema, code-reviewer subagent, .gitignore
-- [ ] 01-02-PLAN.md — c4flow:review skill with Codex subagent dispatch and beads gate lifecycle
-- [ ] 01-03-PLAN.md — c4flow:verify skill with bd preflight integration and gate aggregation
-- [ ] 01-04-PLAN.md — Beads molecule formula template with quality gate steps (requires human verification)
+- [x] 01-01-PLAN.md — Foundational contracts: quality-gate-status.json schema, code-reviewer subagent, .gitignore
+- [x] 01-02-PLAN.md — c4flow:review skill with Codex subagent dispatch and beads gate lifecycle
+- [x] 01-03-PLAN.md — c4flow:verify skill with bd preflight integration and gate aggregation
+- [x] 01-04-PLAN.md — Beads molecule formula template with quality gate steps (requires human verification)
 
 ### Phase 2: Safety Net Hooks
 **Goal**: Claude Code hooks intercept agent-initiated `bd close` commands and session-end events, blocking them when quality gates are open, so that agent shortcuts cannot bypass the gate chain
@@ -64,20 +64,20 @@ Plans:
   1. Running `c4flow:pr` creates a GitHub PR using the `gh` CLI with a description that includes current gate pass/fail status from `quality-gate-status.json`
   2. The PR number is written to `.state.json` after creation
   3. If quality gates have not all passed, `c4flow:pr` warns the user before proceeding (but does not block — PR creation is informational, not a hard gate)
-**Plans:** 1 plan
+**Plans:** 1/1 plan complete
 
 Plans:
-- [ ] 03-01-PLAN.md — c4flow:pr skill implementation with test suite and human verification
+- [x] 03-01-PLAN.md — c4flow:pr skill implementation with test suite and human verification
 
 ### Phase 4: Superpowers + Subagent-Driven c4flow:code
 **Goal**: Integrate `superpowers` and `subagent-driven-development` into the `c4flow:code` skill so workflow execution consistently uses the shared skill-loading and subagent orchestration patterns
 **Depends on**: Phase 3
 **Requirements**: TBD
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 - [x] 04-01-PLAN.md — Implement `c4flow:code` orchestration and CODE-state routing through Superpowers
-- [ ] 04-02-PLAN.md — Add regression tests and human verification for the new CODE workflow
+- [x] 04-02-PLAN.md — Add regression tests and human verification for the new CODE workflow
 
 ## Progress
 
@@ -86,7 +86,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Local Gate Infrastructure | 3/4 | In Progress|  |
+| 1. Local Gate Infrastructure | 4/4 | Complete | 2026-03-16 |
 | 2. Safety Net Hooks | 2/2 | Complete   | 2026-03-16 |
-| 3. PR Skill | 0/1 | Not started | - |
-| 4. Superpowers + Subagent-Driven c4flow:code | 1/2 | In Progress | - |
+| 3. PR Skill | 1/1 | Complete | 2026-03-16 |
+| 4. Superpowers + Subagent-Driven c4flow:code | 2/2 | Complete | 2026-03-16 |
