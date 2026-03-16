@@ -3,7 +3,7 @@
 # Usage: scripts/init.sh [--skip-beads] [--prefix PREFIX]
 #
 # Installs Dolt + Beads, runs bd init, verifies connectivity.
-# Designed to complete in under 30 seconds.
+# Target: complete in under 30 seconds.
 
 set -euo pipefail
 
@@ -21,13 +21,12 @@ err()   { echo -e "${RED}[c4flow]${NC} $*" >&2; }
 
 # Run a command with a timeout (default 15s)
 run_with_timeout() {
-  local timeout="${1:-15}"
+  local secs="${1:-15}"
   shift
   if command -v timeout &>/dev/null; then
-    timeout "$timeout" "$@" 2>&1
+    timeout "$secs" "$@" 2>&1
   else
-    # macOS fallback: use perl
-    perl -e "alarm $timeout; exec @ARGV" -- "$@" 2>&1
+    perl -e "alarm $ARGV[0]; exec @ARGV[1..$#ARGV]" "$secs" "$@" 2>&1
   fi
 }
 
@@ -78,7 +77,7 @@ install_dolt() {
   elif has curl; then
     sudo bash -c 'curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | bash'
   else
-    err "Cannot install Dolt: no brew or curl. Install manually: https://docs.dolthub.com/introduction/installation"
+    err "Cannot install Dolt: no brew or curl. See https://docs.dolthub.com/introduction/installation"
     exit 1
   fi
 
@@ -99,7 +98,7 @@ install_beads() {
   elif has npm; then
     npm install -g @beads/bd
   else
-    err "Cannot install Beads: no curl or npm. Install manually: https://github.com/steveyegge/beads"
+    err "Cannot install Beads: no curl or npm. See https://github.com/steveyegge/beads"
     exit 1
   fi
 
@@ -122,7 +121,7 @@ init_beads() {
   local init_args=()
   [ -n "$PREFIX" ] && init_args+=(--prefix "$PREFIX")
 
-  # bd init with timeout — it can hang if Dolt server has issues
+  # bd init with timeout (30s) — can hang if Dolt server has issues
   if run_with_timeout 30 bd init "${init_args[@]}"; then
     ok "bd init completed"
   else
@@ -134,9 +133,8 @@ init_beads() {
     fi
   fi
 
-  # Ensure .beads/ was created
   if [ ! -d ".beads" ]; then
-    err ".beads/ directory was not created. bd init may have failed."
+    err ".beads/ was not created. bd init failed."
     exit 1
   fi
 
@@ -144,70 +142,39 @@ init_beads() {
 }
 
 ensure_dolt_server() {
-  # Check if Dolt server is already responding
-  if check_dolt_connection; then
-    ok "Dolt server: connected"
+  # Use bd's own server management (bd dolt start/status)
+  # This is the official way per Beads docs — NOT manual dolt sql-server
+
+  # First check: can bd reach Dolt? (5s timeout)
+  if run_with_timeout 5 bd list --json &>/dev/null; then
+    ok "Dolt: connected (bd list OK)"
     return 0
   fi
 
-  info "Dolt server not responding. Starting..."
+  info "Dolt not responding. Starting via bd dolt start..."
 
-  # Kill any stale server
-  if [ -f ".beads/dolt-server.pid" ]; then
-    local old_pid
-    old_pid=$(cat .beads/dolt-server.pid 2>/dev/null || true)
-    if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null; then
-      info "Killing stale Dolt server (PID $old_pid)..."
-      kill "$old_pid" 2>/dev/null || true
-      sleep 1
+  # Use bd dolt start (official command, handles port/pid/config)
+  if run_with_timeout 10 bd dolt start &>/dev/null; then
+    sleep 1
+    if run_with_timeout 5 bd list --json &>/dev/null; then
+      ok "Dolt: started via bd dolt start"
+      return 0
     fi
-    rm -f .beads/dolt-server.pid .beads/dolt-server.port .beads/dolt-server.lock 2>/dev/null || true
   fi
 
-  # Find a free port
-  local port
-  port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("",0)); print(s.getsockname()[1]); s.close()' 2>/dev/null || echo "3307")
-
-  # Start Dolt server from .beads/dolt directory
-  if [ -d ".beads/dolt" ]; then
-    (cd .beads/dolt && dolt sql-server --host 127.0.0.1 --port "$port" &>/dev/null &)
-    echo $! > .beads/dolt-server.pid
-    echo "$port" > .beads/dolt-server.port
-
-    # Wait for server to be ready (max 5s)
-    local retries=10
-    while [ $retries -gt 0 ]; do
-      if check_dolt_connection "$port"; then
-        ok "Dolt server: started on port $port"
-        return 0
-      fi
-      sleep 0.5
-      retries=$((retries - 1))
-    done
-  fi
-
-  warn "Dolt server could not be started. Beads will work in degraded mode."
-  warn "You can start it manually: cd .beads/dolt && dolt sql-server"
-}
-
-check_dolt_connection() {
-  local port="${1:-}"
-
-  # Try reading port from .beads if not provided
-  if [ -z "$port" ] && [ -f ".beads/dolt-server.port" ]; then
-    port=$(cat .beads/dolt-server.port 2>/dev/null || true)
-  fi
-
-  [ -z "$port" ] && return 1
-
-  # Quick SQL check with 3s timeout
-  if run_with_timeout 3 dolt sql --host 127.0.0.1 --port "$port" --user root -q "SELECT 1" &>/dev/null; then
+  # Fallback: try triggering auto-start by just calling bd list
+  # Per docs: "Server auto-starts when needed"
+  info "Trying auto-start via bd list..."
+  if run_with_timeout 10 bd list &>/dev/null; then
+    ok "Dolt: auto-started"
     return 0
   fi
-  return 1
+
+  warn "Dolt server could not start. Beads will work in degraded mode."
+  warn "Manual fix: bd dolt start (or see bd dolt status)"
 }
 
-# ─── Verify (fast, no bd doctor) ─────────────────────────────────────────────
+# ─── Verify ───────────────────────────────────────────────────────────────────
 
 verify() {
   echo ""
@@ -225,12 +192,12 @@ verify() {
     has bd && echo -e "  ${GREEN}✓${NC} bd" || { echo -e "  ${RED}✗${NC} bd"; all_ok=false; }
     [ -d ".beads" ] && echo -e "  ${GREEN}✓${NC} .beads/" || { echo -e "  ${RED}✗${NC} .beads/"; all_ok=false; }
 
-    # Quick bd connectivity test (3s timeout, don't use bd doctor)
+    # Quick connectivity check (5s timeout, uses bd list not bd doctor)
     if has bd && [ -d ".beads" ]; then
       if run_with_timeout 5 bd list --json &>/dev/null; then
-        echo -e "  ${GREEN}✓${NC} bd connected to Dolt"
+        echo -e "  ${GREEN}✓${NC} bd ↔ Dolt connected"
       else
-        echo -e "  ${YELLOW}⚠${NC} bd cannot reach Dolt (tasks will work after server starts)"
+        echo -e "  ${YELLOW}⚠${NC} bd ↔ Dolt not connected (run: bd dolt start)"
       fi
     fi
   fi

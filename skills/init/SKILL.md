@@ -61,18 +61,22 @@ curl -sSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/instal
 bd init
 ```
 
-## IMPORTANT: Do NOT use `bd doctor`
+## IMPORTANT Rules
 
-**Never run `bd doctor` or `bd doctor --fix`** — these commands frequently hang indefinitely waiting for Dolt server connections. The init script handles verification internally with timeouts.
+1. **Never run `bd doctor` or `bd doctor --fix`** — hangs indefinitely. The init script verifies with `bd list` instead.
+2. **Use `bd dolt start`** to start the server — never run `dolt sql-server` manually. Beads manages its own server lifecycle.
+3. **Default Dolt port is 3307** (not 3306) — avoids MySQL conflicts.
+4. Dolt server **auto-starts** when needed — calling `bd list` triggers it.
 
-If there are Dolt connection issues after init, the script starts the server automatically. If that also fails, tell the user:
-> "Dolt server couldn't start. Beads will use degraded mode. You can start it manually: `cd .beads/dolt && dolt sql-server`"
+If Dolt connection fails after init, tell the user:
+> "Run `bd dolt start` to start the Dolt server, or `bd dolt status` to check."
 
 ## Error Handling
 
 | Error | Solution |
 |-------|----------|
 | `sudo` required for Dolt | Ask user to run with sudo, or use `brew install dolt` |
-| `bd init` times out | Script continues automatically, starts Dolt manually |
-| Port conflict | Script picks a random free port |
+| `bd init` times out | Script continues, uses `bd dolt start` |
+| Port conflict | Beads picks port automatically (default 3307) |
 | `bd init` fails | Try `bd init --stealth` for minimal mode |
+| Dolt won't connect | `bd dolt start`, then `bd dolt status` to check |
