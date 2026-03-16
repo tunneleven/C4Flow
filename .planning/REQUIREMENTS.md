@@ -10,7 +10,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Local Quality Gates
 
 - [x] **GATE-01**: Subagent runs `codex review --base main` and writes structured pass/fail JSON to `quality-gate-status.json`
-- [ ] **GATE-02**: Skill runs `bd preflight --check --json` and fails VERIFY phase if issues found
+- [x] **GATE-02**: Skill runs `bd preflight --check --json` and fails VERIFY phase if issues found
 - [x] **GATE-03**: Beads gates created programmatically (formula steps for repeatable patterns + dynamic creation for ad-hoc tasks) and resolved by quality runner script
 - [x] **GATE-04**: Tool availability detection warns if codex or bd not installed; graceful fallback to manual verification when tools are missing
 
@@ -23,7 +23,7 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Skills
 
 - [x] **SKIL-01**: `c4flow:review` skill — orchestrates Codex subagent review, parses structured output, writes gate status file, resolves beads gate on pass, reports findings on fail
-- [ ] **SKIL-02**: `c4flow:verify` skill — runs bd preflight, aggregates all gate results (Codex + preflight), declares "Ready for PR: YES/NO" with summary
+- [x] **SKIL-02**: `c4flow:verify` skill — runs bd preflight, aggregates all gate results (Codex + preflight), declares "Ready for PR: YES/NO" with summary
 - [ ] **SKIL-03**: `c4flow:pr` skill — creates GitHub PR with quality gate status summary in description, updates .state.json with PR number
 
 ### Infrastructure
@@ -74,14 +74,14 @@ Deferred to future release. Tracked but not in current roadmap.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | GATE-01 | Phase 1 | Complete |
-| GATE-02 | Phase 1 | Pending |
+| GATE-02 | Phase 1 | Complete |
 | GATE-03 | Phase 1 | Complete |
 | GATE-04 | Phase 1 | Complete |
 | HOOK-01 | Phase 2 | Pending |
 | HOOK-02 | Phase 2 | Pending |
 | HOOK-03 | Phase 2 | Pending |
 | SKIL-01 | Phase 1 | Complete |
-| SKIL-02 | Phase 1 | Pending |
+| SKIL-02 | Phase 1 | Complete |
 | SKIL-03 | Phase 3 | Pending |
 | INFR-01 | Phase 1 | Complete |
 | INFR-02 | Phase 2 | Pending |
