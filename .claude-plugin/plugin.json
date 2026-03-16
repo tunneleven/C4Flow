@@ -1,7 +1,7 @@
 {
   "name": "c4flow",
   "description": "Agentic development workflow orchestrator — from research through deployment. 15 skills across 6 phases driven by a 14-state state machine.",
-  "version": "0.4.0",
+  "version": "0.5.1",
   "author": {
     "name": "C4Team"
   },
