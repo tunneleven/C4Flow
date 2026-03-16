@@ -87,8 +87,8 @@ Using the template from `references/spec-templates/proposal-template.md`:
    - **Success Criteria**: Derive from Recommendations. Make each criterion measurable (e.g., "User can create a budget in <30 seconds" not "Good UX")
    - **Impact**: Reference Competitive Landscape for affected ecosystem. Note which competitors this positions against
 
-2. **Present the draft** to the user
-3. **Iterate** based on feedback until the user approves
+2. **Present the draft section by section** to the user (e.g., Why → What Changes → Capabilities → Scope → Success Criteria → Impact). Ask for feedback after each section before moving on.
+3. **Iterate** on each section based on feedback until the user approves
 4. **Write** the approved version to `docs/specs/<feature>/proposal.md`
 
 **Quality check before presenting:**
@@ -151,9 +151,12 @@ Using the template from `references/spec-templates/spec-template.md`:
    - `ADDED` — new behavior (most items for greenfield)
    - `MODIFIED` — changed behavior (for existing features)
    - `REMOVED` — deleted behavior
-4. **Present to user** for review
-5. **Iterate** until approved
-6. **Write** to `docs/specs/<feature>/spec.md`
+4. **Present requirements one at a time** (or in small groups of 2-3 related ones):
+   - Show each requirement with its scenarios
+   - Ask the user: "Does this look right? Any changes?"
+   - Iterate on that requirement until approved before moving to the next
+   - After all requirements are presented and approved, show a final summary list of all requirement names + priorities for a quick overview
+5. **Write** to `docs/specs/<feature>/spec.md`
 
 **Quality check before presenting:**
 - [ ] Every proposal Capability has ≥1 corresponding requirement
@@ -182,8 +185,8 @@ Using the template from `references/spec-templates/design-template.md`:
    - **Risks/Trade-offs**: Import from research Risks + Contrarian View. Add any design-specific risks
    - **Testing Strategy**: One test type per requirement priority level (MUST → unit+integration, SHOULD → integration, MAY → manual)
 
-2. **Present to user** for review
-3. **Iterate** until approved
+2. **Present the design section by section** (e.g., Architecture → Components → Data Model → API → Error Handling → Risks → Testing). Ask for feedback after each section.
+3. **Iterate** on each section until approved
 4. **Write** to `docs/specs/<feature>/design.md`
 
 **Quality check before presenting:**
