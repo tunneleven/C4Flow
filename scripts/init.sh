@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # c4flow init — install and configure dependencies for C4Flow workflow
-# Usage: scripts/init.sh [--skip-beads] [--prefix PREFIX]
+# Usage: scripts/init.sh [--skip-beads] [--prefix PREFIX] [--remote URL]
 #
-# Installs Dolt + Beads, runs bd init, verifies connectivity.
+# Installs Dolt + Beads, runs bd init, configures DoltHub sync.
 # Target: complete in under 30 seconds.
 
 set -euo pipefail
@@ -33,17 +33,23 @@ run_with_timeout() {
 # Parse args
 SKIP_BEADS=false
 PREFIX=""
+REMOTE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-beads) SKIP_BEADS=true; shift ;;
     --prefix)     PREFIX="$2"; shift 2 ;;
     --prefix=*)   PREFIX="${1#*=}"; shift ;;
+    --remote)     REMOTE="$2"; shift 2 ;;
+    --remote=*)   REMOTE="${1#*=}"; shift ;;
     -h|--help)
-      echo "Usage: scripts/init.sh [--skip-beads] [--prefix PREFIX]"
+      echo "Usage: scripts/init.sh [--skip-beads] [--prefix PREFIX] [--remote URL]"
       echo ""
       echo "Options:"
       echo "  --skip-beads    Skip Beads (bd) installation"
       echo "  --prefix NAME   Set beads issue prefix (default: directory name)"
+      echo "  --remote URL    DoltHub repo URL for auto-sync"
+      echo "                  Accepts: https://www.dolthub.com/repositories/org/repo"
+      echo "                       or: https://doltremoteapi.dolthub.com/org/repo"
       echo "  -h, --help      Show this help"
       exit 0
       ;;
@@ -176,6 +182,79 @@ ensure_dolt_server() {
 
 # ─── Verify ───────────────────────────────────────────────────────────────────
 
+# ─── DoltHub Remote ───────────────────────────────────────────────────────────
+
+# Convert DoltHub web URL to API URL
+# https://www.dolthub.com/repositories/org/repo → https://doltremoteapi.dolthub.com/org/repo
+normalize_dolthub_url() {
+  local url="$1"
+
+  # Already an API URL
+  if [[ "$url" == *"doltremoteapi.dolthub.com"* ]]; then
+    echo "$url"
+    return
+  fi
+
+  # Web URL: https://www.dolthub.com/repositories/org/repo
+  if [[ "$url" == *"dolthub.com/repositories/"* ]]; then
+    local path="${url#*dolthub.com/repositories/}"
+    # Strip trailing slash
+    path="${path%/}"
+    echo "https://doltremoteapi.dolthub.com/${path}"
+    return
+  fi
+
+  # Short form: org/repo (no URL)
+  if [[ "$url" != *"://"* ]] && [[ "$url" == *"/"* ]]; then
+    echo "https://doltremoteapi.dolthub.com/${url}"
+    return
+  fi
+
+  # Unknown format, pass through
+  echo "$url"
+}
+
+setup_remote() {
+  if [ -z "$REMOTE" ]; then
+    return 0
+  fi
+
+  local api_url
+  api_url=$(normalize_dolthub_url "$REMOTE")
+
+  info "Configuring DoltHub remote: $api_url"
+
+  # Add remote via bd (ensures both SQL server and CLI see it)
+  if run_with_timeout 10 bd dolt remote add origin "$api_url"; then
+    ok "Remote 'origin' added: $api_url"
+  else
+    # Remote may already exist, try removing first
+    if run_with_timeout 5 bd dolt remote remove origin &>/dev/null; then
+      if run_with_timeout 10 bd dolt remote add origin "$api_url"; then
+        ok "Remote 'origin' updated: $api_url"
+      else
+        warn "Failed to add remote. Add manually: bd dolt remote add origin $api_url"
+        return 1
+      fi
+    else
+      warn "Failed to configure remote. Add manually: bd dolt remote add origin $api_url"
+      return 1
+    fi
+  fi
+
+  # Initial push to create the remote database
+  info "Pushing to DoltHub..."
+  if run_with_timeout 30 bd dolt push; then
+    ok "Pushed to DoltHub successfully"
+  else
+    warn "Push failed. You may need to authenticate first:"
+    warn "  dolt login"
+    warn "Then retry: bd dolt push"
+  fi
+}
+
+# ─── Verify ───────────────────────────────────────────────────────────────────
+
 verify() {
   echo ""
   info "Verification:"
@@ -198,6 +277,13 @@ verify() {
         echo -e "  ${GREEN}✓${NC} bd ↔ Dolt connected"
       else
         echo -e "  ${YELLOW}⚠${NC} bd ↔ Dolt not connected (run: bd dolt start)"
+      fi
+
+      # Show remote if configured
+      if [ -n "$REMOTE" ]; then
+        local api_url
+        api_url=$(normalize_dolthub_url "$REMOTE")
+        echo -e "  ${GREEN}✓${NC} remote: $api_url"
       fi
     fi
   fi
@@ -224,6 +310,7 @@ main() {
     install_dolt
     install_beads
     init_beads
+    setup_remote
   else
     info "Skipping Beads (--skip-beads)"
   fi

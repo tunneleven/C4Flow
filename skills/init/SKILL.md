@@ -14,6 +14,7 @@ Installs and configures all C4Flow dependencies in the current project:
 - **Dolt** — version-controlled SQL database (Beads backend)
 - **Beads (bd)** — issue tracking and task management CLI
 - Runs `bd init` + starts Dolt server
+- Optionally configures **DoltHub sync** for cloud backup
 
 ## Instructions
 
@@ -41,9 +42,30 @@ The script will:
 2. Check/install `bd` (Beads)
 3. Run `bd init` with a 30s timeout
 4. Start Dolt server if not running
-5. Verify connectivity with `bd list`
+5. Configure DoltHub remote (if `--remote` provided)
+6. Verify connectivity with `bd list`
 
 **All steps have timeouts. Total time should be under 30 seconds.**
+
+#### DoltHub Sync
+
+If the user provides a DoltHub URL, pass it with `--remote`:
+
+```bash
+bash "$dir/scripts/init.sh" --remote https://www.dolthub.com/repositories/org/repo
+```
+
+The script accepts these URL formats:
+- `https://www.dolthub.com/repositories/org/repo` (web URL — auto-converted)
+- `https://doltremoteapi.dolthub.com/org/repo` (API URL — used as-is)
+- `org/repo` (short form — auto-expanded)
+
+The script will:
+1. Convert the URL to API format
+2. Run `bd dolt remote add origin <api-url>`
+3. Do an initial `bd dolt push`
+
+If push fails (auth), it tells the user to run `dolt login` first.
 
 ### Step 2: Report Result
 
