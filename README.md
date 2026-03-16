@@ -28,28 +28,33 @@ IDLE → RESEARCH → SPEC → DESIGN → BEADS → CODE → TEST
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed
 
-### Install as Plugin
+### Option 1: Install from Terminal
 
 ```bash
-# Open your project directory
-cd your-project
+# Step 1: Add C4Flow as a marketplace
+claude plugins marketplace add https://github.com/tunneleven/C4Flow
 
-# Install c4flow plugin from GitHub
-claude plugins install c4flow --marketplace https://github.com/tunneleven/C4Flow
+# Step 2: Install the plugin
+claude plugins install c4flow
 
-# Enable for current project
-claude plugins enable c4flow
+# (Optional) Install for current project only
+claude plugins install c4flow --scope project
 ```
 
-Or manually: add to your project's `.claude/settings.json`:
+### Option 2: Install from within Claude Code REPL
 
-```json
-{
-  "enabledPlugins": {
-    "c4flow@your-marketplace": true
-  }
-}
+While inside a Claude Code session, type:
+
 ```
+/plugins
+```
+
+Then select **"Install a plugin"**, choose the c4flow marketplace, and install.
+
+> If C4Flow marketplace is not listed, first add it from terminal:
+> ```bash
+> claude plugins marketplace add https://github.com/tunneleven/C4Flow
+> ```
 
 ### Usage
 
