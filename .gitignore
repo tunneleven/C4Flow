@@ -2,6 +2,10 @@
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+.beads/dolt-config.log
+
+# Local Codex skill symlink installation
+.codex/skills/
 
 # C4Flow quality gate (ephemeral, regenerated each review run)
 quality-gate-status.json

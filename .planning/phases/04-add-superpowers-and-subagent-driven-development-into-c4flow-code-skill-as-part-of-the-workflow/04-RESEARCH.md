@@ -157,3 +157,94 @@ The workflow gate is task completion, not merely starting execution. The impleme
 | 2 | `04-02-PLAN.md` | Add shell-based regression tests and human verification for the new CODE path |
 
 This split keeps the documentation/skill implementation isolated from the validation layer and makes review simpler.
+
+---
+
+## Post-Implementation Audit (2026-03-16)
+
+Phase 4 did land the thin orchestration layer it set out to build, and the current regression suite still passes:
+
+```bash
+bash .claude/tests/run-code-skill-tests.sh
+```
+
+That said, a re-read against the repository's actual Superpowers and beads operating model shows the implementation is still incomplete if the intended execution model is "CODE runs from beads task flow under Superpowers discipline" rather than "CODE mentions beads and Superpowers in documentation."
+
+### Confirmed Gaps
+
+#### Gap 1: Beads task identity is not persisted strongly enough to make the CODE gate real
+
+`skills/code/SKILL.md` says CODE should check for "a beads epic or assigned beads tasks linked from `docs/c4flow/.state.json`" and only advance after "every assigned issue is closed."
+
+The problem is that the workflow state currently persists only `beadsEpic`:
+
+- `skills/c4flow/SKILL.md` initializes `.state.json` with `beadsEpic`, but no `taskIds`, `claimedTasks`, or `taskSource`
+- `skills/beads/SKILL.md` writes only the epic ID back to state
+- `references/workflow-state.md` documents the same reduced schema
+
+So the system can remember which epic exists, but it cannot deterministically answer:
+
+- which beads tasks belong to the current CODE run,
+- which of them are assigned to the current operator,
+- which task set must be closed before CODE can move to TEST.
+
+This means the current CODE -> TEST gate is stated, but not operationalized.
+
+#### Gap 2: The beads-first execution flow is not actually encoded
+
+If this repo's desired implementation discipline is beads-driven execution, Phase 4 missed the concrete beads lifecycle commands that make work atomic and auditable.
+
+What exists today:
+
+- `skills/code/SKILL.md` mentions `bd ready --json` and `bd show <id> --json`
+- `skills/code/SKILL.md` tells the operator to verify that assigned issues are closed
+
+What is still missing from the CODE workflow:
+
+- atomic claiming via `bd update <id> --claim --json`
+- explicit close semantics via `bd close <id> --reason "..."`
+- guidance for discovered follow-up work via `bd create ... --deps discovered-from:<parent-id>`
+- the end-of-session beads sync step (`bd dolt push`) when work is complete
+
+This matters because the repository-level instructions in `AGENTS.md` treat bd as the source of truth for work tracking. The current CODE skill still reads more like "beads-aware" than "beads-driven."
+
+#### Gap 3: State documentation is still inconsistent with what CODE now expects
+
+`skills/code/SKILL.md` requires `feature.slug` in `docs/c4flow/.state.json`.
+
+But `references/workflow-state.md` still documents:
+
+- `feature` as a kebab-cased string rather than the object schema used by `skills/c4flow/SKILL.md`
+- no field for the active task source beyond `beadsEpic`
+
+That mismatch is now material, because Phase 4 made CODE depend on richer state than the reference document describes.
+
+#### Gap 4: The regression suite proves wording, not execution discipline
+
+The Phase 4 test suite correctly protects against regressing back to a stub. It does not prove that CODE faithfully follows the intended operating model.
+
+Current tests do not assert:
+
+- any beads claim/close commands are present,
+- any state field exists for active task IDs or task-source selection,
+- the CODE skill references repo-required completion discipline such as bd closure reasons,
+- the CODE workflow explains how to derive the exact task set to close from the epic.
+
+So the current verification result should be read as "documentation contract passed," not "beads-driven CODE workflow fully enforced."
+
+## Revised Recommendation
+
+If the goal is only the original thin-routing phase, Phase 4 is complete.
+
+If the goal is the stronger model you described in this re-research request, there is at least one follow-up phase or task still missing:
+
+1. Extend `docs/c4flow/.state.json` to persist the active CODE task source, not just `beadsEpic`.
+2. Make `c4flow:beads` write the task identifiers or a deterministic query contract that CODE can reuse.
+3. Update `c4flow:code` to require the actual beads lifecycle: ready -> claim -> implement -> verify -> close.
+4. Expand the regression suite to lock down those beads-specific behaviors and the richer state contract.
+
+## Bottom Line
+
+Yes. The implementation of Phase 4 missed the part that would make CODE truly beads-task-driven under Superpowers discipline.
+
+The current implementation achieves delegation and routing. It does not yet fully encode or verify the operational beads flow needed to make "all assigned tasks closed" a precise, enforceable gate.
