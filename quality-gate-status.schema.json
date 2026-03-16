@@ -1,0 +1,177 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "quality-gate-status.schema.json",
+  "title": "QualityGateStatus",
+  "description": "Schema for quality-gate-status.json — ephemeral file written by C4Flow quality gate skills and read by gate resolution logic.",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "expires_at", "overall_pass", "checks"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": ["1"],
+      "description": "Schema version — increment when structure changes in a backwards-incompatible way."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when this file was last written."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp after which the results are considered stale. Default: generated_at + 60 minutes."
+    },
+    "gate_id": {
+      "type": ["string", "null"],
+      "description": "Beads gate ID stored at creation time. Null when the gate has not been opened yet. Persisting this prevents the lost-gate-ID pitfall across Claude invocations."
+    },
+    "overall_pass": {
+      "type": "boolean",
+      "description": "True ONLY when every check has pass=true. Never true when any check pass value is null (not-yet-run). A gate with any unrun check is considered failed."
+    },
+    "checks": {
+      "type": "object",
+      "required": ["codex_review", "bd_preflight"],
+      "additionalProperties": false,
+      "description": "Container for per-check results. All checks must pass for overall_pass to be true.",
+      "properties": {
+        "codex_review": {
+          "type": "object",
+          "required": ["pass", "ran_at"],
+          "additionalProperties": false,
+          "description": "Results from the Codex CLI code review subagent.",
+          "properties": {
+            "pass": {
+              "type": ["boolean", "null"],
+              "description": "Null means not yet run. True if and only if critical_count == 0 AND high_count == 0."
+            },
+            "ran_at": {
+              "type": ["string", "null"],
+              "format": "date-time",
+              "description": "ISO 8601 timestamp when the review was executed. Null if not yet run."
+            },
+            "critical_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of CRITICAL severity findings. Any non-zero value causes pass=false."
+            },
+            "high_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of HIGH severity findings. Any non-zero value causes pass=false."
+            },
+            "medium_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of MEDIUM severity findings. Informational only — does not affect pass/fail."
+            },
+            "low_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of LOW severity findings. Informational only — does not affect pass/fail."
+            },
+            "findings": {
+              "type": "array",
+              "description": "Individual review findings from Codex, classified by severity.",
+              "items": {
+                "type": "object",
+                "required": ["severity", "file", "message"],
+                "additionalProperties": false,
+                "properties": {
+                  "severity": {
+                    "type": "string",
+                    "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+                    "description": "Severity level assigned by the code-reviewer subagent."
+                  },
+                  "file": {
+                    "type": "string",
+                    "description": "Relative path to the file containing the finding."
+                  },
+                  "line": {
+                    "type": ["integer", "null"],
+                    "description": "Line number of the finding. Null when line cannot be determined."
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "Human-readable description of the finding."
+                  }
+                }
+              }
+            },
+            "summary": {
+              "type": "string",
+              "description": "One-sentence summary of the review outcome produced by the subagent."
+            }
+          }
+        },
+        "bd_preflight": {
+          "type": "object",
+          "required": ["pass", "ran_at"],
+          "additionalProperties": false,
+          "description": "Results from the beads (bd) preflight check — validates that the environment is ready for gate operations.",
+          "properties": {
+            "pass": {
+              "type": ["boolean", "null"],
+              "description": "Null means not yet run. True if bd preflight completed with no issues."
+            },
+            "ran_at": {
+              "type": ["string", "null"],
+              "format": "date-time",
+              "description": "ISO 8601 timestamp when the preflight was executed. Null if not yet run."
+            },
+            "issues": {
+              "type": "array",
+              "description": "List of preflight issues found. Empty array when pass=true.",
+              "items": {
+                "type": "object",
+                "required": ["check", "message"],
+                "additionalProperties": false,
+                "properties": {
+                  "check": {
+                    "type": "string",
+                    "description": "Name of the preflight check that failed."
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "Human-readable description of the issue."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "schema_version": "1",
+      "generated_at": "2026-03-16T10:30:00Z",
+      "expires_at": "2026-03-16T11:30:00Z",
+      "gate_id": "bd-xxxx",
+      "overall_pass": false,
+      "checks": {
+        "codex_review": {
+          "pass": true,
+          "ran_at": "2026-03-16T10:28:00Z",
+          "critical_count": 0,
+          "high_count": 0,
+          "medium_count": 2,
+          "low_count": 1,
+          "findings": [
+            {"severity": "MEDIUM", "file": "src/gate.ts", "line": 42, "message": "Function exceeds 50 line limit"},
+            {"severity": "MEDIUM", "file": "src/gate.ts", "line": 87, "message": "Missing error handling for null return"},
+            {"severity": "LOW", "file": "src/utils.ts", "line": null, "message": "Consider extracting magic number to named constant"}
+          ],
+          "summary": "No blocking issues found. 2 medium and 1 low findings for review."
+        },
+        "bd_preflight": {
+          "pass": null,
+          "ran_at": null,
+          "issues": []
+        }
+      }
+    }
+  ]
+}

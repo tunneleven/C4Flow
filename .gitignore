@@ -2,3 +2,6 @@
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+
+# C4Flow quality gate (ephemeral, regenerated each review run)
+quality-gate-status.json
