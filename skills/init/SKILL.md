@@ -67,7 +67,19 @@ The script will:
 
 If push fails (auth), it tells the user to run `dolt login` first.
 
-### Step 2: Report Result
+### Step 2: Update State
+
+If a DoltHub remote was configured, save the API URL to `docs/c4flow/.state.json`:
+
+```json
+{
+  "doltRemote": "https://doltremoteapi.dolthub.com/org/repo"
+}
+```
+
+Read the existing `.state.json` first (create it if missing), then merge the `doltRemote` field.
+
+### Step 3: Report Result
 
 The script outputs a verification summary. Just relay it to the user.
 

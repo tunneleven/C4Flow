@@ -63,6 +63,7 @@ File: `docs/c4flow/.state.json`
   "completedStates": [],
   "failedAttempts": 0,
   "beadsEpic": null,
+  "doltRemote": null,
   "worktree": null,
   "prNumber": null,
   "lastError": null
@@ -78,6 +79,7 @@ File: `docs/c4flow/.state.json`
 - **completedStates**: Array of state names that have been completed
 - **failedAttempts**: Counter for consecutive failures in current state
 - **beadsEpic**: Beads epic ID if beads is installed (e.g., "bd-a1b2")
+- **doltRemote**: DoltHub remote URL for beads sync (e.g., "https://doltremoteapi.dolthub.com/org/repo")
 - **worktree**: Path to active worktree, or null
 - **prNumber**: PR number if created, or null
 - **lastError**: Last error message, or null

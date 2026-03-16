@@ -22,6 +22,7 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
        "completedStates": [],
        "failedAttempts": 0,
        "beadsEpic": null,
+       "doltRemote": null,
        "worktree": null,
        "prNumber": null,
        "lastError": null
