@@ -20,7 +20,7 @@ Installs and configures all C4Flow dependencies in the current project:
 
 ### Step 1: Find and Run the Init Script
 
-The init script handles everything automatically. Find and run it:
+The init script is bundled with this skill. Find and run it:
 
 ```bash
 # Search common locations (latest version first for plugin cache)
@@ -29,8 +29,8 @@ for dir in \
   "$(pwd)" \
   $(ls -d "$HOME/.claude/plugins/cache/c4flow-marketplace/c4flow/"*/ 2>/dev/null | sort -V -r) \
   "$HOME/.codex/c4flow"; do
-  if [ -f "$dir/scripts/init.sh" ]; then
-    INIT_SCRIPT="$dir/scripts/init.sh"
+  if [ -f "$dir/skills/init/init.sh" ]; then
+    INIT_SCRIPT="$dir/skills/init/init.sh"
     break
   fi
 done
@@ -58,7 +58,7 @@ The script will:
 If the user provides a DoltHub URL, pass it with `--remote`:
 
 ```bash
-bash "$dir/scripts/init.sh" --remote https://www.dolthub.com/repositories/org/repo
+bash "$dir/skills/init/init.sh" --remote https://www.dolthub.com/repositories/org/repo
 ```
 
 The script accepts these URL formats:

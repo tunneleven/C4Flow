@@ -106,12 +106,12 @@ Phase 1 covers the **Research & Spec** workflow: web research via sub-agent, the
 ```
 c4flow/
 ├── .claude-plugin/
-│   └── plugin.json                 # Plugin manifest (v0.3.0)
-├── scripts/
-│   └── init.sh                     # Auto-install dependencies (Dolt, Beads)
+│   └── plugin.json                 # Plugin manifest (v0.5.1)
 ├── skills/
 │   ├── c4flow/SKILL.md             # Master orchestrator
-│   ├── init/SKILL.md               # Project init (auto-install deps)
+│   ├── init/
+│   │   ├── SKILL.md                # Project init (auto-install deps)
+│   │   └── init.sh                 # Auto-install script (Dolt, Beads)
 │   ├── research/SKILL.md           # Web research (implemented)
 │   ├── spec/SKILL.md               # Spec generation (implemented)
 │   ├── beads/SKILL.md              # Task breakdown (implemented)

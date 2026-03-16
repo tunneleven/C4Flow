@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # c4flow init — install and configure dependencies for C4Flow workflow
-# Usage: scripts/init.sh [--skip-beads] [--prefix PREFIX] [--remote URL]
+# Usage: skills/init/init.sh [--skip-beads] [--prefix PREFIX] [--remote URL]
 #
 # Installs Dolt + Beads, runs bd init, configures DoltHub sync.
 # Target: complete in under 30 seconds.
@@ -42,7 +42,7 @@ while [[ $# -gt 0 ]]; do
     --remote)     REMOTE="$2"; shift 2 ;;
     --remote=*)   REMOTE="${1#*=}"; shift ;;
     -h|--help)
-      echo "Usage: scripts/init.sh [--skip-beads] [--prefix PREFIX] [--remote URL]"
+      echo "Usage: init.sh [--skip-beads] [--prefix PREFIX] [--remote URL]"
       echo ""
       echo "Options:"
       echo "  --skip-beads    Skip Beads (bd) installation"
