@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: "Checkpoint: 02-safety-net-hooks/02-02-PLAN.md Task 2 human-verify"
-last_updated: "2026-03-16T09:32:08.108Z"
+stopped_at: Completed 02-safety-net-hooks/02-02-PLAN.md
+last_updated: "2026-03-16T09:45:02.283Z"
 last_activity: 2026-03-16 — Roadmap created; phases derived from requirements
 progress:
   total_phases: 3
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-local-gate-infrastructure P04 | 15 | 2 tasks | 1 files |
 | Phase 02-safety-net-hooks P01 | 2 | 2 tasks | 4 files |
 | Phase 02-safety-net-hooks P02 | 6 | 1 tasks | 6 files |
+| Phase 02-safety-net-hooks P02 | 30 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,8 @@ Recent decisions affecting current work:
 - [Phase 02-safety-net-hooks]: TaskCompleted missing-file check queries active gate count before blocking (Pitfall 3 prevention — prevents false positives in no-review contexts)
 - [Phase 02-safety-net-hooks]: Subshell export pattern for hook tests: (export VAR=val; cd dir; echo json | bash hook) avoids env-only-applies-to-echo pipeline pitfall
 - [Phase 02-safety-net-hooks]: Suite runner uses $((N+1)) not ((N++)) to avoid set -e exit-1 on zero arithmetic result
+- [Phase 02-safety-net-hooks]: Hook tests use subshell export pattern to ensure env vars reach bash hook script, not just the echo LHS of pipeline
+- [Phase 02-safety-net-hooks]: Suite runner uses $((N+1)) not ((N++)) to avoid set -e exit-1 on zero arithmetic result
 
 ### Pending Todos
 
@@ -97,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T09:32:08.105Z
-Stopped at: Checkpoint: 02-safety-net-hooks/02-02-PLAN.md Task 2 human-verify
+Last session: 2026-03-16T09:45:02.281Z
+Stopped at: Completed 02-safety-net-hooks/02-02-PLAN.md
 Resume file: None

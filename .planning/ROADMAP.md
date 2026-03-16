@@ -17,7 +17,7 @@ layer is added.
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Local Gate Infrastructure** - Codex review, bd preflight, beads gate creation/resolution, and the two skills that wrap them
-- [ ] **Phase 2: Safety Net Hooks** - Claude Code hooks that intercept agent-initiated closes and session stops
+- [x] **Phase 2: Safety Net Hooks** - Claude Code hooks that intercept agent-initiated closes and session stops (completed 2026-03-16)
 - [ ] **Phase 3: PR Skill** - Create GitHub PR with quality gate status summary in description
 
 ## Phase Details
@@ -49,7 +49,7 @@ Plans:
   2. When an agent session ends with open beads gates, the Stop hook blocks session termination and lists the open gates
   3. When a task is marked complete via TaskUpdate while its quality gates are open, the TaskCompleted hook blocks the completion
   4. All hooks are project-scoped (not global) and activate only within C4Flow projects
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 02-01-PLAN.md — Hook scripts and settings.json config (bd-close-gate, check-open-gates, task-complete-gate)
@@ -73,5 +73,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Local Gate Infrastructure | 3/4 | In Progress|  |
-| 2. Safety Net Hooks | 0/2 | Not started | - |
+| 2. Safety Net Hooks | 2/2 | Complete   | 2026-03-16 |
 | 3. PR Skill | 0/TBD | Not started | - |
