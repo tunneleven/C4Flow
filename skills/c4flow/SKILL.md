@@ -91,7 +91,18 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 - If gate passes: add TEST to `completedStates`, advance `currentState` to REVIEW, write `.state.json`
 - If gate fails: tell user the results, ask what to do
 
-### If state is any other (unimplemented skills: DESIGN, CODE, REVIEW through DEPLOY)
+### If state is CODE
+- Check for partial implementation context:
+  - `beadsEpic` or assigned beads task state in `docs/c4flow/.state.json`
+  - `docs/specs/{feature.slug}/tasks.md`
+  - existing worktree or in-progress implementation notes
+- If partial output found: present it to user, ask "Resume existing implementation context or regenerate task inputs?"
+- Load the c4flow:code skill and follow its instructions.
+- After the skill completes, check gate: all assigned tasks closed via beads or `tasks.md`
+- If gate passes: add CODE to `completedStates`, advance `currentState` to TEST, write `.state.json`
+- If gate fails: tell user what remains open, ask what to do
+
+### If state is any other (unimplemented skills: DESIGN, REVIEW through DEPLOY)
 - Tell the user: "**{state}** (Phase {N}: {phase-name}) is not yet implemented."
 - Show the gate condition that would need to pass to advance
 - Offer options:

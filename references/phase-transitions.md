@@ -11,7 +11,7 @@ Each state transition requires its gate condition to be met before advancing.
 | SPEC → DESIGN | All spec artifacts exist and user approved | Check `proposal.md`, `tech-stack.md`, `spec.md`, `design.md` in `docs/specs/<feature>/` |
 | DESIGN → BEADS | Design system + mockups approved | User confirmation |
 | BEADS → CODE | Epic + tasks created, user confirmed | Check beads epic or `tasks.md` exists |
-| CODE → TEST | All assigned tasks closed | Check beads or `tasks.md` all checked |
+| CODE → TEST | All assigned tasks closed after `c4flow:code` delegates execution | Check beads or `tasks.md` all checked |
 | TEST → REVIEW | Tests pass, coverage >= threshold | Test runner output |
 | REVIEW → VERIFY | 0 CRITICAL + 0 HIGH issues | Review report |
 | VERIFY → PR | `Ready for PR: YES` | Verify output |

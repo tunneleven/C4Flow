@@ -9,7 +9,7 @@
 | 2 | SPEC | 1: Research & Spec | Spec artifact generation |
 | 3 | DESIGN | 2: Design & Beads | Design system + mockups |
 | 4 | BEADS | 2: Design & Beads | Task breakdown |
-| 5 | CODE | 3: Implementation | Code execution |
+| 5 | CODE | 3: Implementation | Delegated implementation via the Superpowers subagent-driven workflow |
 | 6 | TDD | 3: Implementation | Test-driven development (merged with CODE) |
 | 7 | TEST | 4: Testing | Unit + integration tests |
 | 8 | E2E | 4: Testing | End-to-end tests (manual trigger) |
@@ -38,7 +38,7 @@ States NOT in the auto flow (manual trigger only):
 | SPEC | phases/02-spec/SKILL.md | Main agent |
 | DESIGN | phases/03-design/SKILL.md | Sub-agent + Main confirm |
 | BEADS | phases/04-beads/SKILL.md | Main agent |
-| CODE | phases/05-code/SKILL.md | Sub-agent per task |
+| CODE | skills/code/SKILL.md | Main coordinator delegating to Superpowers sub-agents |
 | TDD | phases/06-tdd/SKILL.md | Sub-agent (merged with code) |
 | TEST | skills/test/SKILL.md | Sub-agent |
 | E2E | phases/08-e2e/SKILL.md | Sub-agent (manual trigger) |
