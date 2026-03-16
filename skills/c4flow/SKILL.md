@@ -27,6 +27,17 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
        "lastError": null
      }
      ```
+   - **`feature` schema** (when set, MUST be an object with exactly these fields):
+     ```json
+     {
+       "name": "AI Log Analyzer",
+       "slug": "ai-log-analyzer",
+       "description": "One-sentence feature description from user input"
+     }
+     ```
+     - `name`: display name (original casing from user)
+     - `slug`: kebab-cased version used for directory paths (e.g., `docs/specs/<slug>/`)
+     - `description`: the full feature description provided by the user
    - If the file exists but is invalid JSON, warn the user that state was lost and create a fresh file
 
 2. Display the current state using the format from `/c4flow:status`
@@ -37,20 +48,23 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 - If arguments were passed (e.g., via `/c4flow:run my feature idea`), use them as the feature name/description instead of asking
 - Check for `--fast` flag in arguments. If present, set `mode: "fast"` in `.state.json`. Default: `mode: "research"`
 - Otherwise, ask the user for a feature name and description
-- Kebab-case the feature name for the directory (e.g., "User Auth" → "user-auth")
-- Update `.state.json`: set `feature`, `mode`, `startedAt` to today's date, advance `currentState` to `RESEARCH`
+- Kebab-case the feature name for the slug (e.g., "User Auth" → "user-auth")
+- Update `.state.json`:
+  - Set `feature` to `{ "name": "<display name>", "slug": "<kebab-case>", "description": "<user description>" }`
+  - Set `mode`, `startedAt` to today's date
+  - Advance `currentState` to `RESEARCH`
 - Proceed to RESEARCH
 
 ### If DONE
-- Tell the user: "Workflow complete for '{feature}'."
+- Tell the user: "Workflow complete for '{feature.name}'."
 - Ask: "Start a new feature or review the completed work?"
 - If new feature: reset `.state.json` to IDLE state, ask for new feature info
 - If review: show summary of completed states and output files
 
 ### If state is RESEARCH or SPEC (implemented skills)
 - Check for partial output from a previous interrupted session:
-  - RESEARCH: check if `docs/specs/{feature}/research.md` exists
-  - SPEC: check which of `proposal.md`, `tech-stack.md`, `spec.md`, `design.md` exist in `docs/specs/{feature}/`
+  - RESEARCH: check if `docs/specs/{feature.slug}/research.md` exists
+  - SPEC: check which of `proposal.md`, `tech-stack.md`, `spec.md`, `design.md` exist in `docs/specs/{feature.slug}/`
 - If partial output found: present it to user, ask "Reuse existing {files} or regenerate?"
 - Run the skill for the current state (see Skill Dispatch below)
 - After skill completes, check the exit gate condition (see `references/phase-transitions.md`)
@@ -58,7 +72,7 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 - If gate fails: tell user what's missing, ask what to do
 
 ### If state is BEADS (implemented)
-- Check for partial output: does beads epic already exist (`beadsEpic` in state) or does `docs/specs/{feature}/tasks.md` exist?
+- Check for partial output: does beads epic already exist (`beadsEpic` in state) or does `docs/specs/{feature.slug}/tasks.md` exist?
 - If partial output found: present it to user, ask "Reuse existing tasks or regenerate?"
 - Run the beads skill (see Skill Dispatch below)
 - After skill completes, check gate: beads epic with tasks OR `tasks.md` exists
@@ -82,10 +96,10 @@ Dispatch a sub-agent. Provide the sub-agent with:
 3. Execute with these parameters:
 
 ```
-Feature: {feature name}
-Description: {feature description from user}
+Feature: {feature.name}
+Description: {feature.description}
 Mode: {mode from .state.json — "fast" or "research"}
-Output: docs/specs/{feature}/research.md
+Output: docs/specs/{feature.slug}/research.md
 ```
 
 4. Follow `prompt.md` step by step (7 steps: parse → Layer 1 market → Layer 2 technical → quality gate → executive summary → write → report status)
