@@ -16,9 +16,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Hooks (Fast File Check Pattern)
 
-- [ ] **HOOK-01**: PreToolUse hook on Bash intercepts agent-initiated `bd close` commands — reads `quality-gate-status.json` (~100ms), denies with explanation if gates not passed
-- [ ] **HOOK-02**: Stop hook checks for unresolved beads gates before agent session ends, blocks with list of open gates
-- [ ] **HOOK-03**: TaskCompleted hook blocks task completion via TaskUpdate if quality gates are still open for the associated beads task
+- [x] **HOOK-01**: PreToolUse hook on Bash intercepts agent-initiated `bd close` commands — reads `quality-gate-status.json` (~100ms), denies with explanation if gates not passed
+- [x] **HOOK-02**: Stop hook checks for unresolved beads gates before agent session ends, blocks with list of open gates
+- [x] **HOOK-03**: TaskCompleted hook blocks task completion via TaskUpdate if quality gates are still open for the associated beads task
 
 ### Skills
 
@@ -29,8 +29,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Infrastructure
 
 - [x] **INFR-01**: `.claude/agents/code-reviewer.md` subagent definition that runs Codex review in isolated context, returns structured JSON
-- [ ] **INFR-02**: `.claude/hooks/` shell scripts: `bd-close-gate.sh` (PreToolUse), `check-open-gates.sh` (Stop), `task-complete-gate.sh` (TaskCompleted)
-- [ ] **INFR-03**: Hooks configuration in `.claude/settings.json` with project-scoped matchers and appropriate timeouts
+- [x] **INFR-02**: `.claude/hooks/` shell scripts: `bd-close-gate.sh` (PreToolUse), `check-open-gates.sh` (Stop), `task-complete-gate.sh` (TaskCompleted)
+- [x] **INFR-03**: Hooks configuration in `.claude/settings.json` with project-scoped matchers and appropriate timeouts
 - [x] **INFR-04**: Gate resolution audit trail — reason string logged on every `bd gate resolve` and `bd close --reason`
 - [x] **INFR-05**: Beads molecule formula template with explicit review and verify gate steps that block task advancement
 - [x] **INFR-06**: `quality-gate-status.json` schema definition — includes per-check pass/fail, timestamps, expiry, and findings summary
@@ -77,15 +77,15 @@ Deferred to future release. Tracked but not in current roadmap.
 | GATE-02 | Phase 1 | Complete |
 | GATE-03 | Phase 1 | Complete |
 | GATE-04 | Phase 1 | Complete |
-| HOOK-01 | Phase 2 | Pending |
-| HOOK-02 | Phase 2 | Pending |
-| HOOK-03 | Phase 2 | Pending |
+| HOOK-01 | Phase 2 | Complete |
+| HOOK-02 | Phase 2 | Complete |
+| HOOK-03 | Phase 2 | Complete |
 | SKIL-01 | Phase 1 | Complete |
 | SKIL-02 | Phase 1 | Complete |
 | SKIL-03 | Phase 3 | Pending |
 | INFR-01 | Phase 1 | Complete |
-| INFR-02 | Phase 2 | Pending |
-| INFR-03 | Phase 2 | Pending |
+| INFR-02 | Phase 2 | Complete |
+| INFR-03 | Phase 2 | Complete |
 | INFR-04 | Phase 1 | Complete |
 | INFR-05 | Phase 1 | Complete |
 | INFR-06 | Phase 1 | Complete |

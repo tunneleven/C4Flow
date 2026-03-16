@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-local-gate-infrastructure/01-04-PLAN.md
-last_updated: "2026-03-16T08:34:21.016Z"
+stopped_at: Completed 02-safety-net-hooks/02-01-PLAN.md
+last_updated: "2026-03-16T09:22:00.436Z"
 last_activity: 2026-03-16 — Roadmap created; phases derived from requirements
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 5
   percent: 0
 ---
 
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-local-gate-infrastructure P02 | 2 | 1 tasks | 1 files |
 | Phase 01-local-gate-infrastructure P03 | 3 | 1 tasks | 1 files |
 | Phase 01-local-gate-infrastructure P04 | 15 | 2 tasks | 1 files |
+| Phase 02-safety-net-hooks P01 | 2 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ Recent decisions affecting current work:
 - [Phase 01-local-gate-infrastructure]: bd close --reason reminder always printed on Ready for PR: YES — INFR-04 audit trail compliance
 - [Phase 01-local-gate-infrastructure]: Beads formula uses TOML schema (not YAML): Step struct confirmed via empirical validation; formula file is .formula.toml
 - [Phase 01-local-gate-infrastructure]: No native gate type in beads Step schema: gate semantics expressed via acceptance criteria and needs ordering; actual gate beads created dynamically by c4flow skills
+- [Phase 02-safety-net-hooks]: Hook safety net pattern: read-only hooks (PreToolUse/Stop/TaskCompleted) reading quality-gate-status.json and bd gate list; never write state
+- [Phase 02-safety-net-hooks]: PreToolUse hook uses file read (~100ms) not bd gate list CLI (~300ms) to avoid hot-path slowdown on every Bash call
+- [Phase 02-safety-net-hooks]: TaskCompleted missing-file check queries active gate count before blocking (Pitfall 3 prevention — prevents false positives in no-review contexts)
 
 ### Pending Todos
 
@@ -90,6 +94,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T08:34:21.014Z
-Stopped at: Completed 01-local-gate-infrastructure/01-04-PLAN.md
+Last session: 2026-03-16T09:22:00.434Z
+Stopped at: Completed 02-safety-net-hooks/02-01-PLAN.md
 Resume file: None
