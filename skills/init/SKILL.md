@@ -23,18 +23,24 @@ Installs and configures all C4Flow dependencies in the current project:
 The init script handles everything automatically. Find and run it:
 
 ```bash
-# Search common locations
+# Search common locations (latest version first for plugin cache)
+INIT_SCRIPT=""
 for dir in \
   "$(pwd)" \
-  "$HOME/.claude/plugins/cache/c4flow-marketplace/c4flow/"*/ \
+  $(ls -d "$HOME/.claude/plugins/cache/c4flow-marketplace/c4flow/"*/ 2>/dev/null | sort -V -r) \
   "$HOME/.codex/c4flow"; do
   if [ -f "$dir/scripts/init.sh" ]; then
-    echo "Found: $dir/scripts/init.sh"
-    bash "$dir/scripts/init.sh"
-    exit 0
+    INIT_SCRIPT="$dir/scripts/init.sh"
+    break
   fi
 done
-echo "Init script not found"
+
+if [ -n "$INIT_SCRIPT" ]; then
+  echo "Found: $INIT_SCRIPT"
+  bash "$INIT_SCRIPT" "$@"
+else
+  echo "Init script not found"
+fi
 ```
 
 The script will:
