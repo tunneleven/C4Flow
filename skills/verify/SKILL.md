@@ -9,6 +9,25 @@ description: Quality gate aggregation — runs bd preflight, combines with Codex
 **Agent type**: Main agent (interactive with user)
 **Status**: Implemented
 
+## Handoff from REVIEW → VERIFY
+
+```
+CODE (per-task reviews) → TEST → REVIEW (Codex full-branch) → VERIFY (you) → PR
+```
+
+**What REVIEW already did:**
+- Ran Codex review on full branch diff vs main
+- Wrote `codex_review` results to `quality-gate-status.json`
+- Created/reused the beads quality gate (`gate_id`)
+
+**What VERIFY does:**
+- Runs `bd preflight --check --json` (lint, TODO markers, uncommitted changes, etc.)
+- Merges preflight results with existing Codex review data
+- Declares **Ready for PR: YES / NO** based on both checks
+- Resolves the beads gate when both pass
+
+The gate requires BOTH `codex_review.pass` AND `bd_preflight.pass` to be `true`. Either being `null` or `false` blocks the gate.
+
 ## Overview
 
 This skill runs `bd preflight --check --json`, merges results with any existing `codex_review` data in `quality-gate-status.json`, resolves the beads gate when all checks pass, and declares a clear **Ready for PR: YES / NO** verdict.
@@ -322,3 +341,31 @@ Print which checks need attention:
 - **Gate ID persistence:** If `gate_id` is missing, label-based fallback lookup (`c4flow-quality-gate`) recovers it before giving up.
 - **Expiry check:** An expired gate status requires a fresh `/c4flow:review` run, not just a re-verify.
 - **bd close audit trail:** Ready for PR output always includes the `bd close --reason` reminder (INFR-04).
+
+## Full Quality Pipeline
+
+```
+BEADS
+  └── Tasks created (bd create) with epic
+
+CODE (c4flow:code)
+  ├── Per-task: implementer → spec review → quality review → bd close
+  └── All tasks closed → advance to TEST
+
+TEST (c4flow:test)
+  └── Full test suite, coverage gate → advance to REVIEW
+
+REVIEW (c4flow:review)
+  ├── Codex review --base main (full branch diff)
+  ├── Writes codex_review to quality-gate-status.json
+  └── Creates/reuses beads quality gate → advance to VERIFY
+
+VERIFY (c4flow:verify — you are here)
+  ├── bd preflight --check --json
+  ├── Merges with codex_review results
+  ├── Both pass? → bd gate resolve → Ready for PR: YES
+  └── Either fail? → Ready for PR: NO (explain what to fix)
+
+PR (c4flow:pr)
+  └── Creates pull request with gate status in description
+```

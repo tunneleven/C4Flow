@@ -21,10 +21,10 @@ fail() {
 
 echo "--- test-code-fallbacks.sh ---"
 
-if grep -q 'using-git-worktrees' "$TARGET"; then
-  pass "skill requires using-git-worktrees"
+if grep -q 'docs/c4flow/plans/YYYY-MM-DD-<feature-slug>.md' "$TARGET"; then
+  pass "skill includes local implementation-plan recovery path"
 else
-  fail "skill missing using-git-worktrees"
+  fail "skill missing local implementation-plan recovery path"
 fi
 
 if grep -q '/c4flow:beads' "$TARGET"; then
@@ -39,7 +39,7 @@ else
   fail "skill missing gsd-plan-phase recovery command"
 fi
 
-if grep -qi 'manual fallback' "$TARGET" || grep -qi 'execute manually from the approved plan' "$TARGET"; then
+if grep -qi 'manual fallback' "$TARGET" || grep -qi 'fall back to `tasks.md`' "$TARGET"; then
   pass "skill documents manual fallback guidance"
 else
   fail "skill missing manual fallback guidance"
@@ -49,6 +49,12 @@ if grep -q 'Direct invocation is allowed' "$TARGET"; then
   pass "skill documents direct invocation recovery mode"
 else
   fail "skill missing direct invocation recovery guidance"
+fi
+
+if grep -q 'bd dolt push' "$TARGET"; then
+  pass "skill includes Beads sync step"
+else
+  fail "skill missing Beads sync step"
 fi
 
 TOTAL=$((PASS + FAIL))

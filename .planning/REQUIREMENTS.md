@@ -26,6 +26,12 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **SKIL-02**: `c4flow:verify` skill — runs bd preflight, aggregates all gate results (Codex + preflight), declares "Ready for PR: YES/NO" with summary
 - [x] **SKIL-03**: `c4flow:pr` skill — creates GitHub PR with quality gate status summary in description, updates .state.json with PR number
 
+### Workflow Execution
+
+- [x] **SKIL-04**: `c4flow:code` is a standalone CODE workflow that executes from local C4Flow plans and does not depend on unavailable Superpowers delegation skills
+- [x] **SKIL-05**: `docs/c4flow/.state.json` persists CODE task identity and implementation-plan references (`taskSource`, `taskQuery`, `taskIds`, `claimedTasks`, `implementationPlan`) so resume and CODE → TEST gating are deterministic
+- [x] **SKIL-06**: The BEADS → CODE contract records enough task metadata for CODE to claim, execute, close, and sync work through bd
+
 ### Infrastructure
 
 - [x] **INFR-01**: `.claude/agents/code-reviewer.md` subagent definition that runs Codex review in isolated context, returns structured JSON
@@ -83,6 +89,9 @@ Deferred to future release. Tracked but not in current roadmap.
 | SKIL-01 | Phase 1 | Complete |
 | SKIL-02 | Phase 1 | Complete |
 | SKIL-03 | Phase 3 | Complete |
+| SKIL-04 | Phase 4.1 | Complete |
+| SKIL-05 | Phase 4.1 | Complete |
+| SKIL-06 | Phase 4.1 | Complete |
 | INFR-01 | Phase 1 | Complete |
 | INFR-02 | Phase 2 | Complete |
 | INFR-03 | Phase 2 | Complete |
@@ -91,10 +100,10 @@ Deferred to future release. Tracked but not in current roadmap.
 | INFR-06 | Phase 1 | Complete |
 
 **Coverage:**
-- v1 requirements: 16 total
-- Mapped to phases: 16
+- v1 requirements: 19 total
+- Mapped to phases: 19
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-16*
-*Last updated: 2026-03-16 after roadmap creation — phase mapping confirmed*
+*Last updated: 2026-03-17 after Phase 4.1 standalone CODE execution contract update*

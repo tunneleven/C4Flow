@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: active
-stopped_at: Added Phase 5 to the roadmap for TDD flow integration from Superpowers into C4Flow
-last_updated: "2026-03-16T16:47:17Z"
-last_activity: 2026-03-16 — Added Phase 5 to capture TDD flow integration from Superpowers into C4Flow
+stopped_at: Completed Phase 4.1 plan and execution for standalone beads-driven CODE workflow
+last_updated: "2026-03-17T00:00:00Z"
+last_activity: 2026-03-17 — Inserted and completed Phase 4.1 to replace broken Superpowers CODE delegation with a standalone beads-driven flow
 progress:
-  total_phases: 5
-  completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
-  percent: 80
+  total_phases: 6
+  completed_phases: 5
+  total_plans: 10
+  completed_plans: 10
+  percent: 83
 ---
 
 # Project State
@@ -25,17 +25,17 @@ See: .planning/PROJECT.md (updated 2026-03-16)
 
 ## Current Position
 
-Phase: 5 of 5 (add tdd flow from superpowers into ours c4flow)
+Phase: 5 of 6 (add tdd flow from superpowers into ours c4flow)
 Plan: 0 plans created in current phase
-Status: Phase added, planning pending
-Last activity: 2026-03-16 — Added Phase 5 to capture TDD flow integration from Superpowers into C4Flow
+Status: Phase 4.1 completed; next work is Phase 5 planning
+Last activity: 2026-03-17 — Completed Phase 4.1 standalone CODE contract repair
 
-Progress: [████████░░] 80%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 9
+- Total plans completed: 10
 - Average duration: -
 - Total execution time: 0 hours
 
@@ -46,8 +46,8 @@ Progress: [████████░░] 80%
 | - | - | - | - |
 
 **Recent Trend:**
-- Last 5 plans: Phase 4 completed; Phase 5 added to roadmap
-- Trend: milestone reopened for follow-on planning
+- Last 5 plans: Phase 4 completed; Phase 4.1 inserted and completed; Phase 5 pending
+- Trend: milestone stabilized after CODE contract repair
 
 *Updated after each plan completion*
 | Phase 01-local-gate-infrastructure P01 | 2 | 2 tasks | 3 files |
@@ -60,6 +60,7 @@ Progress: [████████░░] 80%
 | Phase 03-pr-skill P01 | 25 | 3 tasks | 9 files |
 | Phase 04-c4flow-code P01 | 25 | 2 tasks | 4 files |
 | Phase 04-c4flow-code P02 | 15 | 2 tasks | 6 files |
+| Phase 04.1-standalone-beads-driven-c4flow-code P01 | 20 | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -93,8 +94,9 @@ Recent decisions affecting current work:
 - [Phase 03-pr-skill]: PR body written to temp file and passed via --body-file (not inline --body) to avoid shell escaping issues
 - [Phase 03-pr-skill]: Warn-not-block pattern for failed gates: shows WARNING + confirmation, never exits 1 solely for failed gates
 - [Phase 03-pr-skill]: Atomic jq merge for .state.json preserves all existing fields when writing prNumber
-- [Phase 04-c4flow-code]: CODE skill is a thin coordinator that delegates to using-superpowers, using-git-worktrees, and subagent-driven-development
-- [Phase 04-c4flow-code]: CODE → TEST remains gated on all assigned work closing in beads or tasks.md after delegated execution
+- [Phase 04-c4flow-code]: Initial CODE routing through Superpowers landed, but the dependency stack was unavailable locally and did not persist enough task identity for deterministic resume
+- [Phase 04.1-c4flow-code-standalone]: CODE is a standalone workflow driven by local planning artifacts plus bd lifecycle commands; it no longer depends on external Superpowers delegation skills
+- [Phase 04.1-c4flow-code-standalone]: `.state.json` now documents `taskSource`, `taskQuery`, `taskIds`, `claimedTasks`, and `implementationPlan` so CODE → TEST gating can be precise
 
 ### Pending Todos
 
@@ -104,6 +106,7 @@ None yet.
 
 - Phase 4 added: Add superpowers and subagent-driven-development into c4flow code skill as part of the workflow
 - Phase 5 added: add tdd flow from superpowers into ours c4flow
+- Phase 4.1 inserted: standalone beads-driven CODE workflow and state-contract repair
 
 ### Blockers/Concerns
 
@@ -113,6 +116,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T16:47:17Z
-Stopped at: Added Phase 5 to the roadmap for TDD flow integration from Superpowers into C4Flow
+Last session: 2026-03-17T00:00:00Z
+Stopped at: Completed Phase 4.1 plan and execution for standalone beads-driven CODE workflow
 Resume file: None

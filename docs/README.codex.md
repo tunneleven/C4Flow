@@ -30,11 +30,12 @@ Codex scans `~/.agents/skills/` at startup, parsing SKILL.md frontmatter to disc
 | c4flow:spec | Interactive spec generation (4 artifacts) | Implemented |
 | c4flow:beads | Task breakdown with epic/tasks | Implemented |
 | c4flow:design | Design system + mockups | Stub |
-| c4flow:code | Code implementation via sub-agents | Stub |
+| c4flow:code | Subagent-driven implementation with per-task review | Implemented |
+| c4flow:tdd | Test-driven development for implementer subagents | Implemented |
 | c4flow:test | Unit + integration tests | Stub |
-| c4flow:review | AI code review loop | Stub |
-| c4flow:verify | Quality gate | Stub |
-| c4flow:pr | Create pull request | Stub |
+| c4flow:review | AI code review loop | Implemented |
+| c4flow:verify | Quality gate | Implemented |
+| c4flow:pr | Create pull request | Implemented |
 | c4flow:merge | Merge to main | Stub |
 | c4flow:deploy | Deploy to production | Stub |
 

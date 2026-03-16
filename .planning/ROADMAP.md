@@ -2,11 +2,11 @@
 
 ## Overview
 
-Four phases build the quality gate chain from the inside out: first prove the local gate
-mechanism works (Codex review + bd preflight + beads gates), then add Claude Code hooks as
-a safety net against agent-initiated bypasses, then wire up PR creation with gate status in
-the description, then extend the Superpowers integration with the TDD flow. Each phase
-delivers a verifiable enforcement capability before the next layer is added.
+The roadmap first proves the local quality-gate chain (Codex review + bd preflight + beads
+gates), then adds Claude Code hooks as a safety net, then wires up PR creation, then repairs
+the CODE execution contract so implementation is standalone and beads-driven, and finally
+extends the workflow with a dedicated TDD phase. Each phase delivers a verifiable capability
+before the next layer is added.
 
 ## Phases
 
@@ -19,7 +19,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Local Gate Infrastructure** - Codex review, bd preflight, beads gate creation/resolution, and the two skills that wrap them
 - [x] **Phase 2: Safety Net Hooks** - Claude Code hooks that intercept agent-initiated closes and session stops (completed 2026-03-16)
 - [x] **Phase 3: PR Skill** - Create GitHub PR with quality gate status summary in description
-- [x] **Phase 4: Superpowers + Subagent-Driven c4flow:code** - Integrate `superpowers` and `subagent-driven-development` into the `c4flow:code` skill workflow (completed 2026-03-16)
+- [x] **Phase 4: Superpowers + Subagent-Driven c4flow:code** - Initial CODE routing through external Superpowers skills (completed 2026-03-16)
+- [x] **Phase 4.1 (INSERTED): Standalone beads-driven c4flow:code** - Replace the broken Superpowers dependency with a standalone CODE workflow and richer state/task contracts (completed 2026-03-17)
 - [ ] **Phase 5: add tdd flow from superpowers into ours c4flow** - Extend the C4Flow workflow to adopt the Superpowers TDD flow
 
 ## Phase Details
@@ -80,11 +81,26 @@ Plans:
 - [x] 04-01-PLAN.md — Implement `c4flow:code` orchestration and CODE-state routing through Superpowers
 - [x] 04-02-PLAN.md — Add regression tests and human verification for the new CODE workflow
 
+### Phase 4.1 (INSERTED): Standalone beads-driven c4flow:code
+**Goal**: Replace the unavailable Superpowers delegation path with a standalone `c4flow:code` workflow that uses local planning artifacts, persists CODE task identity, and drives the full beads lifecycle directly
+**Depends on**: Phase 4
+**Requirements**: SKIL-04, SKIL-05, SKIL-06
+**Success Criteria** (what must be TRUE):
+  1. `c4flow:code` no longer relies on `using-superpowers`, `using-git-worktrees`, or `subagent-driven-development`
+  2. CODE accepts implementation plans from `.planning/phases/...` or `docs/c4flow/plans/`, and its local plan guidance points to `docs/c4flow/plans/`
+  3. `.state.json` documents and preserves enough task metadata for CODE resume and CODE → TEST gating (`taskSource`, `taskQuery`, `taskIds`, `claimedTasks`, `implementationPlan`)
+  4. The documented beads lifecycle includes ready/show/claim/close/discovered-from/dolt-push instead of a vague "beads-aware" flow
+  5. The CODE regression suite validates the standalone contract rather than the removed Superpowers dependency
+**Plans:** 1/1 plans complete
+
+Plans:
+- [x] 04.1-01-PLAN.md — Rewrite CODE as a standalone beads-driven workflow and align state/reference contracts
+
 ### Phase 5: add tdd flow from superpowers into ours c4flow
 
 **Goal:** [To be planned]
 **Requirements**: TBD
-**Depends on:** Phase 4
+**Depends on:** Phase 4.1
 **Plans:** 0 plans
 
 Plans:
@@ -93,7 +109,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 4.1 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -101,4 +117,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Safety Net Hooks | 2/2 | Complete   | 2026-03-16 |
 | 3. PR Skill | 1/1 | Complete | 2026-03-16 |
 | 4. Superpowers + Subagent-Driven c4flow:code | 2/2 | Complete | 2026-03-16 |
+| 4.1. Standalone beads-driven c4flow:code | 1/1 | Complete | 2026-03-17 |
 | 5. add tdd flow from superpowers into ours c4flow | 0/0 | Not planned | - |

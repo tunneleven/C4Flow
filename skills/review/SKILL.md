@@ -9,6 +9,24 @@ description: AI code review via Codex subagent — writes quality-gate-status.js
 **Agent type**: Main agent (interactive with user)
 **Status**: Implemented
 
+## Handoff from CODE → TEST → REVIEW
+
+```
+BEADS → CODE (per-task: spec review + quality review) → TEST → REVIEW (you) → VERIFY → PR
+```
+
+**What CODE already checked (per task):**
+- Spec compliance — does each task match its requirements?
+- Basic code quality — naming, structure, test coverage per task
+
+**What REVIEW checks (full branch):**
+- Cross-task integration — do all the tasks work together?
+- Security — vulnerabilities, injection, auth issues across the full diff
+- Full-branch quality — patterns, consistency, dead code across all changes
+- Anything the per-task reviews missed
+
+This is the authoritative full-branch review. The per-task reviews in CODE are quick checks to catch issues early; this review is comprehensive.
+
 ## Overview
 
 This skill orchestrates a Codex subagent review, manages the beads gate lifecycle, writes `quality-gate-status.json`, and handles tool unavailability gracefully.
@@ -376,3 +394,16 @@ Fix the issues listed above, then re-run /c4flow:review.
 - **Parse safety:** Extract JSON with `grep -o '{.*}'` to handle prose wrapping (Pitfall 1).
 - **Null means not-run:** `overall_pass` is `false` whenever any check has `pass: null`.
 - **Subagent timeout:** Codex runs with `timeout 120` — synchronous only, never backgrounded (Pitfall 6).
+
+## Handoff to VERIFY
+
+After REVIEW passes (0 CRITICAL, 0 HIGH):
+- `quality-gate-status.json` has `codex_review.pass = true`
+- `bd_preflight.pass` is still `null` (not yet run)
+- `overall_pass` is `false` (both checks needed)
+
+Next step: `c4flow:verify` runs `bd preflight`, merges results, and resolves the gate when both pass.
+
+```
+REVIEW writes codex_review → VERIFY writes bd_preflight → both pass? → gate resolved → PR
+```

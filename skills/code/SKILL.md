@@ -1,232 +1,215 @@
 ---
 name: c4flow:code
-description: Execute code implementation via Superpowers subagent-driven workflow
+description: Execute code implementation via subagents, one task per agent, with two-stage review
 ---
 
-# /c4flow:code — Code Execution
+# /c4flow:code — Subagent-Driven Code Execution
 
 **Phase**: 3: Implementation
-**Purpose**: turn approved planning artifacts into finished implementation work
-**Role**: coordinator only; task execution happens downstream in Superpowers
+**Agent type**: Main agent (coordinator), dispatches subagents per task
 
-## Overview
+Execute plan by dispatching a fresh subagent per task, with two-stage review after each: spec compliance first, then code quality.
 
-CODE is the implementation phase of C4Flow.
+**Why subagents:** Fresh context per task prevents pollution. You construct exactly what each subagent needs — they never inherit session history. This preserves your context for coordination.
 
-TDD behavior is merged into CODE through the downstream Superpowers execution path.
-Do not build a second implementation workflow here.
-This skill validates inputs, routes into the shared Superpowers process, and only advances when implementation work is actually closed.
+**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
 
-Use this skill when:
-- the top-level `c4flow` workflow has moved `docs/c4flow/.state.json` to `currentState = "CODE"`
-- a previous CODE run needs to be resumed
-- recovery is needed after interrupted implementation work
+## Prerequisites
 
-Direct invocation is allowed for recovery and manual resume, but the operator must still satisfy the same CODE prerequisites and exit gate.
+Before dispatching any subagent:
 
-## Inputs This Skill Requires
+1. **Read workflow state** — `docs/c4flow/.state.json`
+   - Confirm `currentState` is `CODE`
+   - Extract `feature.slug`, `taskSource`, `beadsEpic`
 
-Implementation work must already be defined in one of these sources:
+2. **Load tasks** — from Beads or `tasks.md`:
 
-1. Beads issue graph and assigned tasks
-2. `docs/specs/<feature-slug>/tasks.md`
+   **Beads path** (preferred):
+   ```bash
+   bd ready --json
+   ```
+   This returns unclaimed tasks. For full epic view:
+   ```bash
+   bd show <epic-id> --json
+   ```
 
-Execution guidance must also already exist in one of these forms:
+   **Fallback path**:
+   Read `docs/specs/<feature-slug>/tasks.md`
 
-1. A GSD phase plan such as `.planning/phases/<phase>/<plan>.md`
-2. A written implementation plan under `docs/superpowers/plans/`
-3. Another project-approved planning artifact with concrete tasks
+3. **Load execution plan** — resolve in order:
+   - `.state.json` → `implementationPlan` field
+   - `.planning/phases/...` current phase plan
+   - `docs/c4flow/plans/YYYY-MM-DD-<feature-slug>.md`
 
-If neither a task source nor an execution plan exists, stop and recover the missing artifact before doing any implementation work.
+   If no plan exists, create one under `docs/c4flow/plans/` before writing code.
 
-## Prerequisite Checks
-
-Run these checks in order before loading any implementation skill:
-
-### 1. Read workflow state
-
-Read `docs/c4flow/.state.json`.
-
-Confirm:
-- the file exists and is valid JSON
-- `currentState` is `CODE` when this skill is reached from `c4flow`
-- `feature.slug` is present so task paths can be resolved
-
-If `docs/c4flow/.state.json` is missing:
-- recover the workflow state file first
-- if the workflow was never started, return to the orchestrator and run `/c4flow`
-
-If `currentState` is not `CODE`:
-- direct invocation is still allowed for recovery or manual resume
-- explain that this run is outside the normal orchestrator path
-- do not advance state until the CODE exit gate is satisfied
-
-### 2. Confirm task source
-
-Check for one of:
-- a beads epic or assigned beads tasks linked from `docs/c4flow/.state.json`
-- `docs/specs/<feature-slug>/tasks.md`
-
-If both are missing, stop and recover task definition first.
-
-Recovery commands:
-- `/c4flow:beads`
-- `bd ready --json`
-- `bd show <id> --json`
-- create `docs/specs/<feature-slug>/tasks.md`
-
-### 3. Confirm execution plan
-
-Check for a concrete implementation plan before dispatching work.
-
-Accepted inputs include:
-- `.planning/phases/<phase>/<plan>.md`
-- `docs/superpowers/plans/<feature>-plan.md`
-- a project-specific implementation plan already referenced by the current task source
-
-If the plan is missing, stop and recover planning first.
-
-Recovery commands:
-- `$gsd-plan-phase <phase>`
-- write the missing plan under `docs/superpowers/plans/`
-- return to the planning step that should have produced the artifact
-
-### 4. Confirm partial implementation context
-
-Before starting new work, inspect whether CODE is already in progress:
-- open beads task state if using beads
-- read `docs/specs/<feature-slug>/tasks.md` if using checklist tracking
-- look for a current worktree path in `docs/c4flow/.state.json`
-- look for partial implementation commits or in-progress plan summaries
-
-If partial work exists, prefer resume over restart.
-
-## Superpowers Integration
-
-This skill composes existing workflow skills. It does not replace them.
-
-### Required skill order
-
-1. Load `using-superpowers` first.
-2. Then route implementation through `subagent-driven-development`.
-3. Require `using-git-worktrees` before execution begins.
-
-`using-superpowers` is mandatory because it enforces the project rule that relevant skills are checked before action.
-
-`subagent-driven-development` is mandatory because it is the implementation engine for CODE.
-That downstream workflow owns task-by-task execution, fresh subagents, review loops, and implementation sequencing.
-
-`using-git-worktrees` is required setup before execution begins.
-Implementation should not start on the main workspace unless the user explicitly accepts that risk.
-
-### Downstream execution contract
-
-After the prerequisite checks pass:
-
-1. Load `using-superpowers`
-2. Load `using-git-worktrees`
-3. Load `subagent-driven-development`
-4. Hand the chosen plan and task source to the Superpowers workflow
-
-The downstream implementation/review agents follow the review loops defined by `subagent-driven-development`.
-Do not restate those review prompts here.
-Use that skill as the single source of truth.
+4. **Extract all tasks with full text** — read the plan once, extract every task with its complete description, acceptance criteria, and context. Do not make subagents read the plan file.
 
 ## Execution Flow
 
-Follow this route exactly:
+```
+┌─────────────────────────────────────────────────────┐
+│ Read plan → Extract all tasks → Claim in Beads      │
+│                                                     │
+│ For each task:                                      │
+│   ├── Dispatch implementer subagent                 │
+│   │   ├── Asks questions? → Answer, re-dispatch     │
+│   │   └── Implements, tests, commits, self-reviews  │
+│   ├── Dispatch spec reviewer subagent               │
+│   │   ├── Issues? → Implementer fixes → re-review   │
+│   │   └── Spec compliant                            │
+│   ├── Dispatch code quality reviewer subagent       │
+│   │   ├── Issues? → Implementer fixes → re-review   │
+│   │   └── Quality approved                          │
+│   └── Close task in Beads (or check off tasks.md)   │
+│                                                     │
+│ After all tasks closed:                             │
+│   └── Advance state CODE → TEST                     │
+│       (full-branch review deferred to REVIEW phase) │
+└─────────────────────────────────────────────────────┘
+```
 
-1. Validate workflow state in `docs/c4flow/.state.json`
-2. Confirm tasks exist in beads or `docs/specs/<feature-slug>/tasks.md`
-3. Confirm a usable implementation plan exists
-4. Enter the Superpowers workflow by loading `using-superpowers`
-5. Set up an isolated execution environment with `using-git-worktrees`
-6. Run the plan through `subagent-driven-development`
-7. Verify all assigned tasks are closed
-8. Only then advance CODE to TEST
+## Task Lifecycle (Beads)
 
-The CODE → TEST transition is contingent on task completion, not on invocation of this skill.
-If the implementation workflow ran but tasks are still open, remain in CODE.
+For each task being executed:
 
-### How to verify closure
+```bash
+# 1. Claim before starting
+bd update <task-id> --claim --json
 
-Use the task source that drove execution:
+# 2. After implementation + review passes
+bd close <task-id> --reason "CODE: implemented and reviewed" --json
 
-- Beads: verify every assigned issue is closed
-- `tasks.md`: verify every assigned task item is checked complete
+# 3. If follow-up work discovered during implementation
+bd create "Follow-up: <title>" --description="..." -p 1 \
+  --deps discovered-from:<parent-id> --json
 
-If the plan created follow-up work that is not yet closed, CODE is still incomplete.
+# 4. When all tasks done, sync
+bd dolt push
+```
 
-## State Update When CODE Is Finished
+**If Beads is unavailable**, fall back to `tasks.md`: mark items with `[x]` as complete.
 
-When the CODE gate passes, update `docs/c4flow/.state.json` with these exact effects:
+## Task Lifecycle (tasks.md fallback)
 
-- set `currentState` to `"TEST"`
-- append `"CODE"` to `completedStates`
-- reset `failedAttempts` to `0`
-- clear `lastError`
+For each task in `docs/specs/<feature-slug>/tasks.md`:
+1. Note which task you're starting
+2. After implementation + review passes, mark `[x]` in the file
+3. Continue to next task
 
-Do not write those state changes before the task-closure check passes.
+## Dispatching Subagents
 
-## Fallback and Failure Handling
+### Implementer
 
-### If Superpowers skills are unavailable
+For each task, dispatch a fresh subagent using the template at `skills/code/implementer-prompt.md`.
 
-Stop and say that the CODE workflow cannot delegate safely.
-Do not silently improvise a replacement workflow.
+Provide:
+- Full task text (from your extracted plan — don't make them read files)
+- Scene-setting context (where this fits, dependencies, architecture)
+- Working directory
+- Beads task ID (if using Beads)
 
-Manual fallback:
-- execute from the existing approved plan
-- keep work scoped to the same tasks
-- preserve the same CODE → TEST gate
-- document that Superpowers delegation was unavailable
+### Model Selection
 
-### If task source is missing
+**Mechanical tasks** (isolated functions, clear specs, 1-2 files): use `model: "haiku"`.
+**Integration tasks** (multi-file coordination, pattern matching): use `model: "sonnet"`.
+**Architecture/design tasks** (broad codebase understanding): use default model.
 
-Return to the task-definition step:
-- `/c4flow:beads`
-- `bd ready --json`
-- create or repair `docs/specs/<feature-slug>/tasks.md`
+Complexity signals:
+- 1-2 files with complete spec → haiku
+- Multiple files with integration → sonnet
+- Design judgment or broad understanding → default
 
-### If execution plan is missing
+### Handling Implementer Status
 
-Return to planning:
-- `$gsd-plan-phase <phase>`
-- create the missing implementation plan artifact
+**DONE:** Proceed to spec compliance review.
 
-### If worktree setup is blocked
+**DONE_WITH_CONCERNS:** Read concerns. If about correctness/scope, address before review. If observations, note and proceed.
 
-Do not continue into implementation until the workspace decision is explicit.
-Resolve the worktree requirement via `using-git-worktrees` first.
+**NEEDS_CONTEXT:** Provide missing context, re-dispatch.
 
-### If implementation is partially complete but gate is not met
+**BLOCKED:** Assess:
+1. Context problem → provide more context, re-dispatch same model
+2. Task too hard → re-dispatch with more capable model
+3. Task too large → break into smaller pieces
+4. Plan wrong → ask the user
 
-Resume the existing work instead of creating duplicate execution.
-Stay in CODE until all assigned tasks are closed.
+Never force retry without changes.
 
-## Operator Checklist
+### Spec Compliance Reviewer
 
-- [ ] Read `docs/c4flow/.state.json`
-- [ ] Confirm `currentState` is `CODE`, or note manual recovery mode
-- [ ] Confirm beads or `docs/specs/<feature-slug>/tasks.md` exists
-- [ ] Confirm an execution plan exists
-- [ ] Load `using-superpowers`
-- [ ] Run `using-git-worktrees`
-- [ ] Delegate implementation to `subagent-driven-development`
-- [ ] Verify all assigned tasks are closed
-- [ ] Update `currentState` to `TEST`
-- [ ] Append `CODE` to `completedStates`
-- [ ] Reset `failedAttempts` to `0`
-- [ ] Clear `lastError`
+After implementer reports DONE, dispatch a reviewer using `skills/code/spec-reviewer-prompt.md`.
 
-## Recovery Guidance
+Provide:
+- Full task requirements (same text given to implementer)
+- Implementer's report (what they claim they built)
 
-Use these exact recovery paths when prerequisites are missing:
+If issues found → implementer fixes → re-review. Repeat until ✅.
 
-- Missing workflow state: run `/c4flow`
-- Missing task graph: run `/c4flow:beads`
-- Missing GSD implementation plan: run `$gsd-plan-phase <phase>`
-- Missing manual task file: create `docs/specs/<feature-slug>/tasks.md`
-- Missing Superpowers skill availability: stop and execute manually from the approved plan
+### Code Quality Reviewer
 
-The skill is complete only when implementation is done and the workflow can truthfully move from CODE to TEST.
+After spec compliance passes, dispatch using `skills/code/code-quality-reviewer-prompt.md`.
+
+Provide:
+- Implementer's report
+- Task requirements
+- Git SHAs (base and head)
+
+If issues found → implementer fixes → re-review. Repeat until ✅.
+
+## Completion Gate
+
+CODE is complete when:
+- **Beads**: every assigned task is closed (`bd ready --json` returns empty for this epic)
+- **tasks.md**: every task item is checked `[x]`
+
+Each task was already spec-reviewed and quality-reviewed inline. The full-branch review happens in `c4flow:review` (after TEST), not here.
+
+Only then advance state:
+
+```bash
+jq '
+  .currentState = "TEST"
+  | .completedStates += ["CODE"]
+  | .failedAttempts = 0
+  | .lastError = null
+' docs/c4flow/.state.json > docs/c4flow/.state.json.tmp \
+  && mv -f docs/c4flow/.state.json.tmp docs/c4flow/.state.json
+```
+
+## What Happens Next
+
+```
+CODE (you are here)
+  → TEST    — c4flow:test runs full test suite, checks coverage
+  → REVIEW  — c4flow:review runs Codex review on full branch diff vs main
+  → VERIFY  — c4flow:verify runs bd preflight, combines with Codex results
+  → PR      — c4flow:pr creates the pull request
+```
+
+The per-task reviews in CODE catch task-level issues. The full-branch Codex review in REVIEW catches cross-task integration issues, security concerns, and anything the per-task reviews missed.
+
+## Rules
+
+**Never:**
+- Start on main/master without explicit user consent
+- Skip reviews (spec compliance OR code quality)
+- Proceed with unfixed issues
+- Dispatch multiple implementer subagents in parallel (conflicts)
+- Make subagent read plan file (provide full text)
+- Skip scene-setting context
+- Ignore subagent questions
+- Start code quality review before spec compliance passes
+- Move to next task while review has open issues
+
+**If subagent asks questions:** Answer clearly and completely. Don't rush.
+
+**If reviewer finds issues:** Implementer fixes → reviewer re-reviews → repeat until approved.
+
+**If subagent fails:** Dispatch fix subagent with specific instructions. Don't fix manually (context pollution).
+
+## Prompt Templates
+
+- `skills/code/implementer-prompt.md`
+- `skills/code/spec-reviewer-prompt.md`
+- `skills/code/code-quality-reviewer-prompt.md`

@@ -34,16 +34,22 @@ else
   fail "workflow-state CODE row missing"
 fi
 
+if grep -q "implementationPlan" "$STATE_REF" && grep -q "claimedTasks" "$STATE_REF"; then
+  pass "workflow-state documents standalone CODE fields"
+else
+  fail "workflow-state missing standalone CODE fields"
+fi
+
 if grep -q "CODE → TEST" "$TRANSITIONS_REF"; then
   pass "phase-transitions keeps CODE → TEST row"
 else
   fail "phase-transitions missing CODE → TEST row"
 fi
 
-if grep -q 'beads or `tasks.md`' "$TRANSITIONS_REF"; then
-  pass "phase-transitions references beads or tasks.md"
+if grep -q 'closed after `c4flow:code` executes the plan' "$TRANSITIONS_REF"; then
+  pass "phase-transitions references standalone CODE execution"
 else
-  fail "phase-transitions missing beads or tasks.md wording"
+  fail "phase-transitions missing standalone CODE execution wording"
 fi
 
 TOTAL=$((PASS + FAIL))

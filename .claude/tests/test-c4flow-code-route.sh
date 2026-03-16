@@ -39,16 +39,22 @@ else
   fail "missing Load the c4flow:code skill guidance"
 fi
 
-if printf '%s\n' "$CODE_BRANCH" | grep -q "currentState"; then
-  pass "CODE branch references currentState"
+if printf '%s\n' "$CODE_BRANCH" | grep -q "implementationPlan"; then
+  pass "CODE branch references implementationPlan"
 else
-  fail "CODE branch missing currentState reference"
+  fail "CODE branch missing implementationPlan reference"
 fi
 
 if printf '%s\n' "$CODE_BRANCH" | grep -q "TEST"; then
   pass "CODE branch advances to TEST"
 else
   fail "CODE branch missing TEST transition"
+fi
+
+if printf '%s\n' "$CODE_BRANCH" | grep -q "taskSource"; then
+  pass "CODE branch references taskSource"
+else
+  fail "CODE branch missing taskSource reference"
 fi
 
 if grep -q "unimplemented skills: DESIGN, CODE, REVIEW through DEPLOY" "$TARGET"; then
