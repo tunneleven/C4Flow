@@ -22,11 +22,34 @@ IDLE → RESEARCH → SPEC → DESIGN → BEADS → CODE → TEST
 | 5. Review & QA | `review`, `verify` | AI review loop + quality gate |
 | 6. Release | `pr`, `pr-review`, `infra`, `merge`, `deploy` | PR → review → merge → deploy |
 
-## Quick Start
+## Installation
 
 ### Prerequisites
 
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed
+
+### Install as Plugin
+
+```bash
+# Open your project directory
+cd your-project
+
+# Install c4flow plugin from GitHub
+claude plugins install c4flow --marketplace https://github.com/tunneleven/C4Flow
+
+# Enable for current project
+claude plugins enable c4flow
+```
+
+Or manually: add to your project's `.claude/settings.json`:
+
+```json
+{
+  "enabledPlugins": {
+    "c4flow@your-marketplace": true
+  }
+}
+```
 
 ### Usage
 
@@ -47,32 +70,38 @@ The orchestrator will guide you through each phase, dispatching sub-agents for a
 | Component | Status |
 |-----------|--------|
 | Orchestrator (14-state machine) | Shell implemented |
-| `/c4flow:research` | Implemented |
-| `/c4flow:spec` | Implemented |
-| Skills 03-15 (design → deploy) | Stub (not yet implemented) |
+| `/c4flow:research` | Implemented (5 research standards, quality gate) |
+| `/c4flow:spec` | Implemented (4 artifacts, interactive) |
+| `/c4flow:beads` | Implemented (epic→spec linking, tasks.md fallback) |
+| Skills 03, 05-15 (design, code → deploy) | Stub (not yet implemented) |
 | `/c4flow:run` command | Implemented |
 | `/c4flow:status` command | Implemented |
 
-Phase 1 covers the **Research & Spec** workflow: web research via sub-agent, then interactive spec generation producing `proposal.md`, `tech-stack.md`, `spec.md`, and `design.md`.
+Phase 1 covers the **Research & Spec** workflow: web research via sub-agent, then interactive spec generation producing `proposal.md`, `tech-stack.md`, `spec.md`, and `design.md`. The beads skill creates task epics with links back to spec documents.
 
 ## Plugin Structure
 
 ```
-.claude/skills/c4flow/
-  SKILL.md                          # Master orchestrator
-  references/
-    workflow-state.md               # State machine definition
-    phase-transitions.md            # Gate rules + error handling
-    sub-agent-prompt-template.md    # Sub-agent prompt template
-    spec-templates/                 # 5 artifact templates
-  phases/
-    01-research/SKILL.md            # Web research (implemented)
-    02-spec/SKILL.md                # Spec generation (implemented)
-    03-design/ ... 15-deploy/       # Stubs for future phases
-
-.claude/commands/c4flow/
-  run.md                            # /c4flow:run entry point
-  status.md                        # /c4flow:status display
+c4flow/
+├── .claude-plugin/
+│   └── plugin.json                 # Plugin manifest (v0.1.0)
+├── skills/
+│   ├── c4flow/SKILL.md             # Master orchestrator
+│   ├── research/SKILL.md           # Web research (implemented)
+│   ├── spec/SKILL.md               # Spec generation (implemented)
+│   ├── beads/SKILL.md              # Task breakdown (implemented)
+│   ├── design/SKILL.md             # Stubs for future phases
+│   ├── code/ tdd/ test/ e2e/       #   ...
+│   ├── review/ verify/             #   ...
+│   └── pr/ pr-review/ infra/ merge/ deploy/
+├── commands/
+│   ├── run.md                      # /c4flow:run entry point
+│   └── status.md                   # /c4flow:status display
+└── references/
+    ├── workflow-state.md            # State machine definition
+    ├── phase-transitions.md         # Gate rules + error handling
+    ├── sub-agent-prompt-template.md # Sub-agent prompt template
+    └── spec-templates/              # 5 artifact templates
 ```
 
 ## Spec Output
