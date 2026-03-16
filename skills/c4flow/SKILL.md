@@ -17,6 +17,7 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
        "version": 1,
        "currentState": "IDLE",
        "feature": null,
+       "mode": "research",
        "startedAt": null,
        "completedStates": [],
        "failedAttempts": 0,
@@ -34,9 +35,10 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 
 ### If IDLE
 - If arguments were passed (e.g., via `/c4flow:run my feature idea`), use them as the feature name/description instead of asking
+- Check for `--fast` flag in arguments. If present, set `mode: "fast"` in `.state.json`. Default: `mode: "research"`
 - Otherwise, ask the user for a feature name and description
 - Kebab-case the feature name for the directory (e.g., "User Auth" → "user-auth")
-- Update `.state.json`: set `feature`, `startedAt` to today's date, advance `currentState` to `RESEARCH`
+- Update `.state.json`: set `feature`, `mode`, `startedAt` to today's date, advance `currentState` to `RESEARCH`
 - Proceed to RESEARCH
 
 ### If DONE
@@ -73,40 +75,20 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 ## Skill Dispatch
 
 ### RESEARCH (Sub-agent)
-Dispatch a sub-agent with this prompt:
+Dispatch a sub-agent. Provide the sub-agent with:
 
-You are a research sub-agent for c4flow. Your task is to research a feature idea and produce an actionable research document that makes decisions easier.
+1. Read the full skill instructions: `skills/research/SKILL.md` (overview) + `skills/research/prompt.md` (execution steps)
+2. Read the output template: `references/spec-templates/research-template.md`
+3. Execute with these parameters:
 
+```
 Feature: {feature name}
 Description: {feature description from user}
+Mode: {mode from .state.json — "fast" or "research"}
+Output: docs/specs/{feature}/research.md
+```
 
-Research Standards (you MUST follow all 5):
-1. Source every claim — numbers/stats must link to a source or be labeled [estimate]
-2. Favor recent data — flag anything older than 2 years as [stale: YYYY]
-3. Include contrarian evidence — actively search for downside cases and reasons this might fail
-4. Translate to a decision — end with a clear build/buy/skip recommendation
-5. Distinguish fact / inference / recommendation — label each clearly
-
-Instructions:
-1. Use WebSearch to research: competitive landscape (actual products, not marketing), best practices, technical approaches (with trade-offs), user expectations, and contrarian views
-2. Use WebFetch on the 3-5 most relevant results to pull detailed data (pricing, traction, implementation details, failure modes)
-3. Structure your findings into the research template format (see below)
-4. Self-check the quality gate before writing:
-   - Every number has a source or [estimate] label
-   - At least 1 contrarian/downside case included
-   - Recommendations follow from evidence
-   - Risks section is populated
-5. Write the output to: docs/specs/{feature}/research.md
-6. Return a brief summary of your findings
-
-Research Template:
-{contents of references/spec-templates/research-template.md}
-
-Report your status at the end:
-- DONE: Research complete, quality gate passed
-- DONE_WITH_CONCERNS: Complete but with noted concerns (explain)
-- BLOCKED: Cannot proceed (explain why)
-- NEEDS_CONTEXT: Need more information from the user (explain what)
+4. Follow `prompt.md` step by step (7 steps: parse → Layer 1 market → Layer 2 technical → quality gate → executive summary → write → report status)
 
 After sub-agent returns:
 - If DONE or DONE_WITH_CONCERNS: present summary to user, ask "Does this research look complete? Ready to move to spec generation?"

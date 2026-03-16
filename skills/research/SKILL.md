@@ -1,70 +1,81 @@
 ---
 name: c4flow:research
-description: Perform market and technical research on a feature idea using web search.
+description: Perform merged market analysis and technical research on a feature idea. Combines market-research (business domain, competitive landscape, feature comparison, gap analysis) with C4Flow technical research (approaches, contrarian view, risks).
 ---
 
-# /c4flow:research — Market/Tech Research
+# /c4flow:research — Merged Market & Technical Research
 
 **Phase**: 1: Research & Spec
 **Agent type**: Sub-agent (dispatched by orchestrator)
 **Status**: Implemented
 
+## Overview
+
+Analyze a feature idea across both market and technical dimensions. Produces a single structured artifact (`research.md`) with 16 sections that feeds directly into the spec phase.
+
+**Sources merged:**
+- [market-research](https://github.com/CongChu99/market-research) — business domain, competitive landscape, feature comparison, gap analysis
+- C4Flow research — technical approaches, contrarian view, risks, recommendations
+
 ## Input
 - Feature name (kebab-cased)
 - Feature description from user
+- Mode: `research` (default) | `fast`
 
 ## Output
-- `docs/specs/<feature>/research.md`
+- `docs/specs/<feature>/research.md` (16 sections)
+
+## Execution Modes
+
+| Mode | Web Search | Duration | Use When |
+|------|-----------|----------|----------|
+| `research` (default) | Yes (WebSearch + WebFetch) | ~3-5 minutes | Pre-proposal, serious builds, funding prep |
+| `fast` | No | ~30 seconds | Quick exploration, early ideation |
+
+## Analysis Layers
+
+| Layer | Sections | Purpose |
+|-------|----------|---------|
+| **Layer 1: Market** | Problem Statement → Initial MVP Scope (10 sections) | "Nên build không, và build gì?" |
+| **Layer 2: Technical** | Technical Approaches → Recommendations (4 sections) | "Build như thế nào?" |
+| **Quality Gate** | 8 core + 1 conditional check | Verify output completeness |
+| **Executive Summary** | 2-3 sentence verdict | Build / buy / skip decision |
 
 ## Research Standards
 
 Every research output MUST follow these 5 standards:
 
-1. **Source every claim** — numbers, stats, and key claims must link to a source or be explicitly labeled as estimates
+1. **Source every claim** — numbers, stats, and key claims must link to a source or be explicitly labeled `[estimate]`
 2. **Favor recent data** — prefer sources from the last 12 months; flag anything older than 2 years as `[stale: YYYY]`
 3. **Include contrarian evidence** — actively search for downside cases, criticisms, and reasons the feature might fail
 4. **Translate to a decision** — findings must lead to a clear recommendation, not just a dump of information
 5. **Distinguish fact / inference / recommendation** — label each clearly so the reader knows what is proven vs. interpreted vs. suggested
 
-## Instructions
+## Execution
 
-You are a research sub-agent. Your job is to thoroughly research a feature idea and produce an actionable research document that makes decisions easier.
+Follow `prompt.md` step by step.
 
-### Step 1: Research
-Use `WebSearch` to find:
-- **Competitive landscape**: who else has built this? What do they do well/poorly? Actual product reality, not just marketing claims
-- **Best practices**: what are the established patterns for this type of feature?
-- **Technical approaches**: what technologies and architectures are commonly used? Trade-offs, integration complexity, lock-in risks
-- **User expectations**: what do users typically expect? What frustrates them about existing solutions?
-- **Contrarian view**: what are the arguments against building this? What could go wrong?
+## Output Sections (16 total)
 
-### Step 2: Deep Dive
-Use `WebFetch` on the 3-5 most relevant results to gather detailed information:
-- Feature comparisons with real data (pricing, traction, adoption)
-- Technical implementation details and pitfalls
-- Common failure modes and lessons learned
-
-### Step 3: Structure Findings
-Create the directory if it doesn't exist:
-```bash
-mkdir -p docs/specs/<feature>
+```
+Executive Summary → Problem Statement → Target Users → Core Workflows →
+Domain Entities → Business Rules → Competitive Landscape → Feature Comparison →
+Gap Analysis → Differentiation Strategy → Initial MVP Scope →
+Technical Approaches → Contrarian View → Risks → Recommendations → Sources
 ```
 
-Write your findings to `docs/specs/<feature>/research.md` using the template from `references/spec-templates/research-template.md`. Fill in every section with sourced, actionable content.
+See `references/spec-templates/research-template.md` for full artifact structure.
 
-### Step 4: Quality Gate (self-check before writing)
+## How Spec Phase Uses This Output
 
-Before writing the final document, verify:
-- [ ] Every number/stat has a source or is labeled `[estimate]`
-- [ ] Data older than 2 years is flagged `[stale: YYYY]`
-- [ ] At least 1 contrarian/downside case is included
-- [ ] Recommendations follow logically from the evidence
-- [ ] Risks section is populated (not empty or generic)
-- [ ] The document would help someone make a build/buy/skip decision
-
-### Step 5: Report Status
-At the end of your work, report one of:
-- **DONE**: Research complete, document written, quality gate passed
-- **DONE_WITH_CONCERNS**: Complete, but note any concerns (e.g., limited information available, conflicting sources, mostly stale data)
-- **BLOCKED**: Cannot proceed — explain why (e.g., topic is too vague, no web access)
-- **NEEDS_CONTEXT**: Need more information from the user — explain what you need
+| Research Section | Feeds Into |
+|-----------------|------------|
+| Executive Summary | `proposal.md` → Why (motivation) |
+| Target Users + Core Workflows | `proposal.md` → What Changes; `spec.md` → User stories |
+| Domain Entities + Business Rules | `spec.md` → Requirements; `design.md` → Data Model |
+| Competitive Landscape + Feature Comparison | `proposal.md` → Impact + Differentiation |
+| Gap Analysis + Differentiation Strategy | `proposal.md` → Capabilities (New) |
+| Initial MVP Scope | `proposal.md` → Scope (In/Out) |
+| Technical Approaches | `tech-stack.md` → Technology Choices |
+| Contrarian View + Risks | `design.md` → Risks/Trade-offs |
+| Recommendations | `proposal.md` → Success Criteria |

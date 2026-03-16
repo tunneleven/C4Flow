@@ -1,6 +1,6 @@
 ---
 name: c4flow:spec
-description: Generate structured spec artifacts (proposal, tech-stack, spec, design) through interactive collaboration.
+description: Generate structured spec artifacts (proposal, tech-stack, spec, design) through interactive collaboration, using research.md as structured input.
 ---
 
 # /c4flow:spec — Spec Generation
@@ -9,8 +9,14 @@ description: Generate structured spec artifacts (proposal, tech-stack, spec, des
 **Agent type**: Main agent (interactive with user)
 **Status**: Implemented
 
+## Overview
+
+Generate 4 planning artifacts from research findings through interactive collaboration with the user. Each artifact is presented for approval before proceeding to the next.
+
+**Duration estimate**: ~15-30 minutes (depends on iteration rounds with user)
+
 ## Input
-- `docs/specs/<feature>/research.md` (from research phase)
+- `docs/specs/<feature>/research.md` (from research phase — 16 sections)
 
 ## Output
 - `docs/specs/<feature>/proposal.md`
@@ -30,52 +36,200 @@ proposal.md (root — generate first)
     +--- design.md (requires: proposal, tech-stack, spec)
 ```
 
+---
+
+## Research → Spec Mapping
+
+Before generating any artifact, **read the full `research.md`** and use this mapping to pull structured data:
+
+| Research Section | Feeds Into | How to Use |
+|-----------------|------------|-----------|
+| Executive Summary | `proposal.md` → Why | Extract motivation and build/buy/skip verdict |
+| Problem Statement | `proposal.md` → Why | Use as problem context |
+| Target Users + Core Workflows | `proposal.md` → What Changes; `spec.md` → User stories | Each workflow becomes 1+ scenario; each persona validates requirements |
+| Domain Entities + Business Rules | `spec.md` → Requirements; `design.md` → Data Model | Entities → data model; rules → MUST requirements |
+| Competitive Landscape + Feature Comparison | `proposal.md` → Impact | Reference competitors to justify feature decisions |
+| Gap Analysis + Differentiation Strategy | `proposal.md` → Capabilities (New) | Gaps → new capabilities; differentiation → scope priorities |
+| Initial MVP Scope | `proposal.md` → Scope (In/Out) | Must features → In Scope; later features → Out of Scope |
+| Technical Approaches | `tech-stack.md` → Technology Choices | Each approach → tech-stack option with pros/cons |
+| Contrarian View + Risks | `design.md` → Risks/Trade-offs | Import directly; ensure mitigations address contrarian concerns |
+| Recommendations | `proposal.md` → Success Criteria | Recommendations → measurable success criteria |
+
+> **CRITICAL**: Do NOT just "read research.md for context." Extract specific data from specific sections. The mapping above tells you exactly what to pull and where to put it.
+
+---
+
 ## Instructions
 
-You are the spec generation agent. You work interactively with the user to create four planning artifacts. Generate each artifact one at a time, in dependency order. Present each to the user for approval before moving to the next.
-
 ### Step 1: Read Research Context
-Read `docs/specs/<feature>/research.md` to understand the feature context, competitive landscape, requirements, and constraints discovered during research.
+
+Read `docs/specs/<feature>/research.md`. Parse all 16 sections. Note especially:
+- **Executive Summary** — the build/buy/skip verdict
+- **Initial MVP Scope** — shapes proposal scope
+- **Technical Approaches** — shapes tech-stack choices
+- **Risks** — carries forward to design
+
+If `research.md` is missing sections or quality is low, note concerns but proceed with available data. Do NOT re-do research.
+
+---
 
 ### Step 2: Generate proposal.md
+
 Using the template from `references/spec-templates/proposal-template.md`:
 
-1. Draft the proposal based on the research findings
-2. Fill in: Why (motivation), What Changes, Capabilities (New/Modified), Scope (In/Out), Success Criteria, Impact
-3. Present the draft to the user
-4. Iterate based on feedback until the user approves
-5. Write the approved version to `docs/specs/<feature>/proposal.md`
+1. **Draft the proposal** using the Research → Spec mapping above:
+   - **Why**: Pull from Executive Summary + Problem Statement. Include the build/buy/skip verdict and explain why building is the right choice
+   - **What Changes**: Describe new capabilities based on Gap Analysis findings. Reference what competitors lack
+   - **Capabilities (New)**: Map 1:1 from MVP Scope "must" items. Each capability gets a name and description
+   - **Capabilities (Modified)**: Only if modifying existing features — skip if greenfield
+   - **Scope (In)**: All MVP "must" + "should" items from research
+   - **Scope (Out/Non-Goals)**: All MVP "later" items + anything the Contrarian View flagged as risky scope creep
+   - **Success Criteria**: Derive from Recommendations. Make each criterion measurable (e.g., "User can create a budget in <30 seconds" not "Good UX")
+   - **Impact**: Reference Competitive Landscape for affected ecosystem. Note which competitors this positions against
+
+2. **Present the draft** to the user
+3. **Iterate** based on feedback until the user approves
+4. **Write** the approved version to `docs/specs/<feature>/proposal.md`
+
+**Quality check before presenting:**
+- [ ] Every In Scope item traces back to an MVP "must" or "should" from research
+- [ ] At least 2 Out of Scope items (prevents scope creep)
+- [ ] Success Criteria are measurable (numbers, time, or verifiable outcomes)
+- [ ] Impact section references at least 1 competitor by name
+
+---
 
 ### Step 3: Generate tech-stack.md
+
 Using the template from `references/spec-templates/tech-stack-template.md`:
 
-1. Based on the proposal and research, suggest technology choices for each category
-2. Present the suggestions to the user with your reasoning
-3. Let the user choose or modify each category
-4. Skip categories that don't apply to this feature (e.g., skip Frontend if it's a backend-only feature)
-5. Write the finalized choices to `docs/specs/<feature>/tech-stack.md`
+1. **Map research Technical Approaches** to tech-stack categories:
+   - For each category (Frontend, Backend, Infra, CI/CD, Monitoring):
+     - If research evaluated relevant approaches → recommend the top-scoring one with reasoning
+     - If research didn't cover this category → suggest based on project context + your knowledge
+   - Include lock-in risk assessment from research
+2. **Present suggestions** to the user with reasoning from research
+3. **Let the user choose** or modify each category
+4. **Skip irrelevant categories** (e.g., skip Frontend for a CLI-only tool)
+5. **Write** to `docs/specs/<feature>/tech-stack.md`
+
+**Quality check before presenting:**
+- [ ] Every tech choice with an alternative from research includes pros/cons comparison
+- [ ] No category left as placeholder — explicitly mark skipped categories as "N/A — reason"
+- [ ] Lock-in risk noted for any proprietary/vendor-specific choice
+
+---
 
 ### Step 4: Generate spec.md
+
 Using the template from `references/spec-templates/spec-template.md`:
 
-1. Based on the proposal, extract behavioral requirements
-2. Write each requirement with:
+1. **Extract requirements** from research + proposal:
+   - Each **Core Workflow** from research → at least 1 scenario
+   - Each **Business Rule** from research → at least 1 MUST requirement
+   - Each **Domain Entity** → validation rules where applicable
+   - Each **Capability** from proposal → 1+ requirements with scenarios
+2. **Write each requirement** with:
    - A clear name and description
-   - Priority: MUST / SHOULD / MAY
+   - **Priority**: MUST / SHOULD / MAY (align with MVP "must"/"should"/"later")
    - One or more scenarios in GIVEN/WHEN/THEN format
-3. Use delta operations: ADDED (new behavior), MODIFIED (changed behavior), REMOVED (deleted behavior)
-4. Present to the user for review
-5. Iterate until approved
-6. Write to `docs/specs/<feature>/spec.md`
+
+   **Example scenario:**
+   ```
+   ### Requirement: Budget Creation
+   Users can create budgets with categories and spending limits.
+
+   **Priority**: MUST
+
+   #### Scenario: Create a new monthly budget
+   - **GIVEN** a logged-in user on the budget page
+   - **WHEN** the user enters category "Food", limit "3,000,000 VND", period "monthly", and clicks Save
+   - **THEN** the budget is created and appears in the budget list with remaining amount = limit
+   ```
+
+3. **Use delta operations**:
+   - `ADDED` — new behavior (most items for greenfield)
+   - `MODIFIED` — changed behavior (for existing features)
+   - `REMOVED` — deleted behavior
+4. **Present to user** for review
+5. **Iterate** until approved
+6. **Write** to `docs/specs/<feature>/spec.md`
+
+**Quality check before presenting:**
+- [ ] Every proposal Capability has ≥1 corresponding requirement
+- [ ] Every MUST requirement has ≥1 GIVEN/WHEN/THEN scenario
+- [ ] Business Rules from research are all represented as MUST requirements
+- [ ] At least 1 edge case / error scenario per major workflow
+
+---
 
 ### Step 5: Generate design.md
+
 Using the template from `references/spec-templates/design-template.md`:
 
-1. Based on proposal, tech-stack, and spec, design the technical architecture
-2. Fill in: Context, Architecture Overview, Components, Data Model, API Design, Error Handling, Goals/Non-Goals, Decisions, Risks/Trade-offs, Testing Strategy
-3. Present to the user for review
-4. Iterate until approved
-5. Write to `docs/specs/<feature>/design.md`
+1. **Build the design** from all previous artifacts:
+   - **Context**: Summarize from proposal Why + research Problem Statement
+   - **Architecture Overview**: Based on tech-stack choices + research Technical Approaches analysis
+   - **Components**: One per major Domain Entity group or major Capability. Each component:
+     - Purpose: what it does
+     - Interface: inputs/outputs
+     - Dependencies: which other components it uses
+   - **Data Model**: Start from research Domain Entities + attributes. Add relationships, types, constraints from Business Rules
+   - **API Design**: Derive from spec requirements — each external-facing requirement → API endpoint
+   - **Error Handling**: Derive from spec error scenarios + research Risks
+   - **Goals/Non-Goals**: Mirror from proposal Scope In/Out
+   - **Decisions**: Document each tech-stack choice as a decision with rationale + alternatives considered (from research Technical Approaches)
+   - **Risks/Trade-offs**: Import from research Risks + Contrarian View. Add any design-specific risks
+   - **Testing Strategy**: One test type per requirement priority level (MUST → unit+integration, SHOULD → integration, MAY → manual)
+
+2. **Present to user** for review
+3. **Iterate** until approved
+4. **Write** to `docs/specs/<feature>/design.md`
+
+**Quality check before presenting:**
+- [ ] Every Component has clear boundaries — can explain what it does without reading internals
+- [ ] Data Model includes all Domain Entities from research
+- [ ] Risks section includes all items from research Risks + Contrarian View
+- [ ] At least 1 design Decision with alternatives considered (not just "we chose X")
+
+---
 
 ### Step 6: Completion
-All four artifacts are written. Report back to the orchestrator that SPEC is complete. The orchestrator will check the exit gate (all 4 files exist) and advance the state.
+
+All four artifacts are written. Report back to the orchestrator that SPEC is complete.
+
+Before reporting, run the **final quality gate**:
+
+**Cross-artifact consistency checks:**
+1. ✅ Every proposal Capability has requirements in `spec.md`
+2. ✅ Every tech-stack choice is referenced in `design.md` decisions
+3. ✅ Every research Risk appears in `design.md` risks
+4. ✅ Data Model entities in `design.md` match Domain Entities from `research.md`
+5. ✅ Proposal Scope (In) items all have corresponding spec requirements
+6. ✅ No orphaned requirements in `spec.md` (every req traces to a proposal capability)
+
+If any check fails, fix the artifact before reporting completion.
+
+---
+
+## Error Handling
+
+| Situation | What to Do |
+|-----------|-----------|
+| User rejects artifact 3+ times | Ask: "Would you like to adjust the proposal scope? The current requirements may be misaligned with your vision." Offer to go back to proposal |
+| `research.md` missing or incomplete | Note which sections are missing. Proceed with available data. Flag gaps in each artifact: "[Note: research.md lacked Competitive Landscape — this section is based on general knowledge]" |
+| Artifact conflict (e.g., tech-stack doesn't support spec requirement) | Surface the conflict to user immediately: "The chosen tech [X] doesn't support requirement [Y]. Options: 1) Change tech stack, 2) Modify requirement, 3) Accept as tech debt" |
+| User wants to skip an artifact | Explain dependency: "Skipping [X] means [Y] cannot reference it. Generate a minimal version instead?" Generate minimal version if user agrees |
+| User adds scope during spec generation | Check against proposal Scope: "This wasn't in the proposal scope. Options: 1) Add to proposal and continue, 2) Note as future work, 3) Replace an existing scope item" |
+
+---
+
+## Guardrails
+
+- Generate artifacts **in dependency order** — never skip ahead
+- Present each artifact for **user approval** before proceeding
+- **Every claim should trace** back to research.md or user input — don't invent requirements
+- Keep artifacts **DRY** — don't duplicate content across artifacts; reference instead
+- Flag any **deviation from research** recommendations — explain why you disagree
+- Spec requirements should be **testable** — if you can't write a scenario, it's too vague
+- Design components should be **independently understandable** — each component's purpose is clear from its description alone
