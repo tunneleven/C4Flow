@@ -77,7 +77,7 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 ### RESEARCH (Sub-agent)
 Dispatch a sub-agent. Provide the sub-agent with:
 
-1. Read the full skill instructions: `skills/research/SKILL.md` (overview) + `skills/research/prompt.md` (execution steps)
+1. Load the c4flow:research skill (overview) and read the research prompt at `skills/research/prompt.md` (execution steps)
 2. Read the output template: `references/spec-templates/research-template.md`
 3. Execute with these parameters:
 
@@ -95,10 +95,10 @@ After sub-agent returns:
 - If BLOCKED or NEEDS_CONTEXT: present the issue to user, ask for guidance
 
 ### SPEC (Main agent)
-This runs in the main agent (you). Follow the spec skill at `skills/spec/SKILL.md`.
+This runs in the main agent (you). Load the c4flow:spec skill and follow its instructions.
 
 ### BEADS (Main agent)
-This runs in the main agent (you). Follow the beads skill at `skills/beads/SKILL.md`.
+This runs in the main agent (you). Load the c4flow:beads skill and follow its instructions.
 After the skill completes, update `beadsEpic` in `.state.json` with the epic ID (or `null` if using `tasks.md` fallback).
 
 ## State Management
