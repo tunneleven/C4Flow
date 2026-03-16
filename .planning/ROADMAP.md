@@ -11,7 +11,7 @@ layer is added.
 ## Phases
 
 **Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
+- Integer phases (1, 2, 3, 4): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order.
@@ -19,6 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Local Gate Infrastructure** - Codex review, bd preflight, beads gate creation/resolution, and the two skills that wrap them
 - [x] **Phase 2: Safety Net Hooks** - Claude Code hooks that intercept agent-initiated closes and session stops (completed 2026-03-16)
 - [ ] **Phase 3: PR Skill** - Create GitHub PR with quality gate status summary in description
+- [ ] **Phase 4: Superpowers + Subagent-Driven c4flow:code** - Integrate `superpowers` and `subagent-driven-development` into the `c4flow:code` skill workflow
 
 ## Phase Details
 
@@ -68,13 +69,24 @@ Plans:
 Plans:
 - [ ] 03-01-PLAN.md — c4flow:pr skill implementation with test suite and human verification
 
+### Phase 4: Superpowers + Subagent-Driven c4flow:code
+**Goal**: Integrate `superpowers` and `subagent-driven-development` into the `c4flow:code` skill so workflow execution consistently uses the shared skill-loading and subagent orchestration patterns
+**Depends on**: Phase 3
+**Requirements**: TBD
+**Plans:** 1/2 plans executed
+
+Plans:
+- [x] 04-01-PLAN.md — Implement `c4flow:code` orchestration and CODE-state routing through Superpowers
+- [ ] 04-02-PLAN.md — Add regression tests and human verification for the new CODE workflow
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3
+Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Local Gate Infrastructure | 3/4 | In Progress|  |
 | 2. Safety Net Hooks | 2/2 | Complete   | 2026-03-16 |
 | 3. PR Skill | 0/1 | Not started | - |
+| 4. Superpowers + Subagent-Driven c4flow:code | 1/2 | In Progress | - |
