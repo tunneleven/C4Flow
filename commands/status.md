@@ -1,3 +1,7 @@
+---
+description: Show current C4Flow workflow state and progress
+---
+
 # /c4flow:status — Show Workflow State
 
 Read the state file at `docs/c4flow/.state.json`.
