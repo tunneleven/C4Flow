@@ -1,0 +1,26 @@
+{
+  "name": "c4flow-marketplace",
+  "metadata": {
+    "description": "C4Flow — agentic development workflow orchestrator plugin"
+  },
+  "owner": {
+    "name": "C4Team",
+    "url": "https://github.com/tunneleven"
+  },
+  "plugins": [
+    {
+      "name": "c4flow",
+      "description": "Agentic development workflow orchestrator — from research through deployment. 15 skills across 6 phases driven by a 14-state state machine.",
+      "version": "0.1.0",
+      "source": "./",
+      "category": "workflows",
+      "author": {
+        "name": "C4Team"
+      },
+      "homepage": "https://github.com/tunneleven/C4Flow",
+      "repository": "https://github.com/tunneleven/C4Flow",
+      "license": "MIT",
+      "keywords": ["workflow", "orchestrator", "research", "spec", "beads", "tdd", "deployment"]
+    }
+  ]
+}
