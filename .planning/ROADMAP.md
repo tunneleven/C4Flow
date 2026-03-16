@@ -63,7 +63,10 @@ Plans:
   1. Running `c4flow:pr` creates a GitHub PR using the `gh` CLI with a description that includes current gate pass/fail status from `quality-gate-status.json`
   2. The PR number is written to `.state.json` after creation
   3. If quality gates have not all passed, `c4flow:pr` warns the user before proceeding (but does not block — PR creation is informational, not a hard gate)
-**Plans**: TBD
+**Plans:** 1 plan
+
+Plans:
+- [ ] 03-01-PLAN.md — c4flow:pr skill implementation with test suite and human verification
 
 ## Progress
 
@@ -74,4 +77,4 @@ Phases execute in numeric order: 1 → 2 → 3
 |-------|----------------|--------|-----------|
 | 1. Local Gate Infrastructure | 3/4 | In Progress|  |
 | 2. Safety Net Hooks | 2/2 | Complete   | 2026-03-16 |
-| 3. PR Skill | 0/TBD | Not started | - |
+| 3. PR Skill | 0/1 | Not started | - |
