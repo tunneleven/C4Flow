@@ -55,7 +55,15 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 - If gate passes: add current state to `completedStates`, advance `currentState`, write `.state.json`
 - If gate fails: tell user what's missing, ask what to do
 
-### If state is any other (unimplemented skills: DESIGN through DEPLOY)
+### If state is BEADS (implemented)
+- Check for partial output: does beads epic already exist (`beadsEpic` in state) or does `docs/specs/{feature}/tasks.md` exist?
+- If partial output found: present it to user, ask "Reuse existing tasks or regenerate?"
+- Run the beads skill (see Skill Dispatch below)
+- After skill completes, check gate: beads epic with tasks OR `tasks.md` exists
+- If gate passes: add BEADS to `completedStates`, advance `currentState` to CODE, write `.state.json`
+- If gate fails: tell user what's missing, ask what to do
+
+### If state is any other (unimplemented skills: DESIGN, CODE through DEPLOY)
 - Tell the user: "**{state}** (Phase {N}: {phase-name}) is not yet implemented."
 - Show the gate condition that would need to pass to advance
 - Offer options:
@@ -67,23 +75,35 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 ### RESEARCH (Sub-agent)
 Dispatch a sub-agent with this prompt:
 
-You are a research sub-agent for c4flow. Your task is to research a feature idea and produce a structured research document.
+You are a research sub-agent for c4flow. Your task is to research a feature idea and produce an actionable research document that makes decisions easier.
 
 Feature: {feature name}
 Description: {feature description from user}
 
+Research Standards (you MUST follow all 5):
+1. Source every claim — numbers/stats must link to a source or be labeled [estimate]
+2. Favor recent data — flag anything older than 2 years as [stale: YYYY]
+3. Include contrarian evidence — actively search for downside cases and reasons this might fail
+4. Translate to a decision — end with a clear build/buy/skip recommendation
+5. Distinguish fact / inference / recommendation — label each clearly
+
 Instructions:
-1. Use WebSearch to research the competitive landscape, existing solutions, and best practices for this feature
-2. Use WebFetch to pull key details from the most relevant pages
+1. Use WebSearch to research: competitive landscape (actual products, not marketing), best practices, technical approaches (with trade-offs), user expectations, and contrarian views
+2. Use WebFetch on the 3-5 most relevant results to pull detailed data (pricing, traction, implementation details, failure modes)
 3. Structure your findings into the research template format (see below)
-4. Write the output to: docs/specs/{feature}/research.md
-5. Return a brief summary of your findings
+4. Self-check the quality gate before writing:
+   - Every number has a source or [estimate] label
+   - At least 1 contrarian/downside case included
+   - Recommendations follow from evidence
+   - Risks section is populated
+5. Write the output to: docs/specs/{feature}/research.md
+6. Return a brief summary of your findings
 
 Research Template:
 {contents of references/spec-templates/research-template.md}
 
 Report your status at the end:
-- DONE: Research complete
+- DONE: Research complete, quality gate passed
 - DONE_WITH_CONCERNS: Complete but with noted concerns (explain)
 - BLOCKED: Cannot proceed (explain why)
 - NEEDS_CONTEXT: Need more information from the user (explain what)
@@ -93,7 +113,11 @@ After sub-agent returns:
 - If BLOCKED or NEEDS_CONTEXT: present the issue to user, ask for guidance
 
 ### SPEC (Main agent)
-This runs in the main agent (you). Follow the spec skill at `phases/02-spec/SKILL.md`.
+This runs in the main agent (you). Follow the spec skill at `skills/spec/SKILL.md`.
+
+### BEADS (Main agent)
+This runs in the main agent (you). Follow the beads skill at `skills/beads/SKILL.md`.
+After the skill completes, update `beadsEpic` in `.state.json` with the epic ID (or `null` if using `tasks.md` fallback).
 
 ## State Management
 
