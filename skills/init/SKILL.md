@@ -13,89 +13,66 @@ description: Initialize C4Flow dependencies (Dolt, Beads) in the current project
 Installs and configures all C4Flow dependencies in the current project:
 - **Dolt** — version-controlled SQL database (Beads backend)
 - **Beads (bd)** — issue tracking and task management CLI
-- Runs `bd init` to set up `.beads/` in the project
+- Runs `bd init` + starts Dolt server
 
 ## Instructions
 
-### Step 1: Check Current State
+### Step 1: Find and Run the Init Script
 
-Run the init script with a dry check first:
+The init script handles everything automatically. Find and run it:
 
 ```bash
-# Check what's already installed
-command -v git && echo "git: OK" || echo "git: MISSING"
-command -v dolt && echo "dolt: OK" || echo "dolt: MISSING"
-command -v bd && echo "bd: OK" || echo "bd: MISSING"
-[ -d ".beads" ] && echo ".beads: OK" || echo ".beads: MISSING"
+# Search common locations
+for dir in \
+  "$(pwd)" \
+  "$HOME/.claude/plugins/cache/c4flow-marketplace/c4flow/"*/ \
+  "$HOME/.codex/c4flow"; do
+  if [ -f "$dir/scripts/init.sh" ]; then
+    echo "Found: $dir/scripts/init.sh"
+    bash "$dir/scripts/init.sh"
+    exit 0
+  fi
+done
+echo "Init script not found"
 ```
 
-Tell the user what's already installed and what will be installed.
+The script will:
+1. Check/install `dolt`
+2. Check/install `bd` (Beads)
+3. Run `bd init` with a 30s timeout
+4. Start Dolt server if not running
+5. Verify connectivity with `bd list`
 
-### Step 2: Run Init Script
+**All steps have timeouts. Total time should be under 30 seconds.**
 
-The init script is bundled with C4Flow. Find and run it:
+### Step 2: Report Result
 
+The script outputs a verification summary. Just relay it to the user.
+
+If the script is not found, run these commands manually:
 ```bash
-# Find the script relative to the skill location
-C4FLOW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-# Or use the known path if installed as a plugin
-INIT_SCRIPT="${C4FLOW_DIR}/scripts/init.sh"
-```
-
-Run the appropriate command:
-
-```bash
-# Full init (installs dolt + beads + bd init)
-bash /path/to/c4flow/scripts/init.sh
-
-# With custom prefix
-bash /path/to/c4flow/scripts/init.sh --prefix MyProject
-
-# Skip beads (just verify git)
-bash /path/to/c4flow/scripts/init.sh --skip-beads
-```
-
-**Finding the script**: The script lives at `scripts/init.sh` relative to the C4Flow installation. Common locations:
-- Plugin install: `~/.claude/plugins/c4flow/scripts/init.sh`
-- Codex install: `~/.codex/c4flow/scripts/init.sh`
-- Local dev: `./scripts/init.sh` (if running from C4Flow repo)
-
-If the script is not found, fall back to running the commands manually:
-
-```bash
-# Install Dolt
+# Install Dolt (if missing)
 curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | sudo bash
 
-# Install Beads
+# Install Beads (if missing)
 curl -sSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash
 
-# Init Beads in project
+# Init in project
 bd init
 ```
 
-### Step 3: Verify
+## IMPORTANT: Do NOT use `bd doctor`
 
-```bash
-bd doctor
-```
+**Never run `bd doctor` or `bd doctor --fix`** — these commands frequently hang indefinitely waiting for Dolt server connections. The init script handles verification internally with timeouts.
 
-If there are fixable issues:
-```bash
-bd doctor --fix --yes
-```
-
-### Step 4: Report
-
-Tell the user the result:
-- What was installed
-- Whether `bd doctor` passes
-- Next steps: "Run `/c4flow` to start a workflow"
+If there are Dolt connection issues after init, the script starts the server automatically. If that also fails, tell the user:
+> "Dolt server couldn't start. Beads will use degraded mode. You can start it manually: `cd .beads/dolt && dolt sql-server`"
 
 ## Error Handling
 
 | Error | Solution |
 |-------|----------|
-| `sudo` required for Dolt | Ask user to run with sudo, or use Homebrew |
-| Dolt server won't start | Check port conflicts: `lsof -i :3306` |
-| `bd init` fails | Try `bd init --stealth` for git-free mode |
-| Permission denied | Check `~/.local/bin` is in PATH |
+| `sudo` required for Dolt | Ask user to run with sudo, or use `brew install dolt` |
+| `bd init` times out | Script continues automatically, starts Dolt manually |
+| Port conflict | Script picks a random free port |
+| `bd init` fails | Try `bd init --stealth` for minimal mode |

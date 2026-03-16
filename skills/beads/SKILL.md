@@ -55,11 +55,7 @@ Branch based on result:
 
 If they choose init, invoke the `c4flow:init` skill, then return here.
 
-**If bd is installed but .beads/ missing**, just run:
-```bash
-bd init
-```
-Then verify with `bd doctor` and continue to Step 4a.
+**If bd is installed but .beads/ missing**, invoke the `c4flow:init` skill (it handles `bd init` + Dolt server with proper timeouts), then continue to Step 4a.
 
 ### Step 4a: Create Epic + Tasks (Beads path)
 
