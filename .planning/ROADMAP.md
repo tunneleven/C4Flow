@@ -32,7 +32,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `bd close` refuses to close an issue when any quality gate is unresolved (without `--force`)
   4. If `codex` or `bd` is not installed, skills warn the user and fall back to manual verification instructions rather than silently failing
   5. Every `bd gate resolve` and `bd close` call writes a reason string to the gate resolution audit trail
-**Plans**: TBD
+**Plans:** 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Foundational contracts: quality-gate-status.json schema, code-reviewer subagent, .gitignore
+- [ ] 01-02-PLAN.md — c4flow:review skill with Codex subagent dispatch and beads gate lifecycle
+- [ ] 01-03-PLAN.md — c4flow:verify skill with bd preflight integration and gate aggregation
+- [ ] 01-04-PLAN.md — Beads molecule formula template with quality gate steps (requires human verification)
 
 ### Phase 2: Safety Net Hooks
 **Goal**: Claude Code hooks intercept agent-initiated `bd close` commands and session-end events, blocking them when quality gates are open, so that agent shortcuts cannot bypass the gate chain
@@ -62,6 +68,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Local Gate Infrastructure | 0/TBD | Not started | - |
+| 1. Local Gate Infrastructure | 0/4 | Planning complete | - |
 | 2. Safety Net Hooks | 0/TBD | Not started | - |
 | 3. PR Skill | 0/TBD | Not started | - |
