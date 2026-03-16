@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. `bd close` refuses to close an issue when any quality gate is unresolved (without `--force`)
   4. If `codex` or `bd` is not installed, skills warn the user and fall back to manual verification instructions rather than silently failing
   5. Every `bd gate resolve` and `bd close` call writes a reason string to the gate resolution audit trail
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Plans:
 - [ ] 01-01-PLAN.md — Foundational contracts: quality-gate-status.json schema, code-reviewer subagent, .gitignore
@@ -68,6 +68,6 @@ Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Local Gate Infrastructure | 0/4 | Planning complete | - |
+| 1. Local Gate Infrastructure | 1/4 | In Progress|  |
 | 2. Safety Net Hooks | 0/TBD | Not started | - |
 | 3. PR Skill | 0/TBD | Not started | - |

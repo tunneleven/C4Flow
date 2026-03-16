@@ -12,7 +12,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **GATE-01**: Subagent runs `codex review --base main` and writes structured pass/fail JSON to `quality-gate-status.json`
 - [ ] **GATE-02**: Skill runs `bd preflight --check --json` and fails VERIFY phase if issues found
 - [ ] **GATE-03**: Beads gates created programmatically (formula steps for repeatable patterns + dynamic creation for ad-hoc tasks) and resolved by quality runner script
-- [ ] **GATE-04**: Tool availability detection warns if codex or bd not installed; graceful fallback to manual verification when tools are missing
+- [x] **GATE-04**: Tool availability detection warns if codex or bd not installed; graceful fallback to manual verification when tools are missing
 
 ### Hooks (Fast File Check Pattern)
 
@@ -28,12 +28,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Infrastructure
 
-- [ ] **INFR-01**: `.claude/agents/code-reviewer.md` subagent definition that runs Codex review in isolated context, returns structured JSON
+- [x] **INFR-01**: `.claude/agents/code-reviewer.md` subagent definition that runs Codex review in isolated context, returns structured JSON
 - [ ] **INFR-02**: `.claude/hooks/` shell scripts: `bd-close-gate.sh` (PreToolUse), `check-open-gates.sh` (Stop), `task-complete-gate.sh` (TaskCompleted)
 - [ ] **INFR-03**: Hooks configuration in `.claude/settings.json` with project-scoped matchers and appropriate timeouts
 - [ ] **INFR-04**: Gate resolution audit trail — reason string logged on every `bd gate resolve` and `bd close --reason`
 - [ ] **INFR-05**: Beads molecule formula template with explicit review and verify gate steps that block task advancement
-- [ ] **INFR-06**: `quality-gate-status.json` schema definition — includes per-check pass/fail, timestamps, expiry, and findings summary
+- [x] **INFR-06**: `quality-gate-status.json` schema definition — includes per-check pass/fail, timestamps, expiry, and findings summary
 
 ## v2 Requirements
 
@@ -76,19 +76,19 @@ Deferred to future release. Tracked but not in current roadmap.
 | GATE-01 | Phase 1 | Pending |
 | GATE-02 | Phase 1 | Pending |
 | GATE-03 | Phase 1 | Pending |
-| GATE-04 | Phase 1 | Pending |
+| GATE-04 | Phase 1 | Complete |
 | HOOK-01 | Phase 2 | Pending |
 | HOOK-02 | Phase 2 | Pending |
 | HOOK-03 | Phase 2 | Pending |
 | SKIL-01 | Phase 1 | Pending |
 | SKIL-02 | Phase 1 | Pending |
 | SKIL-03 | Phase 3 | Pending |
-| INFR-01 | Phase 1 | Pending |
+| INFR-01 | Phase 1 | Complete |
 | INFR-02 | Phase 2 | Pending |
 | INFR-03 | Phase 2 | Pending |
 | INFR-04 | Phase 1 | Pending |
 | INFR-05 | Phase 1 | Pending |
-| INFR-06 | Phase 1 | Pending |
+| INFR-06 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 16 total
