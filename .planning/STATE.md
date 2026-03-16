@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: complete
-stopped_at: Completed 04-add-superpowers-and-subagent-driven-development-into-c4flow-code-skill-as-part-of-the-workflow/04-02-PLAN.md and verified phase 4
-last_updated: "2026-03-16T16:29:46Z"
-last_activity: 2026-03-16 — Completed Phase 4 and verified the CODE workflow route end-to-end
+status: active
+stopped_at: Added Phase 5 to the roadmap for TDD flow integration from Superpowers into C4Flow
+last_updated: "2026-03-16T16:47:17Z"
+last_activity: 2026-03-16 — Added Phase 5 to capture TDD flow integration from Superpowers into C4Flow
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
   total_plans: 9
   completed_plans: 9
-  percent: 100
+  percent: 80
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-16)
 
 **Core value:** No task closes without passing every quality check — Codex review, bd preflight, and beads gates must all pass before `bd close` succeeds
-**Current focus:** Milestone complete
+**Current focus:** Phase 5 planning
 
 ## Current Position
 
-Phase: 4 of 4 (Superpowers + Subagent-Driven c4flow:code)
-Plan: 2 of 2 complete in current phase
-Status: Phase complete
-Last activity: 2026-03-16 — Completed Phase 4 and verified the CODE workflow route end-to-end
+Phase: 5 of 5 (add tdd flow from superpowers into ours c4flow)
+Plan: 0 plans created in current phase
+Status: Phase added, planning pending
+Last activity: 2026-03-16 — Added Phase 5 to capture TDD flow integration from Superpowers into C4Flow
 
-Progress: [██████████] 100%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -46,8 +46,8 @@ Progress: [██████████] 100%
 | - | - | - | - |
 
 **Recent Trend:**
-- Last 5 plans: milestone closed with Phase 4 completion
-- Trend: all planned phases complete
+- Last 5 plans: Phase 4 completed; Phase 5 added to roadmap
+- Trend: milestone reopened for follow-on planning
 
 *Updated after each plan completion*
 | Phase 01-local-gate-infrastructure P01 | 2 | 2 tasks | 3 files |
@@ -103,6 +103,7 @@ None yet.
 ### Roadmap Evolution
 
 - Phase 4 added: Add superpowers and subagent-driven-development into c4flow code skill as part of the workflow
+- Phase 5 added: add tdd flow from superpowers into ours c4flow
 
 ### Blockers/Concerns
 
@@ -112,6 +113,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T16:29:46Z
-Stopped at: Completed 04-add-superpowers-and-subagent-driven-development-into-c4flow-code-skill-as-part-of-the-workflow/04-02-PLAN.md and verified the phase
+Last session: 2026-03-16T16:47:17Z
+Stopped at: Added Phase 5 to the roadmap for TDD flow integration from Superpowers into C4Flow
 Resume file: None

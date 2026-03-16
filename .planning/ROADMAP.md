@@ -2,16 +2,16 @@
 
 ## Overview
 
-Three phases build the quality gate chain from the inside out: first prove the local gate
+Four phases build the quality gate chain from the inside out: first prove the local gate
 mechanism works (Codex review + bd preflight + beads gates), then add Claude Code hooks as
 a safety net against agent-initiated bypasses, then wire up PR creation with gate status in
-the description. Each phase delivers a verifiable enforcement capability before the next
-layer is added.
+the description, then extend the Superpowers integration with the TDD flow. Each phase
+delivers a verifiable enforcement capability before the next layer is added.
 
 ## Phases
 
 **Phase Numbering:**
-- Integer phases (1, 2, 3, 4): Planned milestone work
+- Integer phases (1, 2, 3, 4, 5): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order.
@@ -20,6 +20,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Safety Net Hooks** - Claude Code hooks that intercept agent-initiated closes and session stops (completed 2026-03-16)
 - [x] **Phase 3: PR Skill** - Create GitHub PR with quality gate status summary in description
 - [x] **Phase 4: Superpowers + Subagent-Driven c4flow:code** - Integrate `superpowers` and `subagent-driven-development` into the `c4flow:code` skill workflow (completed 2026-03-16)
+- [ ] **Phase 5: add tdd flow from superpowers into ours c4flow** - Extend the C4Flow workflow to adopt the Superpowers TDD flow
 
 ## Phase Details
 
@@ -79,10 +80,20 @@ Plans:
 - [x] 04-01-PLAN.md — Implement `c4flow:code` orchestration and CODE-state routing through Superpowers
 - [x] 04-02-PLAN.md — Add regression tests and human verification for the new CODE workflow
 
+### Phase 5: add tdd flow from superpowers into ours c4flow
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 4
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run `$gsd-plan-phase 5` to break down)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -90,3 +101,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 2. Safety Net Hooks | 2/2 | Complete   | 2026-03-16 |
 | 3. PR Skill | 1/1 | Complete | 2026-03-16 |
 | 4. Superpowers + Subagent-Driven c4flow:code | 2/2 | Complete | 2026-03-16 |
+| 5. add tdd flow from superpowers into ours c4flow | 0/0 | Not planned | - |
