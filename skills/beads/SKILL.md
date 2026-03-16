@@ -35,15 +35,31 @@ Ask the user:
 2. Expected timeline? (rough: days, weeks, sprint)
 3. Confirm spec + design are complete and approved?
 
-### Step 3: Check if Beads is installed
+### Step 3: Check if Beads is installed and initialized
 
 ```bash
-command -v bd
+command -v bd 2>/dev/null && echo "BD_INSTALLED" || echo "BD_MISSING"
+[ -d ".beads" ] && echo "BEADS_INIT" || echo "BEADS_NOT_INIT"
 ```
 
 Branch based on result:
-- **Beads available** → Step 4a
-- **Beads not available** → Step 4b
+
+| `bd` installed? | `.beads/` exists? | Action |
+|-----------------|-------------------|--------|
+| Yes | Yes | → Step 4a (use Beads) |
+| Yes | No | Run `bd init`, then → Step 4a |
+| No | — | Offer to run `c4flow:init` skill. If user declines → Step 4b |
+
+**If bd is missing**, tell the user:
+> "Beads (bd) is not installed. I can set it up automatically with `/c4flow:init`, or fall back to tasks.md. Which do you prefer?"
+
+If they choose init, invoke the `c4flow:init` skill, then return here.
+
+**If bd is installed but .beads/ missing**, just run:
+```bash
+bd init
+```
+Then verify with `bd doctor` and continue to Step 4a.
 
 ### Step 4a: Create Epic + Tasks (Beads path)
 
@@ -131,7 +147,7 @@ Create `docs/specs/<feature>/tasks.md`:
 - ...
 ```
 
-Tell user: "Using `tasks.md` fallback. Install [Beads](https://github.com/steveyegge/beads) for atomic task claiming and dependency resolution."
+Tell user: "Using `tasks.md` fallback. Run `/c4flow:init` to install Beads for atomic task claiming and dependency resolution."
 
 Present the task list to user for review. Iterate if needed.
 

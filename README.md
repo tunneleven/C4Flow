@@ -94,6 +94,7 @@ The orchestrator will guide you through each phase, dispatching sub-agents for a
 | `/c4flow:research` | Implemented (5 research standards, quality gate) |
 | `/c4flow:spec` | Implemented (4 artifacts, interactive) |
 | `/c4flow:beads` | Implemented (epic→spec linking, tasks.md fallback) |
+| `/c4flow:init` | Implemented (auto-install Dolt + Beads) |
 | Skills 03, 05-15 (design, code → deploy) | Stub (not yet implemented) |
 | `/c4flow:run` command | Implemented |
 | `/c4flow:status` command | Implemented |
@@ -105,9 +106,12 @@ Phase 1 covers the **Research & Spec** workflow: web research via sub-agent, the
 ```
 c4flow/
 ├── .claude-plugin/
-│   └── plugin.json                 # Plugin manifest (v0.1.0)
+│   └── plugin.json                 # Plugin manifest (v0.3.0)
+├── scripts/
+│   └── init.sh                     # Auto-install dependencies (Dolt, Beads)
 ├── skills/
 │   ├── c4flow/SKILL.md             # Master orchestrator
+│   ├── init/SKILL.md               # Project init (auto-install deps)
 │   ├── research/SKILL.md           # Web research (implemented)
 │   ├── spec/SKILL.md               # Spec generation (implemented)
 │   ├── beads/SKILL.md              # Task breakdown (implemented)
@@ -144,7 +148,7 @@ These enhance the workflow but are not required (graceful fallbacks exist):
 
 | Dependency | Purpose | Fallback |
 |-----------|---------|----------|
-| [Beads](https://github.com/tunneleven/beads) (`bd`) | Issue tracking + task management | `tasks.md` checklist |
+| [Beads](https://github.com/tunneleven/beads) (`bd`) | Issue tracking + task management | `tasks.md` checklist (auto-install via `/c4flow:init`) |
 | Pencil MCP | Design mockups | Text-based layouts |
 | UI/UX Pro Max Skill | Design system generation | Best-practice defaults |
 
