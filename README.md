@@ -1,6 +1,6 @@
 # c4flow
 
-A self-contained **Claude Code plugin** that orchestrates a complete agentic software development workflow — from research through deployment.
+A self-contained **agentic development workflow plugin** that orchestrates a complete software development workflow — from research through deployment. Works with **Claude Code** and **OpenAI Codex CLI**.
 
 ## What It Does
 
@@ -26,7 +26,7 @@ IDLE → RESEARCH → SPEC → DESIGN → BEADS → CODE → TEST
 
 ### Prerequisites
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI **or** [OpenAI Codex CLI](https://github.com/openai/codex) installed
 
 ### Option 1: Install from Terminal
 
@@ -56,6 +56,22 @@ Then select **"Install a plugin"**, choose the c4flow marketplace, and install.
 > claude plugins marketplace add https://github.com/tunneleven/C4Flow
 > ```
 
+### Option 3: Install for OpenAI Codex CLI
+
+Tell Codex:
+
+> "Fetch and follow instructions from https://raw.githubusercontent.com/tunneleven/C4Flow/main/.codex/INSTALL.md"
+
+Or manually:
+
+```bash
+git clone https://github.com/tunneleven/C4Flow.git ~/.codex/c4flow
+mkdir -p ~/.agents/skills
+ln -s ~/.codex/c4flow/skills ~/.agents/skills/c4flow
+```
+
+Restart Codex, then use `$c4flow` to start the workflow. See [Codex CLI docs](docs/README.codex.md) for details.
+
 ### Usage
 
 ```bash
@@ -78,6 +94,7 @@ The orchestrator will guide you through each phase, dispatching sub-agents for a
 | `/c4flow:research` | Implemented (5 research standards, quality gate) |
 | `/c4flow:spec` | Implemented (4 artifacts, interactive) |
 | `/c4flow:beads` | Implemented (epic→spec linking, tasks.md fallback) |
+| `/c4flow:init` | Implemented (auto-install Dolt + Beads) |
 | Skills 03, 05-15 (design, code → deploy) | Stub (not yet implemented) |
 | `/c4flow:run` command | Implemented |
 | `/c4flow:status` command | Implemented |
@@ -89,9 +106,12 @@ Phase 1 covers the **Research & Spec** workflow: web research via sub-agent, the
 ```
 c4flow/
 ├── .claude-plugin/
-│   └── plugin.json                 # Plugin manifest (v0.1.0)
+│   └── plugin.json                 # Plugin manifest (v0.3.0)
+├── scripts/
+│   └── init.sh                     # Auto-install dependencies (Dolt, Beads)
 ├── skills/
 │   ├── c4flow/SKILL.md             # Master orchestrator
+│   ├── init/SKILL.md               # Project init (auto-install deps)
 │   ├── research/SKILL.md           # Web research (implemented)
 │   ├── spec/SKILL.md               # Spec generation (implemented)
 │   ├── beads/SKILL.md              # Task breakdown (implemented)
@@ -128,7 +148,7 @@ These enhance the workflow but are not required (graceful fallbacks exist):
 
 | Dependency | Purpose | Fallback |
 |-----------|---------|----------|
-| [Beads](https://github.com/tunneleven/beads) (`bd`) | Issue tracking + task management | `tasks.md` checklist |
+| [Beads](https://github.com/tunneleven/beads) (`bd`) | Issue tracking + task management | `tasks.md` checklist (auto-install via `/c4flow:init`) |
 | Pencil MCP | Design mockups | Text-based layouts |
 | UI/UX Pro Max Skill | Design system generation | Best-practice defaults |
 

@@ -40,7 +40,7 @@ States NOT in the auto flow (manual trigger only):
 | BEADS | phases/04-beads/SKILL.md | Main agent |
 | CODE | phases/05-code/SKILL.md | Sub-agent per task |
 | TDD | phases/06-tdd/SKILL.md | Sub-agent (merged with code) |
-| TEST | phases/07-test/SKILL.md | Sub-agent |
+| TEST | skills/test/SKILL.md | Sub-agent |
 | E2E | phases/08-e2e/SKILL.md | Sub-agent (manual trigger) |
 | REVIEW | phases/09-review/SKILL.md | Sub-agent loop (max 5) |
 | VERIFY | phases/10-verify/SKILL.md | Sub-agent |

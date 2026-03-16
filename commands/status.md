@@ -1,16 +1,21 @@
-# /c4flow:status — Show Workflow State
+---
+description: Show current C4Flow workflow state and progress
+allowed-tools: ["Read", "Glob"]
+---
 
 Read the state file at `docs/c4flow/.state.json`.
 
 If the file does not exist, display:
 
-No active c4flow workflow. Run /c4flow:run to start.
+> No active c4flow workflow. Run `/c4flow:run` to start.
 
 If the file exists, display the workflow status in this format:
 
+```
 c4flow: {feature}
 State: {currentState} (Phase {N}: {phase-name})
 Started: {startedAt}
+```
 
 Progress:
 
@@ -27,8 +32,10 @@ For unimplemented states (DESIGN through DEPLOY), append "— not yet implemente
 
 If `lastError` is set, show it at the bottom:
 
+```
 Last error: {lastError}
 Failed attempts: {failedAttempts}
+```
 
 Phase mapping:
 - Phase 1 (Research & Spec): RESEARCH, SPEC
