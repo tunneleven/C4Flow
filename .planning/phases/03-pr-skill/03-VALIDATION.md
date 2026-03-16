@@ -1,9 +1,9 @@
 ---
 phase: 3
 slug: pr-skill
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-16
 ---
 
@@ -38,12 +38,12 @@ created: 2026-03-16
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 3-01-01 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-skill-file.sh` | :x: W0 | :white_large_square: pending |
-| 3-01-02 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-body-construction.sh` | :x: W0 | :white_large_square: pending |
-| 3-01-03 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-gate-warn.sh` | :x: W0 | :white_large_square: pending |
-| 3-01-04 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-number-extraction.sh` | :x: W0 | :white_large_square: pending |
-| 3-01-05 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-state-write.sh` | :x: W0 | :white_large_square: pending |
-| 3-01-06 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-no-gh.sh` | :x: W0 | :white_large_square: pending |
+| 3-01-01 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-skill-file.sh` | :white_check_mark: W0 | :white_check_mark: green |
+| 3-01-02 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-body-construction.sh` | :white_check_mark: W0 | :white_check_mark: green |
+| 3-01-03 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-gate-warn.sh` | :white_check_mark: W0 | :white_check_mark: green |
+| 3-01-04 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-number-extraction.sh` | :white_check_mark: W0 | :white_check_mark: green |
+| 3-01-05 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-state-write.sh` | :white_check_mark: W0 | :white_check_mark: green |
+| 3-01-06 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-no-gh.sh` | :white_check_mark: W0 | :white_check_mark: green |
 
 *Status: :white_large_square: pending · :white_check_mark: green · :x: red · :warning: flaky*
 
@@ -51,12 +51,12 @@ created: 2026-03-16
 
 ## Wave 0 Requirements
 
-- [ ] `.claude/tests/test-pr-skill-file.sh` — covers SKIL-03 file existence and content checks
-- [ ] `.claude/tests/test-pr-body-construction.sh` — covers PR body markdown from mock `quality-gate-status.json`
-- [ ] `.claude/tests/test-pr-gate-warn.sh` — covers warn-not-block behavior (mock overall_pass=false)
-- [ ] `.claude/tests/test-pr-number-extraction.sh` — covers URL -> number parse
-- [ ] `.claude/tests/test-pr-state-write.sh` — covers `.state.json` atomic merge write with `jq`
-- [ ] `.claude/tests/test-pr-no-gh.sh` — covers graceful degradation when `gh` is not installed
+- [x] `.claude/tests/test-pr-skill-file.sh` — covers SKIL-03 file existence and content checks
+- [x] `.claude/tests/test-pr-body-construction.sh` — covers PR body markdown from mock `quality-gate-status.json`
+- [x] `.claude/tests/test-pr-gate-warn.sh` — covers warn-not-block behavior (mock overall_pass=false)
+- [x] `.claude/tests/test-pr-number-extraction.sh` — covers URL -> number parse
+- [x] `.claude/tests/test-pr-state-write.sh` — covers `.state.json` atomic merge write with `jq`
+- [x] `.claude/tests/test-pr-no-gh.sh` — covers graceful degradation when `gh` is not installed
 
 ---
 
@@ -70,11 +70,11 @@ created: 2026-03-16
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 5s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 5s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved (2026-03-16)
