@@ -49,11 +49,14 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 - Check for `--fast` flag in arguments. If present, set `mode: "fast"` in `.state.json`. Default: `mode: "research"`
 - Otherwise, ask the user for a feature name and description
 - Kebab-case the feature name for the slug (e.g., "User Auth" → "user-auth")
+- **Ask the user**: "Do you want to run web research first, or skip straight to spec generation?"
+  - If **yes** (research): set `currentState` to `RESEARCH`
+  - If **no** (skip): set `currentState` to `SPEC`, add `RESEARCH` to `completedStates`
 - Update `.state.json`:
   - Set `feature` to `{ "name": "<display name>", "slug": "<kebab-case>", "description": "<user description>" }`
   - Set `mode`, `startedAt` to today's date
-  - Advance `currentState` to `RESEARCH`
-- Proceed to RESEARCH
+  - Set `currentState` based on user's research choice above
+- Proceed to the chosen state
 
 ### If DONE
 - Tell the user: "Workflow complete for '{feature.name}'."
