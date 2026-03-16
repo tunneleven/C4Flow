@@ -65,7 +65,15 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 - If gate passes: add BEADS to `completedStates`, advance `currentState` to CODE, write `.state.json`
 - If gate fails: tell user what's missing, ask what to do
 
-### If state is any other (unimplemented skills: DESIGN, CODE through DEPLOY)
+### If state is TEST (implemented)
+- Check for partial output: were tests already run in a previous session? Look for test coverage reports or cached results in the project
+- If partial output found: present results to user, ask "Reuse existing test results or re-run?"
+- Run the test skill (see Skill Dispatch below)
+- After skill completes, check gate: tests pass AND coverage ≥ threshold
+- If gate passes: add TEST to `completedStates`, advance `currentState` to REVIEW, write `.state.json`
+- If gate fails: tell user the results, ask what to do
+
+### If state is any other (unimplemented skills: DESIGN, CODE, REVIEW through DEPLOY)
 - Tell the user: "**{state}** (Phase {N}: {phase-name}) is not yet implemented."
 - Show the gate condition that would need to pass to advance
 - Offer options:
@@ -100,6 +108,27 @@ This runs in the main agent (you). Follow the spec skill at `skills/spec/SKILL.m
 ### BEADS (Main agent)
 This runs in the main agent (you). Follow the beads skill at `skills/beads/SKILL.md`.
 After the skill completes, update `beadsEpic` in `.state.json` with the epic ID (or `null` if using `tasks.md` fallback).
+
+### TEST (Sub-agent)
+Dispatch a sub-agent. Provide the sub-agent with:
+
+1. Read the full skill instructions: `skills/test/SKILL.md` (overview) + `skills/test/prompt.md` (execution steps)
+2. Execute with these parameters:
+
+```
+Feature: {feature name}
+Coverage threshold: {from tech-stack.md testing section, or 80% default}
+Spec: docs/specs/{feature}/spec.md
+Tech stack: docs/specs/{feature}/tech-stack.md
+```
+
+3. Follow `prompt.md` step by step (8 steps: detect framework → run tests → classify → check coverage → auto-write tests if needed → deep analyze → quality gate → report)
+
+After sub-agent returns:
+- If DONE: present test summary to user, ask "Tests pass with {coverage}% coverage. Ready to advance to review?"
+- If DONE_WITH_CONCERNS: present concerns (e.g., coverage below threshold), ask user how to proceed
+- If BLOCKED: present the issue (env failure, no framework), ask for guidance
+- If NEEDS_CONTEXT: present the question (spec ambiguity, design conflict), ask user for clarification
 
 ## State Management
 
