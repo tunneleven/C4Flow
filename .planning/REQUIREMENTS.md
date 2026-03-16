@@ -32,7 +32,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **INFR-02**: `.claude/hooks/` shell scripts: `bd-close-gate.sh` (PreToolUse), `check-open-gates.sh` (Stop), `task-complete-gate.sh` (TaskCompleted)
 - [ ] **INFR-03**: Hooks configuration in `.claude/settings.json` with project-scoped matchers and appropriate timeouts
 - [x] **INFR-04**: Gate resolution audit trail — reason string logged on every `bd gate resolve` and `bd close --reason`
-- [ ] **INFR-05**: Beads molecule formula template with explicit review and verify gate steps that block task advancement
+- [x] **INFR-05**: Beads molecule formula template with explicit review and verify gate steps that block task advancement
 - [x] **INFR-06**: `quality-gate-status.json` schema definition — includes per-check pass/fail, timestamps, expiry, and findings summary
 
 ## v2 Requirements
@@ -87,7 +87,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | INFR-02 | Phase 2 | Pending |
 | INFR-03 | Phase 2 | Pending |
 | INFR-04 | Phase 1 | Complete |
-| INFR-05 | Phase 1 | Pending |
+| INFR-05 | Phase 1 | Complete |
 | INFR-06 | Phase 1 | Complete |
 
 **Coverage:**

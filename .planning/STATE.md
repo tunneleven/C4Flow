@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 01-local-gate-infrastructure/01-03-PLAN.md
-last_updated: "2026-03-16T08:10:27.115Z"
+stopped_at: Completed 01-local-gate-infrastructure/01-04-PLAN.md
+last_updated: "2026-03-16T08:34:21.016Z"
 last_activity: 2026-03-16 — Roadmap created; phases derived from requirements
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
   percent: 0
 ---
 
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 01-local-gate-infrastructure P01 | 2 | 2 tasks | 3 files |
 | Phase 01-local-gate-infrastructure P02 | 2 | 1 tasks | 1 files |
 | Phase 01-local-gate-infrastructure P03 | 3 | 1 tasks | 1 files |
+| Phase 01-local-gate-infrastructure P04 | 15 | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,8 @@ Recent decisions affecting current work:
 - [Phase 01-local-gate-infrastructure]: Verify skill reads codex_review from file (written by review skill) — no re-dispatch of Codex subagent
 - [Phase 01-local-gate-infrastructure]: Gate resolved in verify step when overall_pass becomes true — verify is the single aggregation point
 - [Phase 01-local-gate-infrastructure]: bd close --reason reminder always printed on Ready for PR: YES — INFR-04 audit trail compliance
+- [Phase 01-local-gate-infrastructure]: Beads formula uses TOML schema (not YAML): Step struct confirmed via empirical validation; formula file is .formula.toml
+- [Phase 01-local-gate-infrastructure]: No native gate type in beads Step schema: gate semantics expressed via acceptance criteria and needs ordering; actual gate beads created dynamically by c4flow skills
 
 ### Pending Todos
 
@@ -87,6 +90,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T08:10:27.113Z
-Stopped at: Completed 01-local-gate-infrastructure/01-03-PLAN.md
+Last session: 2026-03-16T08:34:21.014Z
+Stopped at: Completed 01-local-gate-infrastructure/01-04-PLAN.md
 Resume file: None
