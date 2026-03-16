@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: planning
-stopped_at: Completed 02-safety-net-hooks/02-02-PLAN.md
-last_updated: "2026-03-16T09:45:02.283Z"
+stopped_at: Completed 03-pr-skill/03-01-PLAN.md
+last_updated: "2026-03-16T10:19:22.667Z"
 last_activity: 2026-03-16 — Roadmap created; phases derived from requirements
 progress:
   total_phases: 3
-  completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 3
+  total_plans: 7
+  completed_plans: 7
   percent: 0
 ---
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 02-safety-net-hooks P01 | 2 | 2 tasks | 4 files |
 | Phase 02-safety-net-hooks P02 | 6 | 1 tasks | 6 files |
 | Phase 02-safety-net-hooks P02 | 30 | 2 tasks | 6 files |
+| Phase 03-pr-skill P01 | 25 | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,9 @@ Recent decisions affecting current work:
 - [Phase 02-safety-net-hooks]: Suite runner uses $((N+1)) not ((N++)) to avoid set -e exit-1 on zero arithmetic result
 - [Phase 02-safety-net-hooks]: Hook tests use subshell export pattern to ensure env vars reach bash hook script, not just the echo LHS of pipeline
 - [Phase 02-safety-net-hooks]: Suite runner uses $((N+1)) not ((N++)) to avoid set -e exit-1 on zero arithmetic result
+- [Phase 03-pr-skill]: PR body written to temp file and passed via --body-file (not inline --body) to avoid shell escaping issues
+- [Phase 03-pr-skill]: Warn-not-block pattern for failed gates: shows WARNING + confirmation, never exits 1 solely for failed gates
+- [Phase 03-pr-skill]: Atomic jq merge for .state.json preserves all existing fields when writing prNumber
 
 ### Pending Todos
 
@@ -100,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T09:45:02.281Z
-Stopped at: Completed 02-safety-net-hooks/02-02-PLAN.md
+Last session: 2026-03-16T10:19:22.665Z
+Stopped at: Completed 03-pr-skill/03-01-PLAN.md
 Resume file: None

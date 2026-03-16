@@ -24,7 +24,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **SKIL-01**: `c4flow:review` skill — orchestrates Codex subagent review, parses structured output, writes gate status file, resolves beads gate on pass, reports findings on fail
 - [x] **SKIL-02**: `c4flow:verify` skill — runs bd preflight, aggregates all gate results (Codex + preflight), declares "Ready for PR: YES/NO" with summary
-- [ ] **SKIL-03**: `c4flow:pr` skill — creates GitHub PR with quality gate status summary in description, updates .state.json with PR number
+- [x] **SKIL-03**: `c4flow:pr` skill — creates GitHub PR with quality gate status summary in description, updates .state.json with PR number
 
 ### Infrastructure
 
@@ -82,7 +82,7 @@ Deferred to future release. Tracked but not in current roadmap.
 | HOOK-03 | Phase 2 | Complete |
 | SKIL-01 | Phase 1 | Complete |
 | SKIL-02 | Phase 1 | Complete |
-| SKIL-03 | Phase 3 | Pending |
+| SKIL-03 | Phase 3 | Complete |
 | INFR-01 | Phase 1 | Complete |
 | INFR-02 | Phase 2 | Complete |
 | INFR-03 | Phase 2 | Complete |
