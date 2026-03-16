@@ -20,7 +20,7 @@ created: 2026-03-16
 | **Framework** | Shell script integration tests (bash — consistent with Phase 1/2) |
 | **Config file** | None required |
 | **Quick run command** | `bash .claude/tests/test-pr-body-construction.sh && bash .claude/tests/test-pr-number-extraction.sh` |
-| **Full suite command** | `bash .claude/tests/run-all-tests.sh` |
+| **Full suite command** | `bash .claude/tests/run-pr-tests.sh` |
 | **Estimated runtime** | ~5 seconds |
 
 ---
@@ -28,7 +28,7 @@ created: 2026-03-16
 ## Sampling Rate
 
 - **After every task commit:** Run `bash .claude/tests/test-pr-body-construction.sh && bash .claude/tests/test-pr-number-extraction.sh`
-- **After every plan wave:** Run `bash .claude/tests/run-all-tests.sh`
+- **After every plan wave:** Run `bash .claude/tests/run-pr-tests.sh`
 - **Before `/gsd:verify-work`:** Full suite must be green
 - **Max feedback latency:** 5 seconds
 
@@ -38,24 +38,24 @@ created: 2026-03-16
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 3-01-01 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-skill-file.sh` | ❌ W0 | ⬜ pending |
-| 3-01-02 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-body-construction.sh` | ❌ W0 | ⬜ pending |
-| 3-01-03 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-gate-warn.sh` | ❌ W0 | ⬜ pending |
-| 3-01-04 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-number-extraction.sh` | ❌ W0 | ⬜ pending |
-| 3-01-05 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-state-json-write.sh` | ❌ W0 | ⬜ pending |
-| 3-01-06 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-no-gh.sh` | ❌ W0 | ⬜ pending |
+| 3-01-01 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-skill-file.sh` | :x: W0 | :white_large_square: pending |
+| 3-01-02 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-body-construction.sh` | :x: W0 | :white_large_square: pending |
+| 3-01-03 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-gate-warn.sh` | :x: W0 | :white_large_square: pending |
+| 3-01-04 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-number-extraction.sh` | :x: W0 | :white_large_square: pending |
+| 3-01-05 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-state-write.sh` | :x: W0 | :white_large_square: pending |
+| 3-01-06 | 01 | 0 | SKIL-03 | unit | `bash .claude/tests/test-pr-no-gh.sh` | :x: W0 | :white_large_square: pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: :white_large_square: pending · :white_check_mark: green · :x: red · :warning: flaky*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `.claude/tests/test-pr-skill-file.sh` — covers SKIL-03 file existence check
+- [ ] `.claude/tests/test-pr-skill-file.sh` — covers SKIL-03 file existence and content checks
 - [ ] `.claude/tests/test-pr-body-construction.sh` — covers PR body markdown from mock `quality-gate-status.json`
 - [ ] `.claude/tests/test-pr-gate-warn.sh` — covers warn-not-block behavior (mock overall_pass=false)
-- [ ] `.claude/tests/test-pr-number-extraction.sh` — covers URL → number parse
-- [ ] `.claude/tests/test-state-json-write.sh` — covers `.state.json` atomic merge write with `jq`
+- [ ] `.claude/tests/test-pr-number-extraction.sh` — covers URL -> number parse
+- [ ] `.claude/tests/test-pr-state-write.sh` — covers `.state.json` atomic merge write with `jq`
 - [ ] `.claude/tests/test-pr-no-gh.sh` — covers graceful degradation when `gh` is not installed
 
 ---
