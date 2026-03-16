@@ -29,7 +29,7 @@ Analyze a feature idea across both market and technical dimensions. Produces a s
 
 | Mode | Web Search | Duration | Use When |
 |------|-----------|----------|----------|
-| `research` (default) | Yes (WebSearch + WebFetch) | ~3-5 minutes | Pre-proposal, serious builds, funding prep |
+| `research` (default) | Yes (web search + URL fetching) | ~3-5 minutes | Pre-proposal, serious builds, funding prep |
 | `fast` | No | ~30 seconds | Quick exploration, early ideation |
 
 ## Analysis Layers

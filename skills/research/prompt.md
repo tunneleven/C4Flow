@@ -10,7 +10,7 @@
 | No Mode field or `Mode: research` | `research` (default) |
 
 In **fast mode**: Use only AI internal knowledge. No web search.
-In **research mode**: Use WebSearch/WebFetch for competitor data and technical sources. Collect all source URLs — they go in the `## Sources` section.
+In **research mode**: Search the web for competitor data and technical sources. Fetch relevant URLs for detailed information. Collect all source URLs — they go in the `## Sources` section.
 
 **Edge cases:**
 - If the idea is very broad (e.g., "social media app"), ask up to 2 clarifying questions to narrow scope before proceeding (e.g., target audience, primary use case).
@@ -56,7 +56,7 @@ Platform:
 Key differentiator:
 ```
 
-- **Research mode**: WebSearch per competitor to verify and enrich:
+- **Research mode**: Search the web per competitor to verify and enrich:
   - `"<competitor> pricing"`
   - `"<competitor> features"`
   - `"<competitor> reviews site:reddit.com OR site:producthunt.com"`
@@ -127,7 +127,7 @@ Produce data for **4 sections**:
 | ...      | ...  | ...  | ...       | ...         |
 ```
 
-- **Research mode**: WebFetch 3-5 most relevant technical sources (docs, blog posts, comparisons)
+- **Research mode**: Fetch and read 3-5 most relevant technical sources (docs, blog posts, comparisons)
 - **Fast mode**: Use internal knowledge only
 
 ### 3.2 Contrarian View

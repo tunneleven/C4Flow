@@ -1,6 +1,6 @@
 # c4flow
 
-A self-contained **Claude Code plugin** that orchestrates a complete agentic software development workflow — from research through deployment.
+A self-contained **agentic development workflow plugin** that orchestrates a complete software development workflow — from research through deployment. Works with **Claude Code** and **OpenAI Codex CLI**.
 
 ## What It Does
 
@@ -26,7 +26,7 @@ IDLE → RESEARCH → SPEC → DESIGN → BEADS → CODE → TEST
 
 ### Prerequisites
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI **or** [OpenAI Codex CLI](https://github.com/openai/codex) installed
 
 ### Option 1: Install from Terminal
 
@@ -55,6 +55,22 @@ Then select **"Install a plugin"**, choose the c4flow marketplace, and install.
 > ```bash
 > claude plugins marketplace add https://github.com/tunneleven/C4Flow
 > ```
+
+### Option 3: Install for OpenAI Codex CLI
+
+Tell Codex:
+
+> "Fetch and follow instructions from https://raw.githubusercontent.com/tunneleven/C4Flow/main/.codex/INSTALL.md"
+
+Or manually:
+
+```bash
+git clone https://github.com/tunneleven/C4Flow.git ~/.codex/c4flow
+mkdir -p ~/.agents/skills
+ln -s ~/.codex/c4flow/skills ~/.agents/skills/c4flow
+```
+
+Restart Codex, then use `$c4flow` to start the workflow. See [Codex CLI docs](docs/README.codex.md) for details.
 
 ### Usage
 
