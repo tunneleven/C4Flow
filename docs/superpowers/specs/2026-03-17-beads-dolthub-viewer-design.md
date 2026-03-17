@@ -1,7 +1,7 @@
 # Beads DoltHub Viewer Design
 
 **Date:** 2026-03-17
-**Status:** Approved
+**Status:** Draft
 
 ## Goal
 
@@ -91,6 +91,7 @@ The main region shows:
 - `description`
 - `parentId`
 - `groupId`
+- `groupLabel`
 - `dependsOnIds`
 - `blocksCount`
 - `children`
@@ -134,6 +135,18 @@ Responsibility:
 Interface:
 - Input: canonical repo identity
 - Output: raw remote data or fetch error
+
+Contract for this version:
+- Use DoltHub's public SQL read API on the default branch: `GET https://www.dolthub.com/api/v1alpha1/{owner}/{database}?q=...`
+- Expect JSON responses that include at minimum:
+  - `query_execution_status`
+  - `query_execution_message`
+  - `repository_owner`
+  - `repository_name`
+  - `commit_ref`
+  - `schema`
+  - `rows`
+- The browser-only implementation assumes this endpoint remains callable cross-origin for local and deployed frontend origins. This assumption was validated during design on 2026-03-17 with an `OPTIONS` probe that returned `Access-Control-Allow-Origin` for a localhost origin, but it still remains an external dependency risk.
 
 ### Unit 3: BeadsAdapter
 
@@ -200,6 +213,13 @@ For this spec, an "epic" is any source grouping concept that the adapter normali
 
 Tasks with both `groupId` and `parentId` use `groupId` for top-level section placement and may still appear as nested children inside that section.
 
+Section title rules:
+
+- If the source data exposes a human-readable grouping name, normalize it into `groupLabel` and use that for the section header.
+- Otherwise, if the group maps to another task, use the resolved parent task title.
+- Otherwise, fall back to the stable identifier value (`groupId` or `parentId`).
+- Tasks with neither value render under the literal section title `Ungrouped`.
+
 ## Dependency Graph Rules
 
 The fetched dependency data may be a graph rather than a strict tree. The viewer must convert that graph into a tree-friendly presentation without pretending the underlying structure is simpler than it is.
@@ -207,7 +227,7 @@ The fetched dependency data may be a graph rather than a strict tree. The viewer
 Rules:
 
 - The dependency view may have multiple roots.
-- If a task is referenced by multiple upstream tasks, the UI may render the task card once as its canonical node and show subsequent appearances as reference nodes or duplicated cards with a visual indicator. The implementation plan must pick one approach and keep it consistent.
+- If a task is referenced by multiple upstream tasks, the UI renders one full canonical card at its first discovered placement and renders subsequent appearances as lightweight reference nodes that link back to the canonical card. The viewer must not duplicate full task cards for the same task ID.
 - If the adapter detects a cycle, the app must not recurse indefinitely. It should render the involved nodes up to the point of cycle detection and show a cycle warning on the repeated edge or node.
 - Missing dependency targets remain non-fatal warnings.
 
@@ -220,6 +240,23 @@ This version assumes there is at least one public DoltHub data surface that:
 - exposes the beads-backed task data needed by the viewer
 - is reachable directly from the browser
 - allows the required cross-origin requests for a frontend-only app
+
+The planned fetch sequence is:
+
+1. Run a SQL discovery query such as `SHOW TABLES` against the public SQL API.
+2. Use `BeadsAdapter` to determine which beads-owned table or view names contain task, assignee, and dependency data in the target repo.
+3. Run read-only SQL queries against those discovered tables/views.
+4. Normalize the returned `rows` into `TaskNode` records and relationship edges.
+
+The minimum source capability required from a target beads repo is enough readable table/view data to derive:
+
+- task identity and title
+- status
+- type and priority if present
+- assignee reference or assignee display value if present
+- description/body if present
+- grouping references
+- dependency references
 
 If that assumption proves false during implementation, the plan must stop and surface the issue rather than silently broadening scope into a backend solution. Backend proxying remains explicitly out of scope for this spec.
 
@@ -256,6 +293,11 @@ If the repo contains no parseable tasks, the app should distinguish between:
 ## Local Persistence
 
 `localStorage` stores only the most recently opened valid repo identity and enough metadata to restore it on the next visit. Failed or invalid inputs should not overwrite the last known good repo.
+
+Restore rules:
+
+- If persisted data is malformed or cannot be parsed, the app clears that saved value, starts in an empty input state, and shows a non-blocking restore warning.
+- If the persisted repo key is valid but the repo now fails to load, the app keeps the repo value visible in the input, shows the fetch error, and does not silently delete the saved repo until the user successfully loads a different valid repo.
 
 ## Testing Strategy
 
