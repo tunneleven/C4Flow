@@ -167,6 +167,20 @@ input  { font-family:inherit; }
 .pcnt  { font-family:var(--font-m); font-size:.65rem; color:var(--ink-4); }
 .pocnt { color:var(--open); font-family:var(--font-m); font-size:.65rem; }
 
+/* Column toggles */
+.col-toggles { display:flex; flex-direction:column; gap:2px; }
+.ctog-chip {
+  display:flex; align-items:center; gap:.45rem;
+  padding:.3rem .45rem; border-radius:var(--r);
+  font-size:.78rem; color:var(--ink-3); background:none; border:none;
+  text-align:left; width:100%; cursor:pointer; transition:background 80ms, color 80ms;
+  user-select:none;
+}
+.ctog-chip:hover { background:var(--bg); color:var(--ink-2); }
+.ctog-chip.on  { color:var(--ink-2); }
+.ctog-chip.off { opacity:.45; }
+.ctog-icon { font-size:.65rem; width:14px; text-align:center; font-family:var(--font-m); }
+
 /* ─────────────────────── Content ─────────────────────── */
 .content { display:flex; flex-direction:column; overflow:hidden; }
 
@@ -437,6 +451,32 @@ input  { font-family:inherit; }
       </div>
     </div>
 
+    <div class="sb-sec" id="sb-cols" style="display:none">
+      <div class="sb-lbl">Columns</div>
+      <div class="col-toggles">
+        <button class="ctog-chip on" id="ctb-open"        onclick="toggleCol('open')">
+          <span class="sdot open"></span>Open
+          <span class="ctog-icon" style="margin-left:auto" id="cti-open">✓</span>
+        </button>
+        <button class="ctog-chip on" id="ctb-in_progress" onclick="toggleCol('in_progress')">
+          <span class="sdot wip"></span>In Progress
+          <span class="ctog-icon" style="margin-left:auto" id="cti-in_progress">✓</span>
+        </button>
+        <button class="ctog-chip on" id="ctb-blocked"     onclick="toggleCol('blocked')">
+          <span class="sdot blocked"></span>Blocked
+          <span class="ctog-icon" style="margin-left:auto" id="cti-blocked">✓</span>
+        </button>
+        <button class="ctog-chip on" id="ctb-deferred"    onclick="toggleCol('deferred')">
+          <span class="sdot deferred"></span>Deferred
+          <span class="ctog-icon" style="margin-left:auto" id="cti-deferred">✓</span>
+        </button>
+        <button class="ctog-chip on" id="ctb-closed"      onclick="toggleCol('closed')">
+          <span class="sdot done"></span>Done
+          <span class="ctog-icon" style="margin-left:auto" id="cti-closed">✓</span>
+        </button>
+      </div>
+    </div>
+
     <div class="sb-sec" id="sb-team" style="display:none">
       <div class="sb-lbl">Team</div>
       <div class="team-list" id="team-list"></div>
@@ -483,6 +523,7 @@ function initials(name) {
 let state = {
   repo:null, records:[], warnings:[], depTree:null, groupedTree:null,
   view:'kanban', statusFilter:'all', personFilter:null,
+  visibleCols: new Set(['open','in_progress','blocked','deferred','closed']),
 };
 let timer=null, countdown=REFRESH_SEC;
 
@@ -670,11 +711,32 @@ function setPersonFilter(name){
 function setView(v){
   state.view=v;
   ['kanban','person','dep','group'].forEach(k=>document.getElementById(`vb-${k}`)?.classList.toggle('active',k===v));
+  // Show the Columns panel only in Kanban view
+  const $sc=document.getElementById('sb-cols');
+  if($sc)$sc.style.display=v==='kanban'&&state.records.length?'block':'none';
   renderContent();
 }
 
 /* ── Render all ── */
 function renderAll(){renderSidebar();renderContent();}
+/* ── Column visibility ── */
+function toggleCol(col){
+  if(state.visibleCols.has(col)){
+    if(state.visibleCols.size<=1)return; // keep at least one
+    state.visibleCols.delete(col);
+  } else {
+    state.visibleCols.add(col);
+  }
+  // Update chip states
+  ['open','in_progress','blocked','deferred','closed'].forEach(c=>{
+    const btn=document.getElementById(`ctb-${c}`);
+    const ico=document.getElementById(`cti-${c}`);
+    const on=state.visibleCols.has(c);
+    if(btn){btn.classList.toggle('on',on);btn.classList.toggle('off',!on);}
+    if(ico)ico.textContent=on?'✓':'○';
+  });
+  if(state.view==='kanban')renderContent();
+}
 
 function renderSidebar(){
   const recs=state.records;
@@ -692,6 +754,9 @@ function renderSidebar(){
   document.getElementById('prog-fill').style.width=total?`${((done+wip)/total*100).toFixed(1)}%`:'0%';
   document.getElementById('tb-repo').textContent=state.repo?.canonicalRepo||'';
   document.getElementById('tb-meta').style.display=state.repo?'block':'none';
+  // Columns panel: only in kanban view when data is loaded
+  const $sc=document.getElementById('sb-cols');
+  if($sc)$sc.style.display=(state.view==='kanban'&&total)?'block':'none';
 
   // Team
   const amap=new Map();
@@ -785,38 +850,37 @@ function renderKanban($ca) {
     return r.status===st;
   }).length;
 
+  // Columns config — filter by visibleCols
+  const ALL_COLS = [
+    {key:'open',        bucket:'open',    label:'● Open',        cls:'open',     bg:null},
+    {key:'in_progress', bucket:'wip',     label:'▶ In Progress', cls:'wip',      bg:'oklch(98.5% 0.025 75 / 0.5)'},
+    {key:'blocked',     bucket:'blocked', label:'⊘ Blocked',     cls:'blocked',  bg:'oklch(98.5% 0.025 28 / 0.4)'},
+    {key:'deferred',    bucket:'deferred',label:'⊡ Deferred',    cls:'deferred', bg:'oklch(98.5% 0.015 270 / 0.4)'},
+    {key:'closed',      bucket:'closed',  label:'✓ Done',        cls:'done',     bg:'oklch(98.5% 0.013 230 / 0.5)'},
+  ];
+  const cols = ALL_COLS.filter(c => state.visibleCols.has(c.key));
+  const gridTpl = `150px repeat(${cols.length}, 1fr)`;
+
   const $wrap = dl('kanban-wrap');
 
-  // Fixed header — 5 status columns
+  // Dynamic header
   const $hdr = dl('kanban-header');
-  $hdr.innerHTML = `
-    <div class="kh-person-cell">Person</div>
-    <div class="kh-status-cell">
-      <span class="kh-status-title open">● Open</span>
-      <span class="kh-count">${cnt('open')}</span>
-    </div>
-    <div class="kh-status-cell">
-      <span class="kh-status-title wip">▶ In Progress</span>
-      <span class="kh-count">${cnt('wip')}</span>
-    </div>
-    <div class="kh-status-cell">
-      <span class="kh-status-title blocked">⊘ Blocked</span>
-      <span class="kh-count">${cnt('blocked')}</span>
-    </div>
-    <div class="kh-status-cell">
-      <span class="kh-status-title deferred">⊡ Deferred</span>
-      <span class="kh-count">${cnt('deferred')}</span>
-    </div>
-    <div class="kh-status-cell">
-      <span class="kh-status-title done">✓ Done</span>
-      <span class="kh-count">${cnt('done')}</span>
+  $hdr.style.gridTemplateColumns = gridTpl;
+  let hdrHtml = '<div class="kh-person-cell">Person</div>';
+  for (const col of cols) {
+    const cntVal = recs.filter(r => r.status===col.key).length;
+    hdrHtml += `<div class="kh-status-cell">
+      <span class="kh-status-title ${col.cls}">${col.label}</span>
+      <span class="kh-count">${cntVal}</span>
     </div>`;
+  }
+  $hdr.innerHTML = hdrHtml;
   $wrap.appendChild($hdr);
 
   const $body = dl('kanban-body');
 
   if (sorted.length === 0) {
-    const e = dl(''); e.style.cssText = 'padding:2rem 1.5rem;font-size:.85rem;color:var(--ink-4)grid-column:1/-1;';
+    const e = dl(''); e.style.cssText = 'padding:2rem 1.5rem;font-size:.85rem;color:var(--ink-4);';
     e.textContent = 'No tasks match the current filter.';
     $body.appendChild(e);
   }
@@ -837,6 +901,7 @@ function renderKanban($ca) {
     const color = name ? avColor(name) : 'oklch(68% .01 82)';
     const actv  = buckets.wip.length;
     const row   = dl('swim-row');
+    row.style.gridTemplateColumns = gridTpl;
 
     const $person = dl('swim-person');
     $person.innerHTML = `
@@ -850,11 +915,9 @@ function renderKanban($ca) {
       </div>`;
     row.appendChild($person);
 
-    row.appendChild(mkCell(buckets.open));
-    row.appendChild(mkCell(buckets.wip, 'oklch(98.5% 0.025 75 / 0.5)'));
-    row.appendChild(mkCell(buckets.blocked, 'oklch(98.5% 0.025 28 / 0.4)'));
-    row.appendChild(mkCell(buckets.deferred, 'oklch(98.5% 0.015 270 / 0.4)'));
-    row.appendChild(mkCell(buckets.closed, 'oklch(98.5% 0.013 230 / 0.5)'));
+    for (const col of cols) {
+      row.appendChild(mkCell(buckets[col.bucket], col.bg));
+    }
 
     $body.appendChild(row);
   }
