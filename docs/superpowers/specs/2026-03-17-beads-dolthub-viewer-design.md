@@ -131,10 +131,11 @@ Responsibility:
 - Hide endpoint details from the rest of the app
 - Return raw payloads plus transport-level error details
 - Encapsulate the assumption that the chosen public DoltHub surface is callable directly from the browser in this version
+- Own all SQL query orchestration for this version
 
 Interface:
 - Input: canonical repo identity
-- Output: raw remote data or fetch error
+- Output: raw compatibility-check results and raw query results, or fetch error
 
 Contract for this version:
 - Use DoltHub's public SQL read API on the default branch: `GET https://www.dolthub.com/api/v1alpha1/{owner}/{database}?q=...`
@@ -147,6 +148,12 @@ Contract for this version:
   - `schema`
   - `rows`
 - The browser-only implementation assumes this endpoint remains callable cross-origin for local and deployed frontend origins. This assumption was validated during design on 2026-03-17 with an `OPTIONS` probe that returned `Access-Control-Allow-Origin` for a localhost origin, but it still remains an external dependency risk.
+- Execute a fixed query sequence:
+  1. `SHOW TABLES`
+  2. `SELECT id, title, description, status, priority, issue_type, assignee, metadata FROM issues`
+  3. `SELECT issue_id, depends_on_id, type, metadata FROM dependencies`
+
+`DoltHubClient` is responsible for issuing these queries and returning their raw results. It does not interpret beads meaning beyond knowing which fixed queries belong to v1.
 
 ### Unit 3: BeadsAdapter
 
@@ -156,8 +163,10 @@ Responsibility:
 - Detect unsupported or incomplete schema cases
 
 Interface:
-- Input: raw DoltHub payloads
+- Input: raw `SHOW TABLES`, `issues`, and `dependencies` query payloads
 - Output: normalized task collection plus non-fatal warnings
+
+`BeadsAdapter` does not decide which SQL to run. It only validates and parses the raw results returned by `DoltHubClient`.
 
 ### Unit 4: TreeBuilder
 
@@ -220,6 +229,14 @@ Section title rules:
 - Otherwise, fall back to the stable identifier value (`groupId` or `parentId`).
 - Tasks with neither value render under the literal section title `Ungrouped`.
 
+For v1, `groupId`, `groupLabel`, and `parentId` are optional values derived only from supported keys inside `issues.metadata` JSON:
+
+- `group_id`
+- `group_label`
+- `parent_id`
+
+If those keys are absent, the task remains ungrouped. No other grouping schema variants are in scope for v1.
+
 ## Dependency Graph Rules
 
 The fetched dependency data may be a graph rather than a strict tree. The viewer must convert that graph into a tree-friendly presentation without pretending the underlying structure is simpler than it is.
@@ -227,7 +244,10 @@ The fetched dependency data may be a graph rather than a strict tree. The viewer
 Rules:
 
 - The dependency view may have multiple roots.
-- If a task is referenced by multiple upstream tasks, the UI renders one full canonical card at its first discovered placement and renders subsequent appearances as lightweight reference nodes that link back to the canonical card. The viewer must not duplicate full task cards for the same task ID.
+- Roots are sorted by task ID ascending before traversal.
+- Child dependency references are sorted by `dependsOnIds` ascending before traversal.
+- If a task is referenced by multiple upstream tasks, the UI renders one full canonical card at its first encounter during this sorted depth-first traversal and renders subsequent appearances as lightweight reference nodes that link back to the canonical card. The viewer must not duplicate full task cards for the same task ID.
+- If a connected component has no root because every node has an inbound edge, start that component from the lexicographically smallest task ID in the component.
 - If the adapter detects a cycle, the app must not recurse indefinitely. It should render the involved nodes up to the point of cycle detection and show a cycle warning on the repeated edge or node.
 - Missing dependency targets remain non-fatal warnings.
 
@@ -243,20 +263,44 @@ This version assumes there is at least one public DoltHub data surface that:
 
 The planned fetch sequence is:
 
-1. Run a SQL discovery query such as `SHOW TABLES` against the public SQL API.
-2. Use `BeadsAdapter` to determine which beads-owned table or view names contain task, assignee, and dependency data in the target repo.
-3. Run read-only SQL queries against those discovered tables/views.
+1. Run `SHOW TABLES` against the public SQL API.
+2. Verify that `issues` and `dependencies` exist. If either table is missing, stop with an unsupported-schema error.
+3. Run the fixed read-only queries for `issues` and `dependencies`.
 4. Normalize the returned `rows` into `TaskNode` records and relationship edges.
 
-The minimum source capability required from a target beads repo is enough readable table/view data to derive:
+## Supported Beads Schema in v1
+
+This viewer supports one concrete remote schema shape in v1:
+
+- `issues` base table exists
+- `dependencies` base table exists
+- `issues` exposes at least these columns:
+  - `id`
+  - `title`
+  - `description`
+  - `status`
+  - `priority`
+  - `issue_type`
+  - `assignee`
+  - `metadata`
+- `dependencies` exposes at least these columns:
+  - `issue_id`
+  - `depends_on_id`
+  - `type`
+  - `metadata`
+
+From that schema, the app derives:
 
 - task identity and title
 - status
-- type and priority if present
-- assignee reference or assignee display value if present
-- description/body if present
-- grouping references
+- issue type
+- priority
+- assignee display value
+- description/body
 - dependency references
+- optional grouping references from `issues.metadata`
+
+If a target repo uses a different beads schema layout, alternate table names, or different grouping keys, that repo is out of scope for v1 and should fail with a clear unsupported-schema message rather than triggering heuristic discovery logic.
 
 If that assumption proves false during implementation, the plan must stop and surface the issue rather than silently broadening scope into a backend solution. Backend proxying remains explicitly out of scope for this spec.
 
