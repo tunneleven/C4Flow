@@ -42,6 +42,21 @@ Build a frontend-only website that lets a user view a public beads-backed DoltHu
 4. The app normalizes the input to a canonical `owner/repo` form before fetching data.
 5. The user can replace the current repo at any time to switch context.
 
+Accepted input forms for v1:
+
+- `vanhiep99w/test`
+- `https://www.dolthub.com/repositories/vanhiep99w/test`
+- `https://www.dolthub.com/repositories/vanhiep99w/test/`
+
+Rejected input forms for v1:
+
+- branch-specific URLs
+- URLs with additional path segments after the repo slug
+- non-DoltHub URLs
+- empty input
+
+Query strings and fragments may be ignored during normalization only if the remaining path still matches the canonical repository URL shape above.
+
 ### Primary UI
 
 The page has three clear responsibilities:
@@ -80,7 +95,7 @@ The main region shows:
 - `canonicalRepo`: normalized `owner/repo`
 - `sourceUrl`: resolved public DoltHub URL used for fetches
 
-### TaskNode
+### TaskRecord
 
 - `id`
 - `title`
@@ -94,12 +109,11 @@ The main region shows:
 - `groupLabel`
 - `dependsOnIds`
 - `blocksCount`
-- `children`
 - `raw`: raw source record preserved for diagnostics
 
 ### View Models
 
-The fetch layer must not feed raw DoltHub responses directly into components. The app should derive:
+The fetch layer must not feed raw DoltHub responses directly into components. Flat normalized `TaskRecord` values are the input to tree construction. The app should derive:
 
 - `DependencyTree`
   - Multiple roots allowed
@@ -159,7 +173,7 @@ Contract for this version:
 
 Responsibility:
 - Interpret raw remote data as beads task records
-- Map fields into `TaskNode`
+- Map fields into `TaskRecord`
 - Detect unsupported or incomplete schema cases
 
 Interface:
@@ -176,7 +190,7 @@ Responsibility:
 - Preserve stable node identities for UI rendering
 
 Interface:
-- Input: normalized `TaskNode[]`
+- Input: normalized `TaskRecord[]`
 - Output: `DependencyTree`, `GroupedTree`, aggregate counters, warnings
 
 ### Unit 5: Viewer UI
@@ -237,9 +251,24 @@ For v1, `groupId`, `groupLabel`, and `parentId` are optional values derived only
 
 If those keys are absent, the task remains ungrouped. No other grouping schema variants are in scope for v1.
 
+Inside each grouped section:
+
+- Tree nesting is driven only by `parentId`.
+- Dependency relationships do not create extra nesting in grouped mode; they appear as badges or secondary relationship labels on the task card.
+- If `parentId` points to a task outside the current grouped section, the task renders as a top-level node in its assigned section and shows an out-of-section parent warning.
+- If `parentId` points to a missing task, the task renders as a top-level node with a missing-parent warning.
+
 ## Dependency Graph Rules
 
 The fetched dependency data may be a graph rather than a strict tree. The viewer must convert that graph into a tree-friendly presentation without pretending the underlying structure is simpler than it is.
+
+Dependency direction in v1 is explicit:
+
+- `dependencies.issue_id` depends on `dependencies.depends_on_id`
+- A dependency edge therefore means "issue_id is blocked by depends_on_id"
+- `dependsOnIds` on `TaskRecord` stores the tasks that must be completed first
+- `blocksCount` counts how many downstream tasks depend on the current task
+- Dependency roots are tasks with an empty `dependsOnIds` set
 
 Rules:
 
@@ -266,7 +295,7 @@ The planned fetch sequence is:
 1. Run `SHOW TABLES` against the public SQL API.
 2. Verify that `issues` and `dependencies` exist. If either table is missing, stop with an unsupported-schema error.
 3. Run the fixed read-only queries for `issues` and `dependencies`.
-4. Normalize the returned `rows` into `TaskNode` records and relationship edges.
+4. Normalize the returned `rows` into `TaskRecord` values and relationship edges.
 
 ## Supported Beads Schema in v1
 
@@ -301,6 +330,13 @@ From that schema, the app derives:
 - optional grouping references from `issues.metadata`
 
 If a target repo uses a different beads schema layout, alternate table names, or different grouping keys, that repo is out of scope for v1 and should fail with a clear unsupported-schema message rather than triggering heuristic discovery logic.
+
+Metadata parsing rules for v1:
+
+- If `issues.metadata` is `null`, treat it as an empty object.
+- If `issues.metadata` is valid JSON but not an object, ignore it and emit a warning.
+- If `issues.metadata` cannot be parsed as JSON, ignore it and emit a warning.
+- Only object keys `group_id`, `group_label`, and `parent_id` may produce derived grouping fields.
 
 If that assumption proves false during implementation, the plan must stop and surface the issue rather than silently broadening scope into a backend solution. Backend proxying remains explicitly out of scope for this spec.
 
@@ -351,7 +387,13 @@ Restore rules:
 - Rejection of invalid repo inputs
 - Mapping from raw DoltHub payloads into normalized task records
 - Dependency tree construction, including multi-root cases
+- Duplicate-reference rendering inputs from shared dependencies
+- Cycle handling
+- Rootless cyclic component handling
 - Grouped tree construction
+- Grouped-section title resolution
+- Grouped fallback to `Ungrouped`
+- Metadata parsing warnings and fallback behavior
 - Warning generation for missing dependency targets and parse mismatches
 
 ### Component Tests
@@ -360,6 +402,7 @@ Restore rules:
 - Repo switching flow
 - View-mode toggle
 - Rich node rendering with full metadata
+- Reference-node rendering for repeated dependency targets
 - Error, empty, and loading states
 
 ### Deferred Testing
