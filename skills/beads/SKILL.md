@@ -314,13 +314,34 @@ Create `docs/specs/<feature>/tasks.md` with the same level of detail:
 
 Tell user: "Using `tasks.md` fallback. Run `/c4flow:init` to install Beads for dependency resolution and atomic task claiming."
 
-### Step 5: Update State
+### Step 5: Sync to Dolt Remote
+
+After all tasks are created, check if a Dolt remote is configured and push:
+
+```bash
+# Check if doltRemote is configured in .state.json
+DOLT_REMOTE=$(jq -r '.doltRemote // empty' docs/c4flow/.state.json 2>/dev/null)
+
+if [ -n "$DOLT_REMOTE" ]; then
+  echo "Syncing beads to Dolt remote: $DOLT_REMOTE"
+  bd dolt push 2>&1
+  if [ $? -eq 0 ]; then
+    echo "✅ Beads synced to remote"
+  else
+    echo "⚠️ Dolt push failed — tasks created locally. Run 'bd dolt push' manually to retry."
+  fi
+fi
+```
+
+If push fails due to auth, tell the user to run `dolt login` first, then `bd dolt push`.
+
+### Step 6: Update State
 
 Update `docs/c4flow/.state.json`:
 - Set `beadsEpic` to the epic ID (or `null` if fallback)
 - Orchestrator handles state transition after gate check
 
-### Step 6: Report Completion
+### Step 7: Report Completion
 
 Gate condition:
 - **Beads path**: epic exists with ≥1 child task, each has description + acceptance criteria + priority
