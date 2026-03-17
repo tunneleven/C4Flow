@@ -1,6 +1,6 @@
 ---
 name: c4flow:review
-description: AI code review via Codex subagent — writes quality-gate-status.json, resolves beads gate on pass
+description: AI code review via Codex subagent — writes quality-gate-status.json, resolves beads gate on pass. Use when the user wants code reviewed, needs a quality check before PR, or mentions "review", "code review", or "codex review". Also triggers before creating pull requests.
 ---
 
 # /c4flow:review — AI Code Review Gate

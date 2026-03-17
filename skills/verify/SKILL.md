@@ -1,6 +1,6 @@
 ---
 name: c4flow:verify
-description: Quality gate aggregation — runs bd preflight, combines with Codex review results, declares Ready for PR status
+description: Quality gate aggregation — runs bd preflight, combines with Codex review results, declares Ready for PR status. Use when the user wants to check if code is ready for PR, verify quality gates, or run preflight checks. Also triggers when mentioning "verify", "preflight", "quality gate", or "ready for PR".
 ---
 
 # /c4flow:verify — Quality Gate Aggregation
@@ -341,6 +341,8 @@ Print which checks need attention:
 - **Gate ID persistence:** If `gate_id` is missing, label-based fallback lookup (`c4flow-quality-gate`) recovers it before giving up.
 - **Expiry check:** An expired gate status requires a fresh `/c4flow:review` run, not just a re-verify.
 - **bd close audit trail:** Ready for PR output always includes the `bd close --reason` reminder (INFR-04).
+- **Sync after gate resolution:** When a gate resolves, run `bd dolt push 2>/dev/null` to sync state to remote (if configured). This ensures team members see the updated gate status.
+- **Use `--json` consistently:** All `bd` commands use `--json` for reliable programmatic parsing. Never parse human-readable output.
 
 ## Full Quality Pipeline
 

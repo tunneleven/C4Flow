@@ -1,6 +1,6 @@
 ---
 name: c4flow
-description: Orchestrate the complete c4flow agentic development workflow — from research through deployment.
+description: Orchestrate the complete c4flow agentic development workflow — from research through deployment. Use when the user mentions "c4flow", wants to start a new feature workflow, or asks about the development pipeline. Triggers on feature planning, implementation orchestration, and workflow management.
 ---
 
 # c4flow — Agentic Development Workflow Orchestrator
@@ -91,16 +91,6 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 - If gate passes: add TEST to `completedStates`, advance `currentState` to REVIEW, write `.state.json`
 - If gate fails: tell user the results, ask what to do
 
-### If state is CODE
-- Check for partial implementation context:
-  - `beadsEpic` or assigned beads task state in `docs/c4flow/.state.json`
-  - `docs/specs/{feature.slug}/tasks.md`
-  - existing worktree or in-progress implementation notes
-- If partial output found: present it to user, ask "Resume existing implementation context or regenerate task inputs?"
-- Load the c4flow:code skill and follow its instructions.
-- After the skill completes, check gate: all assigned tasks closed via beads or `tasks.md`
-- If gate passes: add CODE to `completedStates`, advance `currentState` to TEST, write `.state.json`
-- If gate fails: tell user what remains open, ask what to do
 
 ### If state is any other (unimplemented skills: DESIGN, REVIEW through DEPLOY)
 - Tell the user: "**{state}** (Phase {N}: {phase-name}) is not yet implemented."
@@ -108,6 +98,14 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 - Offer options:
   1. Go back to a previous state
   2. Stop the workflow here
+
+### If state is CODE (implemented)
+- Check for partial progress: query `bd dep tree <epic-id>` to see which tasks are already closed
+- If partial progress found: present the tree to user, ask "Continue from where we left off?"
+- Run the code skill (see Skill Dispatch below)
+- After skill completes, check gate: all tasks in epic are closed
+- If gate passes: add CODE to `completedStates`, advance `currentState` to TEST, write `.state.json`
+- If gate fails: tell user which tasks remain open/blocked, ask what to do
 
 ## Skill Dispatch
 
@@ -138,6 +136,27 @@ This runs in the main agent (you). Load the c4flow:spec skill and follow its ins
 This runs in the main agent (you). Load the c4flow:beads skill and follow its instructions.
 After the skill completes, update `beadsEpic` in `.state.json` with the epic ID (or `null` if using `tasks.md` fallback).
 
+### CODE (Main agent, dispatches sub-agents)
+This runs in the main agent (you). Load the c4flow:code skill and follow its instructions.
+
+The code skill uses the beads agent loop:
+1. Query `bd ready --json` for unblocked tasks
+2. Dispatch sub-agents in parallel for each ready task
+3. As tasks complete, `bd close <id> --reason "..."` and check for newly unblocked tasks
+4. Loop until all tasks in the epic are closed
+
+Before dispatching sub-agents, inject beads context using `bd prime`:
+```bash
+BD_CONTEXT=$(bd prime 2>/dev/null)
+```
+
+Include `BD_CONTEXT` in each sub-agent's prompt so they understand the current work graph state.
+
+After all tasks complete, sync state:
+```bash
+bd dolt push 2>/dev/null
+```
+
 ### TEST (Sub-agent)
 Dispatch a sub-agent. Provide the sub-agent with:
 
@@ -167,6 +186,7 @@ After each state transition:
 3. Reset `failedAttempts` to 0
 4. Clear `lastError`
 5. Write the updated `.state.json`
+6. Sync beads state to remote (if configured): `bd dolt push 2>/dev/null`
 
 ## Error Handling
 

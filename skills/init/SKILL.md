@@ -1,6 +1,6 @@
 ---
 name: c4flow:init
-description: Initialize C4Flow dependencies (Dolt, Beads) in the current project.
+description: Initialize C4Flow dependencies in the current project — auto-sets up git (init repo if missing), installs Dolt and Beads. Use when setting up a new project, when bd/dolt is missing, or when the user needs to configure DoltHub sync or team collaboration.
 ---
 
 # /c4flow:init — Project Initialization
@@ -10,11 +10,16 @@ description: Initialize C4Flow dependencies (Dolt, Beads) in the current project
 
 ## What It Does
 
-Installs and configures all C4Flow dependencies in the current project:
+Detects, installs, and configures all C4Flow dependencies in the current project:
+
+- **Git** — auto-installs if missing; auto-inits a repo if not inside one
 - **Dolt** — version-controlled SQL database (Beads backend)
 - **Beads (bd)** — issue tracking and task management CLI
+
 - Runs `bd init` + starts Dolt server
+- Installs git hooks for data consistency (`bd hooks install`)
 - Optionally configures **DoltHub sync** for cloud backup
+- Sets up `bd prime` for Claude context injection
 
 ## Instructions
 
@@ -73,7 +78,52 @@ The script will:
 
 If push fails (auth), it tells the user to run `dolt login` first.
 
-### Step 2: Update State
+### Step 2: Post-Init Configuration
+
+After the init script completes, run these additional setup steps:
+
+#### Install git hooks
+
+Beads uses git hooks for data consistency. If an external hook manager (lefthook, husky, pre-commit) is detected, beads chains its hooks:
+
+```bash
+bd hooks install 2>/dev/null
+```
+
+This installs:
+- `pre-commit` — data consistency checks
+- `post-merge` — ensures Dolt DB stays current after pull/merge
+
+#### Set up Claude integration (bd prime)
+
+`bd prime` injects ~1-2k tokens of workflow context into Claude sessions. This is far more efficient than MCP tool schemas (10-50x less overhead):
+
+```bash
+bd setup claude --project 2>/dev/null
+```
+
+This installs SessionStart and PreCompact hooks that run `bd prime` to keep Claude aware of the current beads state.
+
+#### Configure team settings (if multi-person)
+
+For team workflows, configure the actor identity and auto-push:
+
+```bash
+# Set actor for audit trail (defaults to git user.name)
+bd config set actor "$(git config user.name)" 2>/dev/null
+
+# Enable JSONL backup (safety net behind Dolt snapshots)
+bd config set backup.enabled true 2>/dev/null
+```
+
+#### Verify workspace state
+
+```bash
+bd info --json 2>/dev/null
+bd list --json 2>/dev/null
+```
+
+### Step 3: Update State
 
 If a DoltHub remote was configured, save the API URL to `docs/c4flow/.state.json`:
 
@@ -85,12 +135,15 @@ If a DoltHub remote was configured, save the API URL to `docs/c4flow/.state.json
 
 Read the existing `.state.json` first (create it if missing), then merge the `doltRemote` field.
 
-### Step 3: Report Result
+### Step 4: Report Result
 
 The script outputs a verification summary. Just relay it to the user.
 
 If the script is not found, run these commands manually:
 ```bash
+# Git (if missing / no repo)
+git init && git commit --allow-empty -m "chore: initial commit"
+
 # Install Dolt (if missing)
 curl -L https://github.com/dolthub/dolt/releases/latest/download/install.sh | sudo bash
 
@@ -118,5 +171,7 @@ If Dolt connection fails after init, tell the user:
 | `sudo` required for Dolt | Ask user to run with sudo, or use `brew install dolt` |
 | `bd init` times out | Script continues, uses `bd dolt start` |
 | Port conflict | Beads picks port automatically (default 3307) |
-| `bd init` fails | Try `bd init --stealth` for minimal mode |
+| `bd init` fails | Try `bd init --stealth` for minimal mode (no hooks, no AGENTS.md) |
 | Dolt won't connect | `bd dolt start`, then `bd dolt status` to check |
+| Hook manager conflict | `bd hooks install` auto-chains with lefthook/husky/pre-commit |
+| Git worktree | All worktrees share the same `.beads/` — database discovery is automatic |

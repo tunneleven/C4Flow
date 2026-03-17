@@ -1,6 +1,6 @@
 ---
 name: c4flow:test
-description: Run unit and integration tests with coverage checking. Auto-detect framework, classify failures, enforce coverage threshold before advancing to review.
+description: Run unit and integration tests with coverage checking. Auto-detect framework, classify failures, enforce coverage threshold before advancing to review. Use when the user wants to run tests, check coverage, or validate implementation quality. Triggers on "run tests", "check coverage", "test suite", or when the code phase completes.
 ---
 
 # /c4flow:test — Unit + Integration Tests
