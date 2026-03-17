@@ -258,9 +258,25 @@ input  { font-family:inherit; }
   border-right:1px solid var(--border);
   padding:.5rem .625rem;
   display:flex; flex-wrap:wrap; gap:.375rem; align-content:flex-start;
+  max-height:200px; overflow-y:auto; overflow-x:hidden;
+  transition:max-height .18s ease;
 }
+.swim-cell::-webkit-scrollbar { width:3px; }
+.swim-cell::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
 .swim-cell:last-child { border-right:none; }
-.swim-cell.done-cell { background: oklch(98.5% 0.006 230 / 0.5); }
+/* Collapsed row: shrinks all cells to zero height */
+.swim-row.row-collapsed .swim-cell { max-height:0; padding-top:0; padding-bottom:0; overflow:hidden; }
+.swim-row.row-collapsed .swim-empty { display:none; }
+
+/* Row expand toggle */
+.row-toggle {
+  background:none; border:none; cursor:pointer; padding:.1rem .15rem;
+  color:var(--ink-4); font-size:.58rem; line-height:1; margin-left:auto;
+  border-radius:3px; transition:background 80ms, color 80ms, transform .15s;
+  flex-shrink:0; align-self:flex-start; margin-top:2px;
+}
+.row-toggle:hover { background:var(--bg); color:var(--ink-2); }
+.swim-row.row-collapsed .row-toggle { transform:rotate(-90deg); }
 
 /* ─── Mini task card ─── */
 .task-card {
@@ -900,6 +916,7 @@ function renderKanban($ca) {
     const disp  = name || 'Unassigned';
     const color = name ? avColor(name) : 'oklch(68% .01 82)';
     const actv  = buckets.wip.length;
+    const total = Object.values(buckets).flat().length;
     const row   = dl('swim-row');
     row.style.gridTemplateColumns = gridTpl;
 
@@ -910,9 +927,15 @@ function renderKanban($ca) {
         <div class="swim-pname">${esc(disp)}</div>
         <div class="swim-pstats">
           ${actv ? `<span style="color:var(--wip);font-weight:500">${actv} active</span> · ` : ''}
-          ${buckets.open.length} open · ${Object.values(buckets).flat().length} total
+          ${buckets.open.length} open · ${total} total
         </div>
-      </div>`;
+      </div>
+      <button class="row-toggle" title="Collapse/expand row">▼</button>`;
+
+    // Collapse toggle
+    $person.querySelector('.row-toggle').addEventListener('click', () => {
+      row.classList.toggle('row-collapsed');
+    });
     row.appendChild($person);
 
     for (const col of cols) {
