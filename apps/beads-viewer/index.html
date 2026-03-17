@@ -25,10 +25,16 @@
   --accent-bg:  oklch(96%  0.04 78);
   --accent-txt: oklch(32%  0.13 75);
 
-  --open:    oklch(49%  0.16 145);
-  --open-bg: oklch(96%  0.06 145);
-  --done:    oklch(46%  0.09 230);
-  --done-bg: oklch(94%  0.04 230);
+  --open:      oklch(49%  0.16 145);
+  --open-bg:   oklch(96%  0.06 145);
+  --wip:       oklch(52%  0.18 75);
+  --wip-bg:    oklch(96%  0.05 75);
+  --blocked:   oklch(50%  0.18 28);
+  --blocked-bg:oklch(96%  0.05 30);
+  --deferred:  oklch(54%  0.08 270);
+  --deferred-bg:oklch(96% 0.03 270);
+  --done:      oklch(46%  0.09 230);
+  --done-bg:   oklch(94%  0.04 230);
 
   --font-d: 'Fraunces', Georgia, serif;
   --font-b: 'DM Sans', system-ui, sans-serif;
@@ -118,9 +124,12 @@ input  { font-family:inherit; }
 .stat-row:hover { background:var(--bg); }
 .stat-row.active { background:var(--accent-bg); color:var(--accent-txt); }
 .sdot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
-.sdot.all  { background:var(--ink-3); }
-.sdot.open { background:var(--open); }
-.sdot.done { background:var(--done); }
+.sdot.all      { background:var(--ink-3); }
+.sdot.open     { background:var(--open); }
+.sdot.wip      { background:var(--wip); }
+.sdot.blocked  { background:var(--blocked); }
+.sdot.deferred { background:var(--deferred); }
+.sdot.done     { background:var(--done); }
 .scount { margin-left:auto; font-family:var(--font-m); font-size:.68rem; color:var(--ink-4); }
 .stat-row.active .scount { color:var(--accent-txt); }
 
@@ -174,29 +183,31 @@ input  { font-family:inherit; }
 /* Fixed column header row */
 .kanban-header {
   display:grid;
-  grid-template-columns: 160px 1fr 1fr;
+  grid-template-columns: 150px 1fr 1fr 1fr 1fr;
   border-bottom:2px solid var(--border);
   background:var(--panel);
   flex-shrink:0;
 }
 .kh-person-cell {
-  padding:.5rem .875rem;
+  padding:.5rem .75rem;
   border-right:1px solid var(--border);
-  font-size:.65rem; font-weight:500; text-transform:uppercase;
+  font-size:.62rem; font-weight:500; text-transform:uppercase;
   letter-spacing:.09em; color:var(--ink-4); font-family:var(--font-m);
   display:flex; align-items:center;
 }
 .kh-status-cell {
-  padding:.5rem .875rem;
+  padding:.5rem .75rem;
   border-right:1px solid var(--border);
-  display:flex; align-items:center; gap:.5rem;
+  display:flex; align-items:center; gap:.4rem;
 }
 .kh-status-cell:last-child { border-right:none; }
-.kh-status-title { font-size:.68rem; font-weight:500; text-transform:uppercase;
-                   letter-spacing:.08em; }
-.kh-status-title.open { color:var(--open); }
-.kh-status-title.done { color:var(--done); }
-.kh-count { font-family:var(--font-m); font-size:.63rem; color:var(--ink-4);
+.kh-status-title { font-size:.65rem; font-weight:500; text-transform:uppercase; letter-spacing:.07em; }
+.kh-status-title.open     { color:var(--open); }
+.kh-status-title.wip      { color:var(--wip); }
+.kh-status-title.blocked  { color:var(--blocked); }
+.kh-status-title.deferred { color:var(--deferred); }
+.kh-status-title.done     { color:var(--done); }
+.kh-count { font-family:var(--font-m); font-size:.62rem; color:var(--ink-4);
             background:var(--bg); border:1px solid var(--border);
             border-radius:99px; padding:.05em .4em; }
 
@@ -208,9 +219,9 @@ input  { font-family:inherit; }
 /* Each swimlane row */
 .swim-row {
   display:grid;
-  grid-template-columns:160px 1fr 1fr;
+  grid-template-columns:150px 1fr 1fr 1fr 1fr;
   border-bottom:1px solid var(--border);
-  min-height:72px;
+  min-height:64px;
 }
 .swim-row:last-child { border-bottom:none; }
 
@@ -250,11 +261,16 @@ input  { font-family:inherit; }
   position:relative;
 }
 .task-card:hover { box-shadow:0 2px 10px oklch(0% 0 0 / .06); border-color:var(--border-2); }
-.task-card.status-open   { border-left-color:var(--open); }
-.task-card.status-closed { border-left-color:var(--done); opacity:.72; }
+.task-card.status-open        { border-left-color:var(--open); }
+.task-card.status-in_progress { border-left-color:var(--wip); background:oklch(99.5% 0.016 75); }
+.task-card.status-blocked     { border-left-color:var(--blocked); }
+.task-card.status-deferred    { border-left-color:var(--deferred); opacity:.8; }
+.task-card.status-closed      { border-left-color:var(--done); opacity:.68; }
 
 .card-title { font-size:.8125rem; font-weight:500; line-height:1.35; color:var(--ink); word-break:break-word; }
+.task-card.status-in_progress .card-title { font-weight:600; }
 .task-card.status-closed .card-title { text-decoration:line-through; color:var(--ink-3); text-decoration-color:var(--ink-4); }
+.task-card.status-deferred .card-title { color:var(--ink-3); }
 .card-id   { font-family:var(--font-m); font-size:.6rem; color:var(--ink-4); margin-top:.1rem; }
 
 .card-badges { display:flex; flex-wrap:wrap; gap:.2rem; margin-top:.35rem; align-items:center; }
@@ -264,8 +280,11 @@ input  { font-family:inherit; }
   font-size:.58rem; font-weight:500; letter-spacing:.04em; text-transform:uppercase;
   white-space:nowrap;
 }
-.b-open { background:var(--open-bg); color:var(--open); }
-.b-done { background:var(--done-bg); color:var(--done); }
+.b-open     { background:var(--open-bg);     color:var(--open); }
+.b-wip      { background:var(--wip-bg);      color:var(--wip); }
+.b-blocked  { background:var(--blocked-bg);  color:var(--blocked); }
+.b-deferred { background:var(--deferred-bg); color:var(--deferred); }
+.b-done     { background:var(--done-bg);     color:var(--done); }
 .b-p0   { background:oklch(95% .06 28); color:oklch(36% .18 28); }
 .b-p1   { background:oklch(96% .04 60); color:oklch(40% .15 60); }
 .b-p2   { background:var(--bg); color:var(--ink-3); border:1px solid var(--border); }
@@ -387,13 +406,22 @@ input  { font-family:inherit; }
       <div class="sb-lbl">Progress</div>
       <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
       <div class="stat-rows">
-        <div class="stat-row active" id="fr-all"    onclick="setStatusFilter('all')">
+        <div class="stat-row active" id="fr-all"      onclick="setStatusFilter('all')">
           <span class="sdot all"></span>All<span class="scount" id="cnt-all">0</span>
         </div>
-        <div class="stat-row" id="fr-open"   onclick="setStatusFilter('open')">
+        <div class="stat-row" id="fr-open"       onclick="setStatusFilter('open')">
           <span class="sdot open"></span>Open<span class="scount" id="cnt-open">0</span>
         </div>
-        <div class="stat-row" id="fr-closed" onclick="setStatusFilter('closed')">
+        <div class="stat-row" id="fr-in_progress" onclick="setStatusFilter('in_progress')">
+          <span class="sdot wip"></span>In Progress<span class="scount" id="cnt-wip">0</span>
+        </div>
+        <div class="stat-row" id="fr-blocked"     onclick="setStatusFilter('blocked')">
+          <span class="sdot blocked"></span>Blocked<span class="scount" id="cnt-blocked">0</span>
+        </div>
+        <div class="stat-row" id="fr-deferred"    onclick="setStatusFilter('deferred')">
+          <span class="sdot deferred"></span>Deferred<span class="scount" id="cnt-deferred">0</span>
+        </div>
+        <div class="stat-row" id="fr-closed"      onclick="setStatusFilter('closed')">
           <span class="sdot done"></span>Done<span class="scount" id="cnt-done">0</span>
         </div>
       </div>
@@ -650,15 +678,18 @@ function renderAll(){renderSidebar();renderContent();}
 
 function renderSidebar(){
   const recs=state.records;
-  const open=recs.filter(r=>r.status==='open').length;
-  const done=recs.filter(r=>r.status==='closed').length;
+  const c = st => recs.filter(r=>r.status===st).length;
+  const open=c('open'), wip=c('in_progress'), blocked=c('blocked'), deferred=c('deferred'), done=c('closed');
   const total=recs.length;
 
   document.getElementById('sb-progress').style.display=total?'block':'none';
   document.getElementById('cnt-all').textContent=total;
   document.getElementById('cnt-open').textContent=open;
+  document.getElementById('cnt-wip').textContent=wip;
+  document.getElementById('cnt-blocked').textContent=blocked;
+  document.getElementById('cnt-deferred').textContent=deferred;
   document.getElementById('cnt-done').textContent=done;
-  document.getElementById('prog-fill').style.width=total?`${(done/total*100).toFixed(1)}%`:'0%';
+  document.getElementById('prog-fill').style.width=total?`${((done+wip)/total*100).toFixed(1)}%`:'0%';
   document.getElementById('tb-repo').textContent=state.repo?.canonicalRepo||'';
   document.getElementById('tb-meta').style.display=state.repo?'block':'none';
 
@@ -666,11 +697,12 @@ function renderSidebar(){
   const amap=new Map();
   for(const r of recs){
     const a=r.assignee?.trim()||'';
-    if(!amap.has(a))amap.set(a,{open:0,total:0});
+    if(!amap.has(a))amap.set(a,{open:0,wip:0,total:0});
     amap.get(a).total++;
     if(r.status==='open')amap.get(a).open++;
+    if(r.status==='in_progress')amap.get(a).wip++;
   }
-  const sorted=[...amap.entries()].sort((a,b)=>(!a[0]?1:!b[0]?-1:b[1].open-a[1].open||a[0].localeCompare(b[0])));
+  const sorted=[...amap.entries()].sort((a,b)=>(!a[0]?1:!b[0]?-1:(b[1].wip+b[1].open)-(a[1].wip+a[1].open)||a[0].localeCompare(b[0])));
   const $team=document.getElementById('sb-team');
   const $list=document.getElementById('team-list');
   $team.style.display=sorted.length?'block':'none';
@@ -690,8 +722,7 @@ function renderSidebar(){
 function filtered(){
   let recs=state.records;
   if(state.personFilter!=null)recs=recs.filter(r=>(r.assignee?.trim()||'')===state.personFilter);
-  if(state.statusFilter==='open')  recs=recs.filter(r=>r.status==='open');
-  if(state.statusFilter==='closed')recs=recs.filter(r=>r.status==='closed');
+  if(state.statusFilter!=='all')recs=recs.filter(r=>r.status===state.statusFilter);
   return recs;
 }
 
@@ -721,84 +752,109 @@ function renderContent(){
 function renderKanban($ca) {
   const recs = filtered();
 
+  // Status badge color
+  const stColor = {
+    open:'b-open', in_progress:'b-wip', blocked:'b-blocked', deferred:'b-deferred', closed:'b-done'
+  };
+  const stLabel = {
+    open:'Open', in_progress:'In Progress', blocked:'Blocked', deferred:'Deferred', closed:'Done'
+  };
   // Group by assignee
   const amap = new Map();
   for (const r of recs) {
     const a = r.assignee?.trim() || '';
-    if (!amap.has(a)) amap.set(a, {open:[], closed:[]});
-    if (r.status === 'open') amap.get(a).open.push(r);
-    else amap.get(a).closed.push(r);
+    if (!amap.has(a)) amap.set(a, {open:[], wip:[], blocked:[], deferred:[], closed:[]});
+    const s = r.status==='in_progress'?'wip':
+              r.status==='blocked'?'blocked':
+              r.status==='deferred'?'deferred':
+              r.status==='closed'?'closed':'open';
+    amap.get(a)[s].push(r);
   }
-  // Sort: most open tasks first, unassigned last
+  // Sort: most active (open+wip) first, unassigned last
   const sorted = [...amap.entries()].sort((a,b) =>
-    !a[0] ? 1 : !b[0] ? -1 : b[1].open.length - a[1].open.length || a[0].localeCompare(b[0])
+    !a[0] ? 1 : !b[0] ? -1 :
+    (b[1].wip.length + b[1].open.length) - (a[1].wip.length + a[1].open.length) ||
+    a[0].localeCompare(b[0])
   );
 
-  // Sort tasks within each cell by priority
   const byPri = arr => [...arr].sort((a,b)=>(a.priority??99)-(b.priority??99)||a.title.localeCompare(b.title));
 
-  const totalOpen   = recs.filter(r=>r.status==='open').length;
-  const totalClosed = recs.filter(r=>r.status==='closed').length;
+  const cnt = st => recs.filter(r => {
+    if (st==='wip') return r.status==='in_progress';
+    if (st==='done') return r.status==='closed';
+    return r.status===st;
+  }).length;
 
   const $wrap = dl('kanban-wrap');
 
-  // Fixed header
+  // Fixed header — 5 status columns
   const $hdr = dl('kanban-header');
   $hdr.innerHTML = `
     <div class="kh-person-cell">Person</div>
     <div class="kh-status-cell">
       <span class="kh-status-title open">● Open</span>
-      <span class="kh-count">${totalOpen}</span>
+      <span class="kh-count">${cnt('open')}</span>
+    </div>
+    <div class="kh-status-cell">
+      <span class="kh-status-title wip">▶ In Progress</span>
+      <span class="kh-count">${cnt('wip')}</span>
+    </div>
+    <div class="kh-status-cell">
+      <span class="kh-status-title blocked">⊘ Blocked</span>
+      <span class="kh-count">${cnt('blocked')}</span>
+    </div>
+    <div class="kh-status-cell">
+      <span class="kh-status-title deferred">⊡ Deferred</span>
+      <span class="kh-count">${cnt('deferred')}</span>
     </div>
     <div class="kh-status-cell">
       <span class="kh-status-title done">✓ Done</span>
-      <span class="kh-count">${totalClosed}</span>
+      <span class="kh-count">${cnt('done')}</span>
     </div>`;
   $wrap.appendChild($hdr);
 
-  // Scrollable body
   const $body = dl('kanban-body');
 
   if (sorted.length === 0) {
-    const e = dl(''); e.style.cssText = 'padding:2rem 1.5rem;font-size:.85rem;color:var(--ink-4);';
+    const e = dl(''); e.style.cssText = 'padding:2rem 1.5rem;font-size:.85rem;color:var(--ink-4)grid-column:1/-1;';
     e.textContent = 'No tasks match the current filter.';
     $body.appendChild(e);
   }
 
-  for (const [name, {open, closed}] of sorted) {
+  const mkCell = (tasks, bg) => {
+    const $cell = dl('swim-cell');
+    if (bg) $cell.style.background = bg;
+    if (tasks.length === 0) {
+      const e = dl('swim-empty'); e.textContent = '—'; $cell.appendChild(e);
+    } else {
+      byPri(tasks).forEach(r => $cell.appendChild(buildCard(r)));
+    }
+    return $cell;
+  };
+
+  for (const [name, buckets] of sorted) {
     const disp  = name || 'Unassigned';
     const color = name ? avColor(name) : 'oklch(68% .01 82)';
+    const actv  = buckets.wip.length;
     const row   = dl('swim-row');
 
-    // Person cell
     const $person = dl('swim-person');
     $person.innerHTML = `
-      <div class="av" style="background:${color};width:26px;height:26px;font-size:.6rem">${esc(initials(disp))}</div>
+      <div class="av" style="background:${color};width:24px;height:24px;font-size:.57rem">${esc(initials(disp))}</div>
       <div class="swim-person-info">
         <div class="swim-pname">${esc(disp)}</div>
         <div class="swim-pstats">
-          <span class="swim-open-count">${open.length} open</span> · ${open.length+closed.length} total
+          ${actv ? `<span style="color:var(--wip);font-weight:500">${actv} active</span> · ` : ''}
+          ${buckets.open.length} open · ${Object.values(buckets).flat().length} total
         </div>
       </div>`;
     row.appendChild($person);
 
-    // Open cell
-    const $open = dl('swim-cell');
-    if (open.length === 0) {
-      const e = dl('swim-empty'); e.textContent = '—'; $open.appendChild(e);
-    } else {
-      byPri(open).forEach(r => $open.appendChild(buildCard(r)));
-    }
-    row.appendChild($open);
-
-    // Done cell
-    const $done = dl('swim-cell done-cell');
-    if (closed.length === 0) {
-      const e = dl('swim-empty'); e.textContent = '—'; $done.appendChild(e);
-    } else {
-      byPri(closed).forEach(r => $done.appendChild(buildCard(r)));
-    }
-    row.appendChild($done);
+    row.appendChild(mkCell(buckets.open));
+    row.appendChild(mkCell(buckets.wip, 'oklch(98.5% 0.025 75 / 0.5)'));
+    row.appendChild(mkCell(buckets.blocked, 'oklch(98.5% 0.025 28 / 0.4)'));
+    row.appendChild(mkCell(buckets.deferred, 'oklch(98.5% 0.015 270 / 0.4)'));
+    row.appendChild(mkCell(buckets.closed, 'oklch(98.5% 0.013 230 / 0.5)'));
 
     $body.appendChild(row);
   }
@@ -896,7 +952,7 @@ function buildCard(r, hasChildren=false, extraWarns=[]) {
       ${r.assignee?`<div class="av" style="background:${ac};width:20px;height:20px;font-size:.5rem;flex-shrink:0;margin-top:1px" title="${esc(r.assignee)}">${esc(initials(r.assignee))}</div>`:''}
     </div>
     <div class="card-badges">
-      <span class="badge ${r.status==='open'?'b-open':'b-done'}">${esc(r.status||'?')}</span>
+      <span class="badge ${{open:'b-open',in_progress:'b-wip',blocked:'b-blocked',deferred:'b-deferred',closed:'b-done'}[r.status]||'b-type'}">${{open:'Open',in_progress:'In Progress',blocked:'Blocked',deferred:'Deferred',closed:'Done'}[r.status]||esc(r.status||'?')}</span>
       ${r.priority!=null?`<span class="badge ${PC[r.priority]||'b-type'}">P${r.priority} ${PM[r.priority]||''}</span>`:''}
       ${r.type?`<span class="badge b-type">${esc(r.type)}</span>`:''}
       ${extraWarns.map(w=>`<span class="badge" style="background:var(--warn-bg,oklch(96% .05 65));color:oklch(36% .13 58)">${esc(w.code)}</span>`).join('')}
