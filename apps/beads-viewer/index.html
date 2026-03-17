@@ -278,6 +278,27 @@ input  { font-family:inherit; }
 .row-toggle:hover { background:var(--bg); color:var(--ink-2); }
 .swim-row.row-collapsed .row-toggle { transform:rotate(-90deg); }
 
+/* Hover-expand: on row hover, cells grow taller so you can scroll more */
+.kanban-body:not(:has(.swim-row:hover)) .swim-row:hover .swim-cell,
+.swim-row:hover .swim-cell { max-height:320px; }
+.swim-row.row-collapsed:hover .swim-cell { max-height:0; }
+
+/* Empty column visual: dimmer border and narrow min-width */
+.swim-cell.col-empty { background: transparent; }
+.swim-cell.col-empty .swim-empty { color:var(--ink-4); opacity:.4; font-size:.67rem; }
+
+/* "+ N more" overflow badge */
+.more-badge {
+  display:inline-flex; align-items:center;
+  font-size:.6rem; font-family:var(--font-m);
+  color:var(--ink-4); background:var(--bg);
+  border:1px solid var(--border); border-radius:var(--r);
+  padding:.1em .5em; width:100%; justify-content:center;
+  cursor:pointer; margin-top:.1rem;
+  transition:background 80ms, color 80ms;
+}
+.more-badge:hover { background:var(--accent-bg); color:var(--accent-txt); border-color:var(--accent); }
+
 /* ─── Mini task card ─── */
 .task-card {
   background:var(--surface);
@@ -875,7 +896,11 @@ function renderKanban($ca) {
     {key:'closed',      bucket:'closed',  label:'✓ Done',        cls:'done',     bg:'oklch(98.5% 0.013 230 / 0.5)'},
   ];
   const cols = ALL_COLS.filter(c => state.visibleCols.has(c.key));
-  const gridTpl = `150px repeat(${cols.length}, 1fr)`;
+
+  // Determine which columns have zero tasks across ALL persons (globally empty)
+  const colCounts = {};
+  for (const col of cols) colCounts[col.key] = recs.filter(r => r.status===col.key).length;
+  const gridTpl = '150px ' + cols.map(c => colCounts[c.key]===0 ? 'minmax(60px,0.35fr)' : '1fr').join(' ');
 
   const $wrap = dl('kanban-wrap');
 
@@ -901,13 +926,32 @@ function renderKanban($ca) {
     $body.appendChild(e);
   }
 
-  const mkCell = (tasks, bg) => {
+  // Card height estimate for calculating overflow
+  const CARD_H = 76; // px approx
+  const MAX_H  = 200;
+  const mkCell = (tasks, bg, colKey) => {
     const $cell = dl('swim-cell');
     if (bg) $cell.style.background = bg;
     if (tasks.length === 0) {
+      $cell.classList.add('col-empty');
       const e = dl('swim-empty'); e.textContent = '—'; $cell.appendChild(e);
     } else {
-      byPri(tasks).forEach(r => $cell.appendChild(buildCard(r)));
+      const sorted = byPri(tasks);
+      sorted.forEach(r => $cell.appendChild(buildCard(r)));
+      // Estimated overflow badge
+      const visible = Math.max(1, Math.floor(MAX_H / CARD_H));
+      if (sorted.length > visible) {
+        const over = sorted.length - visible;
+        const $more = document.createElement('button');
+        $more.className = 'more-badge';
+        $more.textContent = `+ ${over} more — hover to expand`;
+        $more.addEventListener('click', e => {
+          e.stopPropagation();
+          $cell.style.maxHeight = $cell.style.maxHeight === '800px' ? '' : '800px';
+          $more.textContent = $cell.style.maxHeight ? '▲ collapse' : `+ ${over} more — hover to expand`;
+        });
+        $cell.appendChild($more);
+      }
     }
     return $cell;
   };
