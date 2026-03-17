@@ -1,0 +1,1440 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="View public beads-backed DoltHub repositories as interactive task dependency trees." />
+  <title>Beads DoltHub Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design Tokens ─────────────────────────────────────── */
+    :root {
+      --bg:            oklch(96.5% 0.010 82);
+      --surface:       oklch(99%   0.005 82);
+      --surface-raised:oklch(100%  0.002 82);
+      --border:        oklch(87%   0.014 82);
+      --border-focus:  oklch(62%   0.18  75);
+
+      --ink:           oklch(17%   0.016 82);
+      --ink-2:         oklch(38%   0.018 82);
+      --ink-3:         oklch(58%   0.014 82);
+      --ink-4:         oklch(72%   0.010 82);
+
+      --accent:        oklch(60%   0.19  76);
+      --accent-bg:     oklch(96%   0.04  80);
+      --accent-text:   oklch(32%   0.12  76);
+
+      --open:          oklch(50%   0.14 142);
+      --open-bg:       oklch(96%   0.06 142);
+      --closed:        oklch(46%   0.09 235);
+      --closed-bg:     oklch(95%   0.04 235);
+      --warn:          oklch(65%   0.16  60);
+      --warn-bg:       oklch(96%   0.06  70);
+      --critical:      oklch(52%   0.20  28);
+      --critical-bg:   oklch(96%   0.05  28);
+
+      --font-display:  'Fraunces', Georgia, serif;
+      --font-body:     'DM Sans', system-ui, sans-serif;
+      --font-mono:     'IBM Plex Mono', 'Courier New', monospace;
+
+      --r-xs: 2px;
+      --r-sm: 4px;
+      --r:    6px;
+      --r-lg: 10px;
+
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --dur-fast:   100ms;
+      --dur-normal: 200ms;
+    }
+
+    /* ── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { color-scheme: light; background: var(--bg); }
+    body {
+      font-family: var(--font-body);
+      font-size: 0.9375rem;
+      line-height: 1.6;
+      color: var(--ink);
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--accent-text); }
+    a:hover { color: var(--accent); }
+    button { cursor: pointer; font-family: inherit; }
+    input  { font-family: inherit; }
+
+    /* ── Layout ────────────────────────────────────────────── */
+    .app {
+      display: grid;
+      grid-template-rows: auto auto auto 1fr;
+      min-height: 100dvh;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0.875rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .header-brand {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+    .header-logo {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+    .header-logo span {
+      font-style: italic;
+      font-weight: 300;
+      color: var(--ink-3);
+      font-size: 1.1rem;
+    }
+    .badge-public {
+      font-size: 0.625rem;
+      font-family: var(--font-mono);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.15em 0.5em;
+      border: 1px solid var(--border);
+      border-radius: var(--r-xs);
+      color: var(--ink-3);
+      white-space: nowrap;
+    }
+
+    /* Repo form */
+    .repo-form {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex: 1;
+      min-width: 280px;
+    }
+    .repo-input {
+      flex: 1;
+      height: 34px;
+      padding: 0 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: var(--bg);
+      color: var(--ink);
+      font-size: 0.875rem;
+      font-family: var(--font-mono);
+      outline: none;
+      transition: border-color var(--dur-fast);
+      min-width: 0;
+    }
+    .repo-input:focus { border-color: var(--border-focus); }
+    .repo-input::placeholder { color: var(--ink-4); font-family: var(--font-body); font-style: italic; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      height: 34px;
+      padding: 0 1rem;
+      border-radius: var(--r-sm);
+      font-size: 0.8125rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      border: 1px solid transparent;
+      transition: background var(--dur-fast), color var(--dur-fast), border-color var(--dur-fast);
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-text); border-color: var(--accent-text); }
+    .btn-primary:disabled { opacity: 0.42; cursor: not-allowed; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink-2);
+      border-color: var(--border);
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--bg); color: var(--ink); }
+    .btn-ghost[aria-pressed="true"] {
+      background: var(--accent-bg);
+      color: var(--accent-text);
+      border-color: var(--accent);
+    }
+
+    /* View toggle */
+    .view-toggle {
+      display: flex;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .view-toggle .btn { border-radius: 0; }
+    .view-toggle .btn:first-child { border-radius: var(--r-sm) 0 0 var(--r-sm); }
+    .view-toggle .btn:last-child  { border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+
+    .header-links {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .header-links a {
+      font-size: 0.8125rem;
+      color: var(--ink-3);
+      text-decoration: none;
+      transition: color var(--dur-fast);
+    }
+    .header-links a:hover { color: var(--accent-text); }
+
+    /* ── Status Bar ────────────────────────────────────────── */
+    .status-bar {
+      background: var(--surface-raised);
+      border-bottom: 1px solid var(--border);
+      padding: 0.45rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      font-size: 0.78rem;
+      color: var(--ink-3);
+      flex-wrap: wrap;
+      min-height: 36px;
+    }
+    .status-bar .repo-id {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--ink-2);
+      font-weight: 500;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.1em 0.55em;
+      border-radius: 99px;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      background: var(--accent-bg);
+      color: var(--accent-text);
+    }
+    .status-sep { color: var(--border); user-select: none; }
+
+    /* Refresh countdown */
+    .refresh-ring {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+    .refresh-ring svg { display: block; }
+    .ring-track { stroke: var(--border); fill: none; }
+    .ring-fill  { fill: none; stroke: var(--accent); stroke-linecap: round;
+                  transition: stroke-dashoffset 1s linear; transform-origin: center;
+                  transform: rotate(-90deg); }
+    .refresh-label { font-size: 0.7rem; font-family: var(--font-mono); color: var(--ink-3); }
+
+    /* ── Warnings strip ────────────────────────────────────── */
+    .warnings-strip {
+      background: var(--warn-bg);
+      border-bottom: 1px solid oklch(88% 0.08 65);
+      padding: 0.4rem 1.5rem;
+      font-size: 0.78rem;
+      color: oklch(38% 0.14 60);
+      display: none;
+    }
+    .warnings-strip.visible { display: block; }
+    .warnings-strip ul { list-style: none; display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; }
+    .warnings-strip li::before { content: "⚠ "; }
+
+    /* ── Main content ──────────────────────────────────────── */
+    .main {
+      padding: 1.5rem;
+      max-width: 1100px;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* ── State panels ──────────────────────────────────────── */
+    .state-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+      padding: 2.5rem 0;
+    }
+    .state-icon {
+      font-size: 2rem;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    .state-title {
+      font-family: var(--font-display);
+      font-size: 1.4rem;
+      font-weight: 500;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+    .state-body {
+      font-size: 0.875rem;
+      color: var(--ink-2);
+      max-width: 420px;
+      line-height: 1.55;
+    }
+    .state-hint {
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      color: var(--ink-4);
+      margin-top: 0.25rem;
+    }
+    /* Loading spinner */
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Tree ──────────────────────────────────────────────── */
+    .tree-root { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .tree-node { position: relative; }
+    .tree-node + .tree-node { margin-top: 0.125rem; }
+
+    .tree-children {
+      margin-left: 1.25rem;
+      padding-left: 1rem;
+      border-left: 2px solid var(--border);
+      margin-top: 0.375rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+    .tree-children.collapsed { display: none; }
+
+    /* Task Card */
+    .task-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 0.75rem 1rem;
+      transition: border-color var(--dur-fast), box-shadow var(--dur-fast);
+      cursor: default;
+    }
+    .task-card:hover { border-color: var(--border-focus); box-shadow: 0 1px 6px oklch(0% 0 0 / 0.05); }
+    .task-card.cycle-warned { border-color: var(--warn); background: var(--warn-bg); }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.625rem;
+      flex-wrap: wrap;
+    }
+    .card-toggle {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      border: none;
+      background: none;
+      padding: 0;
+      color: var(--ink-3);
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform var(--dur-fast), color var(--dur-fast);
+      font-size: 0.65rem;
+    }
+    .card-toggle:hover { color: var(--ink); }
+    .card-toggle.open { transform: rotate(90deg); }
+
+    .card-title-wrap { flex: 1; min-width: 0; }
+    .card-title {
+      font-size: 0.9375rem;
+      font-weight: 500;
+      line-height: 1.35;
+      color: var(--ink);
+      word-break: break-word;
+    }
+    .card-id {
+      font-family: var(--font-mono);
+      font-size: 0.685rem;
+      color: var(--ink-4);
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      margin-top: 0.1rem;
+    }
+
+    /* Status badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.2rem;
+      padding: 0.15em 0.5em;
+      border-radius: var(--r-xs);
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .badge-open     { background: var(--open-bg);   color: var(--open);   }
+    .badge-closed   { background: var(--closed-bg); color: var(--closed); }
+    .badge-warn     { background: var(--warn-bg);   color: var(--warn);   }
+    .badge-default  { background: var(--bg);        color: var(--ink-3);  border: 1px solid var(--border); }
+    .badge-priority { background: var(--accent-bg); color: var(--accent-text); }
+
+    /* Card meta */
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem 1rem;
+      margin-top: 0.5rem;
+      font-size: 0.775rem;
+      color: var(--ink-3);
+    }
+    .meta-item { display: flex; align-items: center; gap: 0.2rem; }
+    .meta-label { color: var(--ink-4); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Card description */
+    .card-desc {
+      margin-top: 0.5rem;
+      font-size: 0.82rem;
+      color: var(--ink-2);
+      line-height: 1.5;
+      display: none;
+    }
+    .card-desc.visible { display: block; }
+    .card-desc-text {
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .desc-truncated { display: block; }
+    .desc-full      { display: none; }
+    .desc-toggle    {
+      font-size: 0.72rem;
+      color: var(--accent-text);
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      margin-top: 0.2rem;
+      display: block;
+    }
+    .desc-toggle:hover { text-decoration: underline; }
+
+    /* Dep edges */
+    .card-deps {
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+      align-items: center;
+      font-size: 0.73rem;
+      color: var(--ink-3);
+      display: none;
+    }
+    .card-deps.visible { display: flex; }
+    .dep-label { color: var(--ink-4); text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.05em; }
+    .dep-chip {
+      font-family: var(--font-mono);
+      font-size: 0.67rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--r-xs);
+      padding: 0.05em 0.4em;
+      color: var(--ink-2);
+    }
+
+    /* Reference node (repeated dep target) */
+    .ref-node {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      border-radius: var(--r-sm);
+      font-size: 0.78rem;
+      color: var(--ink-3);
+    }
+    .ref-arrow { color: var(--ink-4); font-size: 0.7rem; }
+    .ref-id { font-family: var(--font-mono); font-size: 0.67rem; color: var(--ink-4); }
+    .ref-title { color: var(--ink-2); }
+
+    /* Group section */
+    .group-section { margin-bottom: 1.25rem; }
+    .group-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      margin-bottom: 0.5rem;
+      border-bottom: 2px solid var(--border);
+      cursor: pointer;
+      user-select: none;
+    }
+    .group-header:hover .group-title { color: var(--accent-text); }
+    .group-title {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+      transition: color var(--dur-fast);
+    }
+    .group-count {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--ink-4);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 0.05em 0.5em;
+    }
+    .group-chevron { margin-left: auto; color: var(--ink-4); font-size: 0.65rem; transition: transform var(--dur-fast); }
+    .group-chevron.open { transform: rotate(180deg); }
+    .group-body { display: flex; flex-direction: column; gap: 0.375rem; }
+    .group-body.collapsed { display: none; }
+
+    /* Cycle warning on node */
+    .cycle-badge { color: var(--warn); font-size: 0.68rem; font-family: var(--font-mono); }
+
+    /* ── Tooltip (simple title attr works, but let's do minimal) ── */
+  </style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <!-- ── Header ── -->
+  <header class="header">
+    <div class="header-brand">
+      <span class="header-logo">Beads <span>DoltHub Viewer</span></span>
+      <span class="badge-public">public only</span>
+    </div>
+
+    <form class="repo-form" id="repo-form" onsubmit="handleLoad(event)">
+      <input
+        class="repo-input"
+        id="repo-input"
+        type="text"
+        placeholder="owner/repo or dolthub.com/repositories/…"
+        autocomplete="off"
+        spellcheck="false"
+        oninput="updateLoadBtn()"
+        aria-label="Repository"
+      />
+      <button class="btn btn-primary" id="load-btn" type="submit" disabled>Load</button>
+    </form>
+
+    <div class="view-toggle" id="view-toggle" style="display:none">
+      <button class="btn btn-ghost" id="btn-dep" aria-pressed="true" onclick="setView('dependency')">Dependency</button>
+      <button class="btn btn-ghost" id="btn-grp" aria-pressed="false" onclick="setView('grouped')">Grouped</button>
+    </div>
+
+    <div class="header-links">
+      <a href="https://docs.dolthub.com/" target="_blank" rel="noopener" aria-label="DoltHub Docs">DoltHub docs ↗</a>
+    </div>
+  </header>
+
+  <!-- ── Status Bar ── -->
+  <div class="status-bar" id="status-bar">
+    <span id="status-repo" class="repo-id" style="display:none"></span>
+    <span id="status-sep-1" class="status-sep" style="display:none">·</span>
+    <span id="status-tasks" style="display:none"></span>
+    <span id="status-sep-2" class="status-sep" style="display:none">·</span>
+    <span id="status-assignees" style="display:none"></span>
+    <span id="status-sep-3" class="status-sep" style="display:none">·</span>
+    <span id="status-deps" style="display:none"></span>
+    <span id="status-msg"></span>
+    <div class="refresh-ring" id="refresh-ring" style="display:none" title="Auto-refresh every 5s">
+      <svg width="18" height="18" viewBox="0 0 18 18">
+        <circle class="ring-track" cx="9" cy="9" r="7" stroke-width="2"/>
+        <circle class="ring-fill"  cx="9" cy="9" r="7" stroke-width="2"
+                id="ring-fill"
+                stroke-dasharray="43.98"
+                stroke-dashoffset="0"/>
+      </svg>
+      <span class="refresh-label" id="refresh-label">5s</span>
+    </div>
+  </div>
+
+  <!-- ── Warnings ── -->
+  <div class="warnings-strip" id="warnings-strip">
+    <ul id="warnings-list"></ul>
+  </div>
+
+  <!-- ── Main ── -->
+  <main class="main" id="main-content">
+    <!-- initial empty state -->
+    <div class="state-panel" id="state-empty">
+      <div class="state-icon">⬡</div>
+      <div class="state-title">No repository loaded</div>
+      <div class="state-body">Enter a public DoltHub repository above to view its beads task tree.</div>
+      <div class="state-hint">owner/repo · or full dolthub.com URL</div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   Constants & State
+═══════════════════════════════════════════════════════════════════ */
+const STORAGE_KEY   = 'beads-viewer:last-repo';
+const REFRESH_SEC   = 5;
+const DOLTHUB_API   = 'https://www.dolthub.com/api/v1alpha1';
+const DOLTHUB_BASE  = 'https://www.dolthub.com/repositories';
+const MAX_DESC      = 180;
+
+let state = {
+  repo:         null,   // { rawInput, canonicalRepo, owner, repo, sourceUrl }
+  records:      [],     // TaskRecord[]
+  warnings:     [],     // string[]
+  depTree:      null,
+  groupedTree:  null,
+  view:         'dependency', // 'dependency' | 'grouped'
+  loading:      false,
+  error:        null,
+  restoreWarn:  false,
+};
+
+let refreshTimer   = null;
+let countdownTimer = null;
+let countdownLeft  = REFRESH_SEC;
+
+/* ═══════════════════════════════════════════════════════════════════
+   Boot
+═══════════════════════════════════════════════════════════════════ */
+(function boot() {
+  updateLoadBtn();
+  const saved = readLastRepo();
+  if (saved.warn) state.restoreWarn = true;
+  if (saved.repo) {
+    document.getElementById('repo-input').value = saved.repo.rawInput;
+    updateLoadBtn();
+    loadRepo(saved.repo.canonicalRepo, false);
+  }
+})();
+
+/* ═══════════════════════════════════════════════════════════════════
+   Repo normalisation
+═══════════════════════════════════════════════════════════════════ */
+function normalizeRepoInput(raw) {
+  const trimmed = (raw || '').trim();
+  if (!trimmed) throw new Error('Repository is required');
+
+  // Full DoltHub URL?
+  if (trimmed.startsWith('http')) {
+    let url;
+    try { url = new URL(trimmed); } catch { throw new Error('Unsupported repository URL'); }
+    if (url.hostname !== 'www.dolthub.com' && url.hostname !== 'dolthub.com') {
+      throw new Error('Unsupported repository URL');
+    }
+    // Path must be /repositories/owner/repo (+ optional trailing slash)
+    const parts = url.pathname.replace(/^\/+|\/+$/g, '').split('/');
+    // parts[0] = 'repositories', parts[1] = owner, parts[2] = repo
+    if (parts.length !== 3 || parts[0] !== 'repositories') {
+      throw new Error('Unsupported repository URL');
+    }
+    const [, owner, repo] = parts;
+    if (!owner || !repo) throw new Error('Unsupported repository URL');
+    return buildRepoConfig(raw, owner, repo);
+  }
+
+  // owner/repo?
+  const slashParts = trimmed.split('/');
+  if (slashParts.length === 2 && slashParts[0] && slashParts[1]) {
+    return buildRepoConfig(raw, slashParts[0], slashParts[1]);
+  }
+
+  throw new Error('Unsupported repository URL — use owner/repo or a full DoltHub URL');
+}
+
+function buildRepoConfig(rawInput, owner, repo) {
+  return {
+    rawInput,
+    owner,
+    repo: repo,
+    canonicalRepo: `${owner}/${repo}`,
+    sourceUrl: `${DOLTHUB_BASE}/${owner}/${repo}`,
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LocalStorage
+═══════════════════════════════════════════════════════════════════ */
+function readLastRepo() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { repo: null, warn: false };
+    const obj = JSON.parse(raw);
+    if (!obj || typeof obj.rawInput !== 'string' || typeof obj.canonicalRepo !== 'string' || typeof obj.sourceUrl !== 'string') {
+      localStorage.removeItem(STORAGE_KEY);
+      return { repo: null, warn: true };
+    }
+    return { repo: obj, warn: false };
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    return { repo: null, warn: true };
+  }
+}
+
+function writeLastRepo(repoConfig) {
+  const { rawInput, canonicalRepo, sourceUrl } = repoConfig;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ rawInput, canonicalRepo, sourceUrl }));
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DoltHub Client
+═══════════════════════════════════════════════════════════════════ */
+async function sqlQuery(owner, repo, sql) {
+  const url = `${DOLTHUB_API}/${owner}/${repo}?q=${encodeURIComponent(sql)}`;
+  let resp;
+  try { resp = await fetch(url); } catch (e) { throw { kind: 'fetch_failure', msg: e.message }; }
+  if (!resp.ok) throw { kind: 'fetch_failure', msg: `HTTP ${resp.status}` };
+  let body;
+  try { body = await resp.json(); } catch { throw { kind: 'fetch_failure', msg: 'Invalid JSON from API' }; }
+  if (body.query_execution_status !== 'Success') {
+    throw { kind: 'query_failure', msg: body.query_execution_message || 'Query failed' };
+  }
+  return body.rows || [];
+}
+
+async function fetchRepoData(owner, repo) {
+  // 1. SHOW TABLES
+  let tables;
+  try { tables = await sqlQuery(owner, repo, 'SHOW TABLES'); }
+  catch (e) { throw e; }
+
+  const tableNames = tables.map(r => Object.values(r)[0]);
+  if (!tableNames.includes('issues') || !tableNames.includes('dependencies')) {
+    throw { kind: 'unsupported_schema', msg: `Missing required tables. Found: ${tableNames.join(', ') || 'none'}` };
+  }
+
+  // 2. Issues
+  const issues = await sqlQuery(owner, repo,
+    'SELECT id, title, description, status, priority, issue_type, assignee, metadata FROM issues');
+
+  // 3. Dependencies
+  const dependencies = await sqlQuery(owner, repo,
+    'SELECT issue_id, depends_on_id, type, metadata FROM dependencies');
+
+  return { issues, dependencies };
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Beads Adapter
+═══════════════════════════════════════════════════════════════════ */
+function parseMeta(raw) {
+  if (raw === null || raw === undefined) return { obj: {}, warn: null };
+  if (typeof raw === 'object') return { obj: raw, warn: null };
+  if (typeof raw === 'string') {
+    if (!raw.trim()) return { obj: {}, warn: null };
+    try {
+      const parsed = JSON.parse(raw);
+      if (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null) {
+        return { obj: {}, warn: `non-object metadata ignored` };
+      }
+      return { obj: parsed, warn: null };
+    } catch {
+      return { obj: {}, warn: `invalid JSON metadata ignored` };
+    }
+  }
+  return { obj: {}, warn: null };
+}
+
+function adaptRepoData({ issues, dependencies }) {
+  const warnings = [];
+  const recordMap = new Map();
+
+  // Build initial records
+  for (const row of issues) {
+    const { obj: meta, warn: mWarn } = parseMeta(row.metadata);
+    if (mWarn) warnings.push(`[${row.id}] ${mWarn}`);
+
+    recordMap.set(row.id, {
+      id:          row.id,
+      title:       row.title || '(no title)',
+      status:      (row.status || '').toLowerCase(),
+      priority:    row.priority ?? null,
+      type:        row.issue_type || '',
+      assignee:    row.assignee || '',
+      description: row.description || '',
+      parentId:    meta.parent_id   || null,
+      groupId:     meta.group_id    || null,
+      groupLabel:  meta.group_label || null,
+      dependsOnIds: [],
+      blocksCount:  0,
+      raw:          row,
+    });
+  }
+
+  // Process dependencies (only 'blocks' type)
+  // Collapse identical warning messages
+  const warnCounts = new Map();
+  const addWarn = (msg) => {
+    warnCounts.set(msg, (warnCounts.get(msg) || 0) + 1);
+  };
+
+  // Also handle parent-child as grouping hint (not an error)
+  const parentChildHandled = new Set();
+
+  for (const dep of dependencies) {
+    if (dep.type === 'parent-child' || dep.type === 'parentchild') {
+      // Treat as parentId on the child record
+      const child = recordMap.get(dep.issue_id);
+      if (child && dep.depends_on_id && !child.parentId) {
+        child.parentId = dep.depends_on_id;
+      }
+      continue;
+    }
+    if (dep.type !== 'blocks') {
+      addWarn(`Dep type "${dep.type}" ignored`);
+      continue;
+    }
+    // issue_id depends_on (is blocked by) depends_on_id
+    const record = recordMap.get(dep.issue_id);
+    if (!record) {
+      addWarn(`Unknown issue "${dep.issue_id}"`);
+      continue;
+    }
+    if (!record.dependsOnIds.includes(dep.depends_on_id)) {
+      record.dependsOnIds.push(dep.depends_on_id);
+    }
+    // Track blocksCount on the blocker
+    const blocker = recordMap.get(dep.depends_on_id);
+    if (blocker) blocker.blocksCount++;
+    else addWarn(`Missing dep target: "${dep.depends_on_id}"`);
+  }
+
+  // Flatten collapsed warnings
+  for (const [msg, count] of warnCounts) {
+    warnings.push(count > 1 ? `${msg} (×${count})` : msg);
+  }
+
+  const records = [...recordMap.values()];
+  return { records, warnings };
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Tree Builders
+═══════════════════════════════════════════════════════════════════ */
+
+/* --- Dependency Tree --- */
+function buildDependencyTree(records) {
+  const byId = new Map(records.map(r => [r.id, r]));
+  // downstream: id → list of IDs that depend on it (blocked by it)
+  const downstream = new Map(records.map(r => [r.id, []]));
+  for (const r of records) {
+    for (const depId of r.dependsOnIds) {
+      if (downstream.has(depId)) {
+        downstream.get(depId).push(r.id);
+      }
+    }
+  }
+
+  // Roots = tasks with no dependsOnIds (or whose deps are all missing)
+  const roots = records
+    .filter(r => r.dependsOnIds.filter(id => byId.has(id)).length === 0)
+    .map(r => r.id)
+    .sort();
+
+  const visited  = new Map(); // id → 'in-stack' | 'done'
+  const fullSeen = new Set(); // ids that have been rendered as full cards
+  const treeWarnings = [];
+  const referenceNodeCount = { val: 0 };
+
+  function buildNode(id, ancestorStack) {
+    const record = byId.get(id);
+    if (!record) return null;
+
+    // Cycle detection
+    if (ancestorStack.includes(id)) {
+      treeWarnings.push(`Cycle detected involving ${id}`);
+      return { type: 'cycle', id, record };
+    }
+
+    // Reference node for repeats
+    if (fullSeen.has(id)) {
+      referenceNodeCount.val++;
+      return { type: 'reference', id, record };
+    }
+
+    fullSeen.add(id);
+    const children = (downstream.get(id) || [])
+      .sort()
+      .map(childId => buildNode(childId, [...ancestorStack, id]))
+      .filter(Boolean);
+
+    return { type: 'full', id, record, children };
+  }
+
+  // Handle rootless cycles — find unvisited nodes
+  const allIds = [...byId.keys()].sort();
+  const processed = new Set();
+
+  const treeRoots = roots.map(id => {
+    const node = buildNode(id, []);
+    markProcessed(node, processed);
+    return node;
+  }).filter(Boolean);
+
+  // Remaining unprocessed → rootless cycles
+  for (const id of allIds) {
+    if (!processed.has(id)) {
+      const node = buildNode(id, []);
+      markProcessed(node, processed);
+      if (node) treeRoots.push(node);
+    }
+  }
+
+  return { roots: treeRoots, warnings: treeWarnings, referenceNodeCount: referenceNodeCount.val };
+}
+
+function markProcessed(node, set) {
+  if (!node) return;
+  set.add(node.id);
+  if (node.children) node.children.forEach(c => markProcessed(c, set));
+}
+
+/* --- Grouped Tree --- */
+function buildGroupedTree(records) {
+  const byId = new Map(records.map(r => [r.id, r]));
+  const sections = new Map(); // sectionKey → { title, nodes: [] }
+  const nodeWarnings = new Map(); // id → warnings[]
+
+  const getOrAddSection = (key, title) => {
+    if (!sections.has(key)) sections.set(key, { key, title, nodes: [] });
+    return sections.get(key);
+  };
+
+  const getNodeWarnings = (id) => {
+    if (!nodeWarnings.has(id)) nodeWarnings.set(id, []);
+    return nodeWarnings.get(id);
+  };
+
+  // Assign sections
+  for (const r of records) {
+    let section;
+    if (r.groupId) {
+      const title = r.groupLabel || r.groupId;
+      section = getOrAddSection(`group:${r.groupId}`, title);
+    } else if (r.parentId) {
+      const parent = byId.get(r.parentId);
+      const title  = parent ? parent.title : r.parentId;
+      section = getOrAddSection(`parent:${r.parentId}`, title);
+    } else {
+      section = getOrAddSection('ungrouped', 'Ungrouped');
+    }
+    section.nodes.push(r);
+  }
+
+  // Validate parentId within sections
+  for (const sec of sections.values()) {
+    const sectionIds = new Set(sec.nodes.map(n => n.id));
+    for (const r of sec.nodes) {
+      if (r.parentId && !sectionIds.has(r.parentId)) {
+        if (byId.has(r.parentId)) {
+          getNodeWarnings(r.id).push({ code: 'parent_out_of_section', msg: `Parent ${r.parentId} is in a different section` });
+        } else {
+          getNodeWarnings(r.id).push({ code: 'missing_parent', msg: `Parent ${r.parentId} not found` });
+        }
+      }
+    }
+  }
+
+  // Build section list — named sections first, then Ungrouped
+  const sectionList = [...sections.values()].sort((a, b) => {
+    if (a.key === 'ungrouped') return 1;
+    if (b.key === 'ungrouped') return -1;
+    return a.title.localeCompare(b.title);
+  });
+
+  return { sections: sectionList, nodeWarnings };
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Load Flow
+═══════════════════════════════════════════════════════════════════ */
+async function loadRepo(rawInput, persist = true) {
+  let repoConfig;
+  try {
+    repoConfig = normalizeRepoInput(rawInput);
+  } catch (e) {
+    showError('Invalid input', e.message, 'input');
+    return;
+  }
+
+  // Preserve current view mode across refreshes
+  const savedView = state.view;
+
+  state.loading = true;
+  state.error   = null;
+  renderLoading(repoConfig);
+  stopRefreshTimer();
+
+  try {
+    const { issues, dependencies } = await fetchRepoData(repoConfig.owner, repoConfig.repo);
+    const { records, warnings }    = adaptRepoData({ issues, dependencies });
+
+    state.repo       = repoConfig;
+    state.records    = records;
+    state.warnings   = warnings;
+    state.depTree    = buildDependencyTree(records);
+    state.groupedTree= buildGroupedTree(records);
+    state.view       = savedView; // preserve view across refresh
+    state.loading    = false;
+    state.error      = null;
+
+    if (persist) writeLastRepo(repoConfig);
+
+    renderContent();
+    startRefreshTimer();
+
+  } catch (err) {
+    state.loading = false;
+    const e = err instanceof Error
+      ? { kind: 'fetch_failure', msg: err.message }
+      : (err || { kind: 'fetch_failure', msg: 'Unknown error' });
+    state.error = e;
+    showError(
+      kindLabel(e.kind),
+      e.msg,
+      e.kind
+    );
+  }
+}
+
+function kindLabel(k) {
+  return { fetch_failure: 'Fetch failed', query_failure: 'Query failed', unsupported_schema: 'Unsupported schema', parse_failure: 'Parse failed' }[k] || 'Error';
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Auto-Refresh
+═══════════════════════════════════════════════════════════════════ */
+const CIRCUMFERENCE = 2 * Math.PI * 7; // r=7
+
+function startRefreshTimer() {
+  stopRefreshTimer();
+  countdownLeft = REFRESH_SEC;
+  updateRing();
+  document.getElementById('refresh-ring').style.display = 'flex';
+
+  countdownTimer = setInterval(() => {
+    countdownLeft--;
+    updateRing();
+    if (countdownLeft <= 0) {
+      stopRefreshTimer();
+      if (state.repo && !state.loading) {
+        loadRepo(state.repo.canonicalRepo, false);
+      }
+    }
+  }, 1000);
+}
+
+function stopRefreshTimer() {
+  if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
+  document.getElementById('refresh-ring').style.display = 'none';
+}
+
+function updateRing() {
+  const fill  = document.getElementById('ring-fill');
+  const label = document.getElementById('refresh-label');
+  if (!fill || !label) return;
+  const pct = countdownLeft / REFRESH_SEC;
+  fill.style.strokeDashoffset = CIRCUMFERENCE * (1 - pct);
+  label.textContent = `${countdownLeft}s`;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   UI Interactions
+═══════════════════════════════════════════════════════════════════ */
+function handleLoad(e) {
+  e.preventDefault();
+  const val = document.getElementById('repo-input').value.trim();
+  if (!val) return;
+  loadRepo(val, true);
+}
+
+function updateLoadBtn() {
+  const val = (document.getElementById('repo-input').value || '').trim();
+  document.getElementById('load-btn').disabled = !val;
+}
+
+function setView(v) {
+  state.view = v;
+  document.getElementById('btn-dep').setAttribute('aria-pressed', v === 'dependency' ? 'true' : 'false');
+  document.getElementById('btn-grp').setAttribute('aria-pressed', v === 'grouped'    ? 'true' : 'false');
+  renderTree();
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Rendering
+═══════════════════════════════════════════════════════════════════ */
+function renderLoading(repoConfig) {
+  const $main = document.getElementById('main-content');
+  $main.innerHTML = `
+    <div class="state-panel">
+      <div class="spinner"></div>
+      <div class="state-title">Loading ${esc(repoConfig.canonicalRepo)}</div>
+      <div class="state-body">Querying DoltHub SQL API…</div>
+    </div>`;
+  updateStatusBar({ loading: true, repo: repoConfig });
+  document.getElementById('view-toggle').style.display = 'none';
+}
+
+function showError(title, msg, kind) {
+  const $main = document.getElementById('main-content');
+  const hint = kind === 'unsupported_schema'
+    ? 'This repo exists but does not appear to use the beads schema.'
+    : kind === 'fetch_failure'
+    ? 'Make sure the repository is public and spelled correctly.'
+    : '';
+  $main.innerHTML = `
+    <div class="state-panel">
+      <div class="state-icon">⚠</div>
+      <div class="state-title">${esc(title)}</div>
+      <div class="state-body">${esc(msg)}</div>
+      ${hint ? `<div class="state-hint">${esc(hint)}</div>` : ''}
+    </div>`;
+  updateStatusBar({ error: true });
+  document.getElementById('view-toggle').style.display = 'none';
+}
+
+function renderContent() {
+  updateStatusBar({ loaded: true });
+  document.getElementById('view-toggle').style.display = 'flex';
+  // Sync toggle button state
+  document.getElementById('btn-dep').setAttribute('aria-pressed', state.view === 'dependency' ? 'true' : 'false');
+  document.getElementById('btn-grp').setAttribute('aria-pressed', state.view === 'grouped'    ? 'true' : 'false');
+
+  // Warnings strip
+  const $ws   = document.getElementById('warnings-strip');
+  const $wl   = document.getElementById('warnings-list');
+  const allW  = [...(state.depTree?.warnings || []), ...state.warnings];
+  if (allW.length > 0) {
+    $wl.innerHTML = allW.map(w => `<li>${esc(w)}</li>`).join('');
+    $ws.classList.add('visible');
+  } else {
+    $ws.classList.remove('visible');
+  }
+
+  renderTree();
+}
+
+function renderTree() {
+  const $main = document.getElementById('main-content');
+  if (state.records.length === 0) {
+    $main.innerHTML = `
+      <div class="state-panel">
+        <div class="state-icon">○</div>
+        <div class="state-title">No tasks found</div>
+        <div class="state-body">The repository was loaded successfully, but contains no parseable issues.</div>
+      </div>`;
+    return;
+  }
+  if (state.view === 'dependency') {
+    renderDepTree($main);
+  } else {
+    renderGrouped($main);
+  }
+}
+
+/* ── Dependency Tree ── */
+function renderDepTree($main) {
+  const { roots } = state.depTree;
+  const el = document.createElement('div');
+  el.className = 'tree-root';
+  for (const node of roots) {
+    el.appendChild(renderDepNode(node));
+  }
+  $main.innerHTML = '';
+  $main.appendChild(el);
+}
+
+function renderDepNode(node) {
+  if (node.type === 'reference') {
+    const div = document.createElement('div');
+    div.className = 'ref-node';
+    div.innerHTML = `<span class="ref-arrow">↳ ref</span><span class="ref-title">${esc(node.record.title)}</span><span class="ref-id">${esc(node.id)}</span>`;
+    return div;
+  }
+  if (node.type === 'cycle') {
+    const div = document.createElement('div');
+    div.className = 'ref-node';
+    div.innerHTML = `<span class="cycle-badge">⟳ cycle</span><span class="ref-title">${esc(node.record.title)}</span><span class="ref-id">${esc(node.id)}</span>`;
+    return div;
+  }
+
+  const wrap = document.createElement('div');
+  wrap.className = 'tree-node';
+
+  const card = buildTaskCard(node.record, node.children.length > 0);
+  wrap.appendChild(card);
+
+  if (node.children.length > 0) {
+    const childrenEl = document.createElement('div');
+    childrenEl.className = 'tree-children';
+    for (const child of node.children) {
+      childrenEl.appendChild(renderDepNode(child));
+    }
+    wrap.appendChild(childrenEl);
+  }
+  return wrap;
+}
+
+/* ── Grouped Tree ── */
+function renderGrouped($main) {
+  const { sections, nodeWarnings } = state.groupedTree;
+  const el = document.createElement('div');
+  el.className = 'tree-root';
+
+  for (const sec of sections) {
+    const secEl = document.createElement('div');
+    secEl.className = 'group-section';
+
+    const header = document.createElement('div');
+    header.className = 'group-header';
+    header.innerHTML = `
+      <span class="group-title">${esc(sec.title)}</span>
+      <span class="group-count">${sec.nodes.length}</span>
+      <span class="group-chevron open">▲</span>`;
+    header.addEventListener('click', () => {
+      const body = secEl.querySelector('.group-body');
+      const chev = header.querySelector('.group-chevron');
+      body.classList.toggle('collapsed');
+      chev.classList.toggle('open');
+    });
+    secEl.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'group-body';
+
+    // Build parent→children map within section
+    const sectionIdSet = new Set(sec.nodes.map(n => n.id));
+    const childrenMap  = new Map(sec.nodes.map(n => [n.id, []]));
+    const topLevel     = [];
+
+    for (const r of sec.nodes) {
+      const nodeW = nodeWarnings.get(r.id) || [];
+      if (r.parentId && sectionIdSet.has(r.parentId)) {
+        childrenMap.get(r.parentId).push(r);
+      } else {
+        topLevel.push(r);
+      }
+    }
+
+    function renderGroupNode(record, depth) {
+      const nodeW = nodeWarnings.get(record.id) || [];
+      const children = childrenMap.get(record.id) || [];
+      const wrap = document.createElement('div');
+      wrap.className = 'tree-node';
+      if (depth > 0) {
+        wrap.style.marginLeft = (depth * 1.25) + 'rem';
+      }
+      const card = buildTaskCard(record, children.length > 0, nodeW);
+      wrap.appendChild(card);
+      for (const child of children) {
+        body.appendChild(renderGroupNode(child, depth + 1));
+      }
+      return wrap;
+    }
+
+    for (const r of topLevel) {
+      body.appendChild(renderGroupNode(r, 0));
+    }
+
+    secEl.appendChild(body);
+    el.appendChild(secEl);
+  }
+
+  $main.innerHTML = '';
+  $main.appendChild(el);
+}
+
+/* ── Task Card Builder ── */
+function buildTaskCard(record, hasChildren, extraWarnings = []) {
+  const card = document.createElement('div');
+  card.className = 'task-card';
+  card.id = `card-${record.id}`;
+
+  // Status badge class
+  const st = record.status || '';
+  const badgeClass = st === 'open'   ? 'badge-open'
+                   : st === 'closed' ? 'badge-closed'
+                   : 'badge-default';
+
+  // Priority display
+  const pMap = { 0: 'Critical', 1: 'High', 2: 'Medium', 3: 'Low', 4: 'Backlog' };
+  const pLabel = record.priority !== null ? (pMap[record.priority] ?? `P${record.priority}`) : null;
+
+  // Description
+  const desc = (record.description || '').trim();
+  const hasDesc = desc.length > 0;
+  const truncated = desc.length > MAX_DESC ? desc.slice(0, MAX_DESC) + '…' : desc;
+  const needsMore = desc.length > MAX_DESC;
+
+  // Dep chips (grouped view: just show dependsOnIds)
+  const depChips = record.dependsOnIds.length > 0
+    ? record.dependsOnIds.map(id => `<span class="dep-chip">${esc(id)}</span>`).join('')
+    : '';
+
+  // Extra warning badge
+  const warnBadge = extraWarnings.length > 0
+    ? extraWarnings.map(w => `<span class="badge badge-warn" title="${esc(w.msg)}">${esc(w.code)}</span>`).join(' ')
+    : '';
+
+  card.innerHTML = `
+    <div class="card-header">
+      ${hasChildren ? `<button class="card-toggle open" title="Collapse">▶</button>` : ''}
+      <div class="card-title-wrap">
+        <div class="card-title">${esc(record.title)}</div>
+        <div class="card-id">${esc(record.id)}</div>
+      </div>
+      <span class="badge ${badgeClass}">${esc(record.status || '?')}</span>
+      ${pLabel ? `<span class="badge badge-priority">P${record.priority !== null ? record.priority : '?'} ${esc(pLabel)}</span>` : ''}
+      ${record.type ? `<span class="badge badge-default">${esc(record.type)}</span>` : ''}
+      ${warnBadge}
+    </div>
+    <div class="card-meta">
+      ${record.assignee ? `<span class="meta-item"><span class="meta-label">Assignee</span> ${esc(record.assignee)}</span>` : ''}
+      ${record.blocksCount > 0 ? `<span class="meta-item"><span class="meta-label">Blocks</span> ${record.blocksCount}</span>` : ''}
+      ${record.groupLabel ? `<span class="meta-item"><span class="meta-label">Group</span> ${esc(record.groupLabel)}</span>` : ''}
+    </div>
+    ${depChips ? `<div class="card-deps visible"><span class="dep-label">Blocked by</span> ${depChips}</div>` : ''}
+    ${hasDesc ? `
+      <div class="card-desc">
+        <div class="card-desc-text">
+          <span class="desc-truncated">${esc(truncated)}</span>
+          ${needsMore ? `<span class="desc-full" style="display:none">${esc(desc)}</span>` : ''}
+        </div>
+        ${needsMore ? `<button class="desc-toggle">Show more</button>` : ''}
+      </div>` : ''}
+  `;
+
+  // Toggle children collapse
+  const toggleBtn = card.querySelector('.card-toggle');
+  if (toggleBtn && hasChildren) {
+    toggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const parentNode = card.parentElement;
+      const childrenEl = parentNode?.querySelector('.tree-children');
+      if (childrenEl) {
+        childrenEl.classList.toggle('collapsed');
+        toggleBtn.classList.toggle('open');
+      }
+    });
+  }
+
+  // Toggle description
+  card.addEventListener('click', (e) => {
+    if (e.target.closest('.card-toggle') || e.target.closest('.desc-toggle')) return;
+    const descEl = card.querySelector('.card-desc');
+    if (descEl) descEl.classList.toggle('visible');
+  });
+
+  // Show more/less
+  const moreBtn = card.querySelector('.desc-toggle');
+  if (moreBtn) {
+    const full  = card.querySelector('.desc-full');
+    const trunc = card.querySelector('.desc-truncated');
+    moreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const expanded = full.style.display !== 'none';
+      full.style.display  = expanded ? 'none'  : 'inline';
+      trunc.style.display = expanded ? 'inline': 'none';
+      moreBtn.textContent = expanded ? 'Show more' : 'Show less';
+    });
+  }
+
+  return card;
+}
+
+/* ── Status Bar ── */
+function updateStatusBar({ loading, error, loaded, repo } = {}) {
+  const $repo = document.getElementById('status-repo');
+  const $sep1 = document.getElementById('status-sep-1');
+  const $tasks= document.getElementById('status-tasks');
+  const $sep2 = document.getElementById('status-sep-2');
+  const $asgn = document.getElementById('status-assignees');
+  const $sep3 = document.getElementById('status-sep-3');
+  const $deps = document.getElementById('status-deps');
+  const $msg  = document.getElementById('status-msg');
+
+  // Hide all stats first
+  [$sep1,$tasks,$sep2,$asgn,$sep3,$deps].forEach(el => el.style.display = 'none');
+
+  if (loading) {
+    const r = repo || state.repo;
+    $repo.textContent = r ? r.canonicalRepo : '';
+    $repo.style.display = r ? 'inline' : 'none';
+    $msg.textContent = 'Loading…';
+    return;
+  }
+
+  if (error) {
+    $repo.style.display = 'none';
+    $msg.textContent = 'Failed to load';
+    return;
+  }
+
+  if (loaded) {
+    // Repo id
+    $repo.textContent = state.repo?.canonicalRepo || '';
+    $repo.style.display = 'inline';
+
+    // Task count
+    const taskCount = state.records.length;
+    $tasks.textContent = `${taskCount} task${taskCount !== 1 ? 's' : ''}`;
+    $tasks.style.display = 'inline';
+    $sep1.style.display = 'inline';
+
+    // Assignees
+    const assignees = new Set(state.records.map(r => r.assignee).filter(a => a && a.trim()));
+    if (assignees.size > 0) {
+      $asgn.textContent = `${assignees.size} assignee${assignees.size !== 1 ? 's' : ''}`;
+      $asgn.style.display = 'inline';
+      $sep2.style.display = 'inline';
+    }
+
+    // Dep count (unique blocks edges)
+    const depCount = state.records.reduce((n, r) => n + r.dependsOnIds.length, 0);
+    if (depCount > 0) {
+      $deps.textContent = `${depCount} dep${depCount !== 1 ? 's' : ''}`;
+      $deps.style.display = 'inline';
+      $sep3.style.display = 'inline';
+    }
+
+    $msg.textContent = '';
+  }
+}
+
+/* ══ Utilities ═════════════════════════════════════════════════════ */
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+</script>
+</body>
+</html>
