@@ -82,6 +82,12 @@ The status strip contains:
 - Total dependency count
 - Parse or data warnings when the repo is reachable but incomplete
 
+Aggregate counter rules:
+
+- Task count includes only successfully normalized `TaskRecord` values.
+- Assignee count ignores blank or null assignee values.
+- Dependency count includes only supported `blocks` edges that survive normalization.
+
 The main region shows:
 
 - A multi-root tree in `dependency` mode
@@ -274,7 +280,8 @@ Rules:
 
 - The dependency view may have multiple roots.
 - Roots are sorted by task ID ascending before traversal.
-- Child dependency references are sorted by `dependsOnIds` ascending before traversal.
+- Dependency traversal in the viewer runs from blockers to blocked tasks.
+- Child nodes in dependency view are sorted by downstream task ID ascending before traversal.
 - If a task is referenced by multiple upstream tasks, the UI renders one full canonical card at its first encounter during this sorted depth-first traversal and renders subsequent appearances as lightweight reference nodes that link back to the canonical card. The viewer must not duplicate full task cards for the same task ID.
 - If a connected component has no root because every node has an inbound edge, start that component from the lexicographically smallest task ID in the component.
 - If the adapter detects a cycle, the app must not recurse indefinitely. It should render the involved nodes up to the point of cycle detection and show a cycle warning on the repeated edge or node.
@@ -338,6 +345,12 @@ Metadata parsing rules for v1:
 - If `issues.metadata` cannot be parsed as JSON, ignore it and emit a warning.
 - Only object keys `group_id`, `group_label`, and `parent_id` may produce derived grouping fields.
 
+Dependency type rules for v1:
+
+- Only rows where `dependencies.type = 'blocks'` participate in graph construction.
+- Rows with any other `type` value are ignored and emitted as adapter warnings.
+- For supported rows, `issue_id -> depends_on_id` means the issue is blocked by the referenced prerequisite.
+
 If that assumption proves false during implementation, the plan must stop and surface the issue rather than silently broadening scope into a backend solution. Backend proxying remains explicitly out of scope for this spec.
 
 ## Error Handling
@@ -349,6 +362,13 @@ If the repo input is neither a recognizable DoltHub URL nor `owner/repo`, the ap
 ### Unreachable or Unsupported Repo
 
 If the repo cannot be fetched, the app shows a fetch failure state. If the repo is reachable but not public, the error message should explicitly say that only public repos are supported in this version.
+
+Error-state ownership rules:
+
+- Network failures, non-success HTTP responses, or missing API responses from the SQL endpoint are fetch failures.
+- SQL API responses with unsuccessful query execution for `SHOW TABLES`, `issues`, or `dependencies` are query failures and should be surfaced in the same fetch-failure UI family with query-specific details.
+- Successful `SHOW TABLES` responses that do not contain both required tables are unsupported-schema failures.
+- Successful queries whose rows cannot be interpreted into the supported v1 beads shape are parse failures.
 
 ### Non-Beads or Unexpected Schema
 
