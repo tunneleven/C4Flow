@@ -73,17 +73,92 @@ If `research.md` is missing sections or quality is low, note concerns but procee
 
 ---
 
-### Step 2: Generate proposal.md
+### Step 2: Direction Exploration (Q&A + Suggestions)
+
+**Before generating any artifact**, pause and collaborate with the user to define the spec direction. Research gives us data — this step turns data into a clear vision.
+
+#### 2.1 Clarifying Questions
+
+Ask the user **3-5 targeted questions** based on what you found in `research.md`. Focus on decisions that will fundamentally shape the spec:
+
+| Category | Example Questions |
+|----------|------------------|
+| **Scope priority** | "Research tìm thấy 8 features cho MVP. Bạn muốn focus vào core workflow nào trước?" |
+| **User focus** | "Research xác định 3 personas. Bạn muốn optimize cho persona nào là chính?" |
+| **Technical direction** | "Research đề xuất 3 approach. Bạn có preference về [monolith vs microservice, self-hosted vs SaaS]?" |
+| **Differentiation** | "Gap analysis cho thấy [X] là cơ hội lớn nhất. Bạn đồng ý đây là điểm khác biệt chính?" |
+| **Constraints** | "Có constraint nào chưa được đề cập trong research? (timeline, budget, team size, existing infra)" |
+| **Integration** | "Feature này cần integrate với hệ thống nào hiện tại?" |
+| **Risk appetite** | "Contrarian view nêu [risk X]. Bạn đánh giá mức độ nghiêm trọng thế nào?" |
+
+**Rules:**
+- Questions must be **specific to the research findings**, not generic
+- Reference specific sections/data from `research.md` when asking
+- **Wait for user response** before proceeding to 2.2
+
+#### 2.2 Propose Spec Directions
+
+Based on the user's answers, propose **2-3 possible spec directions**. Each direction represents a different strategy for the same feature:
+
+```
+## Direction A: [Name] — [1-line summary]
+- **Focus**: [Primary capability/user segment]
+- **MVP Scope**: [3-5 key features]
+- **Tech approach**: [From research]
+- **Timeline estimate**: [Relative: small/medium/large]
+- **Trade-off**: [What you gain vs what you sacrifice]
+
+## Direction B: [Name] — [1-line summary]
+...
+
+## Direction C (optional): [Name] — [1-line summary]
+...
+```
+
+**Direction types to consider** (pick the most relevant contrasts):
+
+| Contrast | Direction A | Direction B |
+|----------|------------|------------|
+| Scope | MVP tối giản (3-4 features) | Feature-rich v1 (8-10 features) |
+| Audience | B2C consumer-first | B2B enterprise-first |
+| Architecture | Monolith (ship fast) | Modular (scale later) |
+| Build vs Integrate | Build from scratch | Integrate existing tools |
+| Market entry | Compete head-on | Target underserved niche |
+
+**Rules:**
+- Each direction must be **genuinely viable** — not a strawman
+- Highlight the **trade-offs** clearly so the user can make an informed decision
+- Recommend one direction with reasoning, but let the user decide
+- The user may choose one direction, **mix elements** from multiple directions, or propose a new one
+
+#### 2.3 Lock Direction
+
+After the user chooses (or mixes), summarize the agreed direction in 3-5 bullet points:
+
+```
+## Agreed Direction
+- **Focus**: [chosen focus]
+- **Primary persona**: [chosen persona]
+- **MVP features**: [list]
+- **Tech approach**: [chosen approach]
+- **Key constraint**: [timeline/budget/etc.]
+```
+
+**This becomes the guiding frame for all 4 artifacts.** Reference this agreed direction in every subsequent step.
+
+---
+
+### Step 3: Generate proposal.md
 
 Using the template from `references/spec-templates/proposal-template.md`:
 
-1. **Draft the proposal** using the Research → Spec mapping above:
+1. **Draft the proposal** using the Research → Spec mapping above, **filtered through the agreed direction**:
    - **Why**: Pull from Executive Summary + Problem Statement. Include the build/buy/skip verdict and explain why building is the right choice
    - **What Changes**: Describe new capabilities based on Gap Analysis findings. Reference what competitors lack
-   - **Capabilities (New)**: Map 1:1 from MVP Scope "must" items. Each capability gets a name and description
+   - **Capabilities (New)**: Map from agreed direction's MVP features. Each capability gets a name and description
    - **Capabilities (Modified)**: Only if modifying existing features — skip if greenfield
-   - **Scope (In)**: All MVP "must" + "should" items from research
-   - **Scope (Out/Non-Goals)**: All MVP "later" items + anything the Contrarian View flagged as risky scope creep
+   - **Scope (In)**: Features from agreed direction's MVP list
+   - **Scope (Out/Non-Goals)**: Everything NOT in agreed direction + anything the Contrarian View flagged as risky scope creep
    - **Success Criteria**: Derive from Recommendations. Make each criterion measurable (e.g., "User can create a budget in <30 seconds" not "Good UX")
    - **Impact**: Reference Competitive Landscape for affected ecosystem. Note which competitors this positions against
 
@@ -92,14 +167,14 @@ Using the template from `references/spec-templates/proposal-template.md`:
 4. **Write** the approved version to `docs/specs/<feature>/proposal.md`
 
 **Quality check before presenting:**
-- [ ] Every In Scope item traces back to an MVP "must" or "should" from research
+- [ ] Every In Scope item traces back to the agreed direction or research MVP scope
 - [ ] At least 2 Out of Scope items (prevents scope creep)
 - [ ] Success Criteria are measurable (numbers, time, or verifiable outcomes)
 - [ ] Impact section references at least 1 competitor by name
 
 ---
 
-### Step 3: Generate tech-stack.md
+### Step 4: Generate tech-stack.md
 
 Using the template from `references/spec-templates/tech-stack-template.md`:
 
@@ -120,7 +195,7 @@ Using the template from `references/spec-templates/tech-stack-template.md`:
 
 ---
 
-### Step 4: Generate spec.md
+### Step 5: Generate spec.md
 
 Using the template from `references/spec-templates/spec-template.md`:
 
@@ -166,7 +241,7 @@ Using the template from `references/spec-templates/spec-template.md`:
 
 ---
 
-### Step 5: Generate design.md
+### Step 6: Generate design.md
 
 Using the template from `references/spec-templates/design-template.md`:
 
@@ -197,7 +272,7 @@ Using the template from `references/spec-templates/design-template.md`:
 
 ---
 
-### Step 6: Completion
+### Step 7: Completion
 
 All four artifacts are written. Report back to the orchestrator that SPEC is complete.
 
@@ -229,7 +304,9 @@ If any check fails, fix the artifact before reporting completion.
 
 ## Guardrails
 
+- **Always complete Step 2 (Direction Exploration)** before generating any artifact — don't skip the Q&A
 - Generate artifacts **in dependency order** — never skip ahead
+- **Reference the agreed direction** from Step 2 in every artifact
 - Present each artifact for **user approval** before proceeding
 - **Every claim should trace** back to research.md or user input — don't invent requirements
 - Keep artifacts **DRY** — don't duplicate content across artifacts; reference instead
