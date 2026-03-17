@@ -79,7 +79,6 @@ The main region shows:
 - `rawInput`: exactly what the user typed
 - `canonicalRepo`: normalized `owner/repo`
 - `sourceUrl`: resolved public DoltHub URL used for fetches
-- `lastOpenedAt`: local timestamp for persistence bookkeeping
 
 ### TaskNode
 
@@ -93,7 +92,6 @@ The main region shows:
 - `parentId`
 - `groupId`
 - `dependsOnIds`
-- `blockedByCount`
 - `blocksCount`
 - `children`
 - `raw`: raw source record preserved for diagnostics
@@ -106,7 +104,7 @@ The fetch layer must not feed raw DoltHub responses directly into components. Th
   - Multiple roots allowed
   - Missing dependency targets recorded as warnings, not fatal errors
 - `GroupedTree`
-  - Tasks first partitioned by parent/epic/group identity
+  - Tasks first partitioned by deterministic grouping rules
   - Each section may still render nested children and dependency indicators
 
 ## Architecture
@@ -131,6 +129,7 @@ Responsibility:
 - Fetch public repo data from DoltHub
 - Hide endpoint details from the rest of the app
 - Return raw payloads plus transport-level error details
+- Encapsulate the assumption that the chosen public DoltHub surface is callable directly from the browser in this version
 
 Interface:
 - Input: canonical repo identity
@@ -184,6 +183,45 @@ Each task node is metadata-rich by default. The node should render:
 - Description content, with long text truncated but expandable inline
 
 Because the user explicitly wants dense nodes, the design must control clutter through layout, not by hiding key fields. The default collapsed form should still show the full requested metadata set in a compact card. Long descriptions and large raw detail blocks can expand on demand.
+
+`raw` metadata is for adapter diagnostics and developer tooling, not for the default end-user UI. If surfaced at all, it should be behind an explicit debug-oriented disclosure, not part of the primary task card.
+
+## Grouping Rules
+
+The grouped view must use deterministic section assignment so planning and testing do not depend on guesswork.
+
+Grouping precedence:
+
+1. If a task has `groupId`, place it in that group.
+2. Otherwise, if a task has `parentId`, place it under the parent task's section.
+3. Otherwise, place it in an `Ungrouped` section.
+
+For this spec, an "epic" is any source grouping concept that the adapter normalizes into `groupId`. The UI does not need to distinguish whether the source called it an epic, parent bucket, or another grouping label once normalization is complete.
+
+Tasks with both `groupId` and `parentId` use `groupId` for top-level section placement and may still appear as nested children inside that section.
+
+## Dependency Graph Rules
+
+The fetched dependency data may be a graph rather than a strict tree. The viewer must convert that graph into a tree-friendly presentation without pretending the underlying structure is simpler than it is.
+
+Rules:
+
+- The dependency view may have multiple roots.
+- If a task is referenced by multiple upstream tasks, the UI may render the task card once as its canonical node and show subsequent appearances as reference nodes or duplicated cards with a visual indicator. The implementation plan must pick one approach and keep it consistent.
+- If the adapter detects a cycle, the app must not recurse indefinitely. It should render the involved nodes up to the point of cycle detection and show a cycle warning on the repeated edge or node.
+- Missing dependency targets remain non-fatal warnings.
+
+This keeps the product scoped to a tree viewer while acknowledging that the source data can be DAG-shaped or cyclic.
+
+## External Integration Assumption
+
+This version assumes there is at least one public DoltHub data surface that:
+
+- exposes the beads-backed task data needed by the viewer
+- is reachable directly from the browser
+- allows the required cross-origin requests for a frontend-only app
+
+If that assumption proves false during implementation, the plan must stop and surface the issue rather than silently broadening scope into a backend solution. Backend proxying remains explicitly out of scope for this spec.
 
 ## Error Handling
 
