@@ -9,3 +9,6 @@
 
 # C4Flow quality gate (ephemeral, regenerated each review run)
 quality-gate-status.json
+
+# Local git worktrees
+.worktrees/
