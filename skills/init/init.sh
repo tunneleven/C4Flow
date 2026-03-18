@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # c4flow init — install and configure dependencies for C4Flow workflow
-# Usage: skills/init/init.sh [--skip-beads] [--prefix PREFIX] [--remote URL]
+# Usage: skills/init/init.sh [--skip-beads] [--prefix PREFIX] [--remote URL] [--github|--no-github] [--github-owner OWNER] [--github-repo REPO] [--github-visibility VISIBILITY] [--coderabbit|--no-coderabbit] [--coderabbit-installation-id ID]
 #
-# Installs Dolt + Beads, runs bd init, configures DoltHub sync.
+# Installs Dolt + Beads, runs bd init, configures DoltHub sync, and can optionally bootstrap GitHub + CodeRabbit.
 # Target: complete in under 30 seconds.
 
 set -euo pipefail
@@ -34,6 +34,12 @@ run_with_timeout() {
 SKIP_BEADS=false
 PREFIX=""
 REMOTE=""
+GITHUB_MODE="prompt"
+GITHUB_OWNER="${GITHUB_OWNER:-}"
+GITHUB_REPO=""
+GITHUB_VISIBILITY="private"
+CODERABBIT_MODE="prompt"
+CODERABBIT_INSTALLATION_ID=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --skip-beads) SKIP_BEADS=true; shift ;;
@@ -41,8 +47,20 @@ while [[ $# -gt 0 ]]; do
     --prefix=*)   PREFIX="${1#*=}"; shift ;;
     --remote)     REMOTE="$2"; shift 2 ;;
     --remote=*)   REMOTE="${1#*=}"; shift ;;
+    --github)     GITHUB_MODE="yes"; shift ;;
+    --no-github)  GITHUB_MODE="no"; shift ;;
+    --github-owner)   GITHUB_OWNER="$2"; shift 2 ;;
+    --github-owner=*) GITHUB_OWNER="${1#*=}"; shift ;;
+    --github-repo)    GITHUB_REPO="$2"; shift 2 ;;
+    --github-repo=*)  GITHUB_REPO="${1#*=}"; shift ;;
+    --github-visibility)   GITHUB_VISIBILITY="$2"; shift 2 ;;
+    --github-visibility=*) GITHUB_VISIBILITY="${1#*=}"; shift ;;
+    --coderabbit)    CODERABBIT_MODE="yes"; shift ;;
+    --no-coderabbit) CODERABBIT_MODE="no"; shift ;;
+    --coderabbit-installation-id)   CODERABBIT_INSTALLATION_ID="$2"; shift 2 ;;
+    --coderabbit-installation-id=*) CODERABBIT_INSTALLATION_ID="${1#*=}"; shift ;;
     -h|--help)
-      echo "Usage: init.sh [--skip-beads] [--prefix PREFIX] [--remote URL]"
+      echo "Usage: init.sh [--skip-beads] [--prefix PREFIX] [--remote URL] [--github|--no-github] [--github-owner OWNER] [--github-repo REPO] [--github-visibility VISIBILITY] [--coderabbit|--no-coderabbit] [--coderabbit-installation-id ID]"
       echo ""
       echo "Options:"
       echo "  --skip-beads    Skip Beads (bd) installation"
@@ -50,6 +68,16 @@ while [[ $# -gt 0 ]]; do
       echo "  --remote URL    DoltHub repo URL for auto-sync"
       echo "                  Accepts: https://www.dolthub.com/repositories/org/repo"
       echo "                       or: https://doltremoteapi.dolthub.com/org/repo"
+      echo "  --github        Enable optional GitHub repository bootstrap without prompting"
+      echo "  --no-github     Skip GitHub repository bootstrap without prompting"
+      echo "  --github-owner  GitHub owner (organization or personal account)"
+      echo "  --github-repo   GitHub repository name (default: current directory name)"
+      echo "  --github-visibility VISIBILITY"
+      echo "                  GitHub repository visibility: public, private, or internal"
+      echo "  --coderabbit    Enable optional CodeRabbit setup without prompting"
+      echo "  --no-coderabbit Skip CodeRabbit setup without prompting"
+      echo "  --coderabbit-installation-id ID"
+      echo "                  Existing CodeRabbit GitHub App installation ID for auto-attach"
       echo "  -h, --help      Show this help"
       exit 0
       ;;
@@ -58,6 +86,24 @@ while [[ $# -gt 0 ]]; do
 done
 
 has() { command -v "$1" &>/dev/null; }
+
+confirm() {
+  local prompt="$1"
+  local reply
+  read -r -p "$prompt [y/N] " reply
+  [[ "$reply" =~ ^[Yy]([Ee][Ss])?$ ]]
+}
+
+require_value() {
+  local current="$1"
+  local prompt="$2"
+  if [ -n "$current" ]; then
+    printf '%s\n' "$current"
+    return 0
+  fi
+  read -r -p "$prompt: " current
+  printf '%s\n' "$current"
+}
 
 # ─── Git ──────────────────────────────────────────────────────────────────────
 
