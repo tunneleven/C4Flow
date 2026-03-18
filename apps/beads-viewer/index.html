@@ -278,10 +278,8 @@ input  { font-family:inherit; }
 .row-toggle:hover { background:var(--bg); color:var(--ink-2); }
 .swim-row.row-collapsed .row-toggle { transform:rotate(-90deg); }
 
-/* Hover-expand: on row hover, cells grow taller so you can scroll more */
-.kanban-body:not(:has(.swim-row:hover)) .swim-row:hover .swim-cell,
-.swim-row:hover .swim-cell { max-height:320px; }
-.swim-row.row-collapsed:hover .swim-cell { max-height:0; }
+/* Hover-expand removed: was causing layout shift/jitter on hover.
+   Expand is now click-only via the "+ N more" badge. */
 
 /* Empty column visual: dimmer border and narrow min-width */
 .swim-cell.col-empty { background: transparent; }
@@ -427,28 +425,13 @@ input  { font-family:inherit; }
 .swim-empty { font-size:.72rem; color:var(--ink-4); padding:.5rem .25rem;
               font-style:italic; align-self:center; }
 
-/* ─────────── OTHER VIEWS (Tree / Grouped / Person) ─────────── */
+/* ─────────── OTHER VIEWS  ─────────── */
 .scroll-view {
   flex:1; overflow-y:auto; padding:.875rem 1.125rem;
   display:flex; flex-direction:column; gap:.625rem;
 }
 .scroll-view::-webkit-scrollbar { width:3px; }
 .scroll-view::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
-
-/* Board (flat two-col layout for dep/group view cards) */
-.board { display:grid; grid-template-columns:1fr 1fr; gap:0; flex:1; overflow:hidden; }
-.col { display:flex; flex-direction:column; border-right:1px solid var(--border); overflow:hidden; }
-.col:last-child { border-right:none; }
-.col-header {
-  display:flex; align-items:center; gap:.5rem; padding:.55rem .875rem;
-  border-bottom:1px solid var(--border); background:var(--panel); flex-shrink:0;
-}
-.col-title { font-size:.67rem; font-weight:500; text-transform:uppercase; letter-spacing:.07em; color:var(--ink-3); }
-.col-count { font-family:var(--font-m); font-size:.62rem; color:var(--ink-4);
-             background:var(--bg); border:1px solid var(--border); border-radius:99px; padding:.04em .4em; }
-.col-body { flex:1; overflow-y:auto; padding:.625rem .75rem; display:flex; flex-direction:column; gap:.375rem; }
-.col-body::-webkit-scrollbar { width:3px; }
-.col-body::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
 
 /* Tree */
 .tree-children { margin-left:1.25rem; padding-left:.875rem; border-left:2px solid var(--border);
@@ -463,26 +446,222 @@ input  { font-family:inherit; }
         justify-content:center; transition:transform 100ms; padding:0; margin-top:2px; }
 .ctog.open { transform:rotate(90deg); }
 
-/* Group */
-.group-section { display:flex; flex-direction:column; gap:.35rem; }
-.group-header { display:flex; align-items:center; gap:.55rem; padding:.35rem 0;
-                border-bottom:2px solid var(--border); cursor:pointer; user-select:none; }
-.group-title { font-family:var(--font-d); font-size:.92rem; font-weight:500; color:var(--ink); transition:color 100ms; }
-.group-header:hover .group-title { color:var(--accent-txt); }
-.group-count { font-family:var(--font-m); font-size:.63rem; color:var(--ink-4);
-               background:var(--bg); border:1px solid var(--border); border-radius:99px; padding:.04em .4em; }
-.gchev { margin-left:auto; color:var(--ink-4); font-size:.58rem; transition:transform 100ms; }
-.gchev.open { transform:rotate(180deg); }
-.group-body { display:flex; flex-direction:column; gap:.35rem; }
-.group-body.collapsed { display:none; }
+/* ─────────── LANES VIEW (E2) ─────────── */
+.lanes-wrap { display:flex; flex-direction:column; flex:1; overflow:hidden; }
 
-/* Per-person section (person view) */
-.person-section { display:flex; flex-direction:column; gap:.375rem; }
-.ps-header { display:flex; align-items:center; gap:.625rem; padding-bottom:.45rem;
-             border-bottom:2px solid var(--border); }
-.ps-name { font-family:var(--font-d); font-size:1rem; font-weight:500; color:var(--ink); }
-.ps-stats { font-size:.7rem; font-family:var(--font-m); color:var(--ink-3); }
-.ps-tasks { display:flex; flex-direction:column; gap:.35rem; }
+/* Overview bar */
+.lanes-overview {
+  background:var(--panel); border-bottom:1px solid var(--border);
+  padding:.5rem 1rem; display:flex; align-items:center; gap:1rem; flex-shrink:0;
+}
+.ov-bar { height:5px; display:flex; gap:1px; border-radius:4px; overflow:hidden;
+          flex:1; max-width:160px; }
+.ov-bar .seg-done { background:var(--done); }
+.ov-bar .seg-wip { background:var(--wip); }
+.ov-bar .seg-blocked { background:var(--blocked); }
+.ov-bar .seg-open { background:var(--border-2); }
+.ov-pct { font-size:.82rem; font-weight:700; color:var(--done); font-family:var(--font-m); }
+.ov-stat { display:flex; align-items:center; gap:.3rem; font-size:.75rem; color:var(--ink-3); }
+.ov-stat strong { font-weight:700; }
+.ov-stat.st-done strong { color:var(--done); }
+.ov-stat.st-wip strong { color:var(--wip); }
+.ov-stat.st-blocked strong { color:var(--blocked); }
+.ov-stat.st-open strong { color:var(--open); }
+.ov-people { display:flex; margin-left:auto; }
+.ov-av {
+  width:24px; height:24px; border-radius:50%;
+  font-size:.55rem; font-weight:700; color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  border:2px solid var(--panel); margin-left:-5px;
+}
+.ov-av:first-child { margin-left:0; }
+
+/* Progress strip under overview */
+.lanes-strip { display:flex; height:2px; flex-shrink:0; }
+.lanes-strip .seg-done { background:var(--done); }
+.lanes-strip .seg-wip { background:var(--wip); }
+.lanes-strip .seg-blocked { background:var(--blocked); }
+.lanes-strip .seg-open { background:var(--border-2); }
+
+/* Person lanes container */
+.lanes-body {
+  flex:1; overflow-y:auto; padding:.75rem 1rem;
+  display:flex; flex-direction:column; gap:.5rem;
+}
+.lanes-body::-webkit-scrollbar { width:3px; }
+.lanes-body::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
+
+/* Person lane */
+.lane {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:8px; display:flex; overflow:hidden;
+  transition:box-shadow .15s, border-color .15s;
+}
+.lane:hover { box-shadow:0 2px 10px oklch(0% 0 0 / .06); border-color:var(--border-2); }
+.lane.idle { opacity:.5; }
+.lane.idle:hover { opacity:.75; }
+.lane.unassigned { border-style:dashed; }
+
+/* Person info (left side) */
+.lane-person {
+  width:130px; padding:.75rem .625rem; border-right:1px solid var(--border);
+  display:flex; flex-direction:column; align-items:center; gap:.2rem;
+  background:var(--panel); flex-shrink:0;
+}
+.lane-av {
+  width:34px; height:34px; border-radius:50%;
+  font-size:.82rem; font-weight:800; color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+}
+.lane-av .online {
+  position:absolute; bottom:0; right:0; width:9px; height:9px;
+  border-radius:50%; background:var(--open); border:2px solid var(--panel);
+}
+.lane-av .offline {
+  position:absolute; bottom:0; right:0; width:9px; height:9px;
+  border-radius:50%; background:var(--ink-4); border:2px solid var(--panel);
+}
+.lane-name { font-weight:600; font-size:.8rem; color:var(--ink); text-align:center;
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+.lane-stats { font-size:.62rem; font-family:var(--font-m); color:var(--ink-4); text-align:center; }
+.lane-prog { width:100%; height:3px; background:var(--border); border-radius:3px; margin-top:.15rem; overflow:hidden; }
+.lane-prog-fill { height:100%; border-radius:3px; transition:width .5s; }
+.lane-pct { font-size:.62rem; font-weight:700; font-family:var(--font-m); }
+
+/* Task flow area (right side) */
+.lane-tasks {
+  flex:1; padding:.5rem; display:flex; gap:.5rem; align-items:flex-start;
+  overflow-x:auto; overflow-y:hidden;
+}
+.lane-tasks::-webkit-scrollbar { height:3px; }
+.lane-tasks::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
+
+/* Lane separator line */
+.lane-sep {
+  width:1px; background:var(--border); margin:4px 0; flex-shrink:0; align-self:stretch;
+}
+
+/* Lane task card */
+.lcard {
+  min-width:170px; max-width:210px; border-radius:6px;
+  padding:.5rem .625rem; flex-shrink:0; cursor:pointer;
+  transition:transform .12s, box-shadow .12s;
+}
+.lcard:hover { transform:translateY(-1px); box-shadow:0 3px 10px oklch(0% 0 0 / .08); }
+
+.lcard.lc-active { background:var(--wip-bg); border:1.5px solid oklch(85% .07 75); }
+.lcard.lc-blocked { background:var(--blocked-bg); border:1.5px solid oklch(87% .06 28); }
+.lcard.lc-open { background:var(--open-bg); border:1.5px solid oklch(87% .06 145); }
+.lcard.lc-done { background:var(--done-bg); border:1.5px solid oklch(87% .04 230); opacity:.45; }
+.lcard.lc-queue { background:var(--panel); border:1px solid var(--border); opacity:.55; }
+.lcard.lc-deferred { background:var(--deferred-bg); border:1px solid oklch(87% .03 270); opacity:.55; }
+
+.lcard-label {
+  font-size:.52rem; text-transform:uppercase; letter-spacing:.12em;
+  font-weight:700; margin-bottom:.2rem;
+}
+.lcard.lc-active .lcard-label { color:var(--wip); }
+.lcard.lc-blocked .lcard-label { color:var(--blocked); }
+.lcard.lc-open .lcard-label { color:var(--open); }
+.lcard.lc-done .lcard-label { color:var(--done); }
+.lcard.lc-queue .lcard-label { color:var(--ink-4); }
+.lcard.lc-deferred .lcard-label { color:var(--deferred); }
+
+.lcard-title { font-weight:600; font-size:.78rem; color:var(--ink); line-height:1.3;
+               display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.lcard.lc-done .lcard-title { text-decoration:line-through; color:var(--ink-3); }
+.lcard-meta { font-size:.6rem; font-family:var(--font-m); color:var(--ink-4); margin-top:.15rem; }
+.lcard-dep { font-size:.58rem; color:var(--blocked); margin-top:.2rem; font-weight:500; }
+.lcard-badge {
+  display:inline-block; font-size:.5rem; font-weight:600;
+  padding:1px 5px; border-radius:2px; margin-top:.25rem;
+  text-transform:uppercase; letter-spacing:.05em;
+}
+
+.lane-idle-msg {
+  font-size:.78rem; color:var(--ink-4); font-style:italic;
+  display:flex; align-items:center; padding:0 1rem;
+}
+.done-toggle {
+  min-width:70px; display:flex; align-items:center; justify-content:center;
+  font-size:.68rem; font-family:var(--font-m); color:var(--ink-4);
+  background:var(--panel); border:1px dashed var(--border); border-radius:6px;
+  padding:.5rem; flex-shrink:0; cursor:pointer; transition:all .1s;
+}
+.done-toggle:hover { background:var(--bg); color:var(--ink-3); border-color:var(--border-2); }
+
+/* ─────────── IMPROVED DEP VIEW ─────────── */
+.dep-view {
+  flex:1; overflow-y:auto; padding:1rem 1.25rem;
+  display:flex; flex-direction:column; gap:.5rem;
+}
+.dep-view::-webkit-scrollbar { width:3px; }
+.dep-view::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
+
+.dep-root { margin-bottom:.5rem; }
+.dep-root > .dep-node-wrap { border-left:none; padding-left:0; }
+
+.dep-node-wrap { position:relative; }
+
+.dep-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; padding:.5rem .75rem; cursor:pointer;
+  transition:box-shadow .1s, border-color .1s;
+  display:flex; align-items:flex-start; gap:.5rem;
+}
+.dep-card:hover { box-shadow:0 2px 8px oklch(0% 0 0 / .06); border-color:var(--border-2); }
+.dep-card.ds-open { border-left:3px solid var(--open); }
+.dep-card.ds-in_progress { border-left:3px solid var(--wip); background:oklch(99.5% 0.016 75); }
+.dep-card.ds-blocked { border-left:3px solid var(--blocked); }
+.dep-card.ds-deferred { border-left:3px solid var(--deferred); opacity:.7; }
+.dep-card.ds-closed { border-left:3px solid var(--done); opacity:.55; }
+.dep-card.ds-closed .dep-card-title { text-decoration:line-through; color:var(--ink-3); }
+
+.dep-card-toggle {
+  flex-shrink:0; width:18px; height:18px; background:none; border:none;
+  color:var(--ink-4); font-size:.55rem; display:flex; align-items:center;
+  justify-content:center; transition:transform 100ms; padding:0; cursor:pointer;
+  border-radius:3px; margin-top:1px;
+}
+.dep-card-toggle:hover { background:var(--bg); color:var(--ink-2); }
+.dep-card-toggle.expanded { transform:rotate(90deg); }
+
+.dep-card-body { flex:1; min-width:0; }
+.dep-card-title { font-size:.8rem; font-weight:500; color:var(--ink); line-height:1.3; }
+.dep-card-sub { display:flex; gap:.3rem; align-items:center; margin-top:.2rem; flex-wrap:wrap; }
+.dep-card-id { font-family:var(--font-m); font-size:.58rem; color:var(--ink-4); }
+.dep-card-av {
+  width:18px; height:18px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.45rem; font-weight:700; color:#fff; margin-left:auto;
+}
+
+.dep-children {
+  margin-left:1rem; padding-left:1rem; margin-top:.35rem;
+  border-left:2px solid var(--border);
+  display:flex; flex-direction:column; gap:.35rem;
+}
+.dep-children.collapsed { display:none; }
+.dep-children .dep-card { margin-left:0; }
+
+/* Dep connectors */
+.dep-children > .dep-node-wrap::before {
+  content:''; position:absolute; left:-1rem; top:14px;
+  width:1rem; height:0; border-top:2px solid var(--border);
+}
+.dep-ref {
+  display:flex; align-items:center; gap:.35rem; padding:.25rem .6rem;
+  background:var(--bg); border:1px dashed var(--border); border-radius:var(--r);
+  font-size:.7rem; color:var(--ink-3);
+}
+.dep-ref-label { font-size:.55rem; font-weight:600; text-transform:uppercase;
+  letter-spacing:.08em; color:var(--ink-4); }
+.dep-blocker-count {
+  font-size:.55rem; font-family:var(--font-m); padding:1px 5px;
+  background:var(--blocked-bg); color:var(--blocked); border-radius:3px;
+  font-weight:600;
+}
 
 /* Empty/error states */
 .state-panel { display:flex; flex-direction:column; gap:.5rem; padding:2.5rem 1.5rem; }
@@ -550,10 +729,9 @@ input  { font-family:inherit; }
     <div class="sb-sec">
       <div class="sb-lbl">View</div>
       <div class="view-nav">
-        <button class="vnav-btn active" id="vb-kanban" onclick="setView('kanban')"><span class="vicon">⊞</span>Kanban</button>
-        <button class="vnav-btn"        id="vb-person" onclick="setView('person')"><span class="vicon">◎</span>By Person</button>
+        <button class="vnav-btn active" id="vb-lanes"  onclick="setView('lanes')"><span class="vicon">☰</span>Lanes</button>
+        <button class="vnav-btn"        id="vb-kanban" onclick="setView('kanban')"><span class="vicon">⊞</span>Kanban</button>
         <button class="vnav-btn"        id="vb-dep"    onclick="setView('dep')"><span class="vicon">⤳</span>Dependency</button>
-        <button class="vnav-btn"        id="vb-group"  onclick="setView('group')"><span class="vicon">⊟</span>Grouped</button>
       </div>
     </div>
 
@@ -656,7 +834,7 @@ function initials(name) {
 
 let state = {
   repo:null, records:[], warnings:[], depTree:null, groupedTree:null,
-  view:'kanban', statusFilter:'all', personFilter:null,
+  view:'lanes', statusFilter:'all', personFilter:null,
   visibleCols: new Set(['open','in_progress','blocked','deferred','closed']),
   compactCards: false,
 };
@@ -849,7 +1027,7 @@ function toggleCompact(){
 }
 function setView(v){
   state.view=v;
-  ['kanban','person','dep','group'].forEach(k=>document.getElementById(`vb-${k}`)?.classList.toggle('active',k===v));
+  ['lanes','kanban','dep'].forEach(k=>document.getElementById(`vb-${k}`)?.classList.toggle('active',k===v));
   // Show the Columns panel only in Kanban view
   const $sc=document.getElementById('sb-cols');
   if($sc)$sc.style.display=v==='kanban'&&state.records.length?'block':'none';
@@ -952,10 +1130,9 @@ function renderContent(){
   $ca.style.cssText='display:flex;flex-direction:column;flex:1;overflow:hidden;';
 
   const v=state.view;
-  if(v==='kanban')     renderKanban($ca);
-  else if(v==='person')renderByPerson($ca);
-  else if(v==='dep')   renderDepView($ca);
-  else if(v==='group') renderGroupView($ca);
+  if(v==='lanes')       renderLanes($ca);
+  else if(v==='kanban') renderKanban($ca);
+  else if(v==='dep')    renderDepView($ca);
 
   // Restore scroll + collapsed states after re-render
   if(savedScroll){
@@ -1066,11 +1243,11 @@ function renderKanban($ca) {
         const over = sorted.length - visible;
         const $more = document.createElement('button');
         $more.className = 'more-badge';
-        $more.textContent = `+ ${over} more — hover to expand`;
+        $more.textContent = `+ ${over} more`;
         $more.addEventListener('click', e => {
           e.stopPropagation();
           $cell.style.maxHeight = $cell.style.maxHeight === '800px' ? '' : '800px';
-          $more.textContent = $cell.style.maxHeight ? '▲ collapse' : `+ ${over} more — hover to expand`;
+          $more.textContent = $cell.style.maxHeight ? '▲ collapse' : `+ ${over} more`;
         });
         $cell.appendChild($more);
       }
@@ -1116,74 +1293,326 @@ function renderKanban($ca) {
   $ca.appendChild($wrap);
 }
 
-/* ── By Person ── */
-function renderByPerson($ca){
-  const $sv=dl('scroll-view');
-  const amap=new Map();
-  for(const r of state.records){
-    const a=r.assignee?.trim()||'';
-    if(!amap.has(a))amap.set(a,[]);
+/* ══════════════════════════════════════
+   LANES VIEW (E2 — Person Horizontal Lanes)
+══════════════════════════════════════ */
+function renderLanes($ca) {
+  const recs = state.records;
+  const PM = {0:'Critical',1:'High',2:'Medium',3:'Low',4:'Backlog'};
+
+  // Counts
+  const cnt = st => recs.filter(r => r.status === st).length;
+  const done = cnt('closed'), wip = cnt('in_progress'), blocked = cnt('blocked'),
+        open = cnt('open'), deferred = cnt('deferred');
+  const total = recs.length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  const $wrap = dl('lanes-wrap');
+
+  // ── Overview bar ──
+  const $ov = dl('lanes-overview');
+  // Progress bar segments
+  const $bar = dl('ov-bar');
+  if (done)     { const s = dl('seg-done'); s.style.flex = done; $bar.appendChild(s); }
+  if (wip)      { const s = dl('seg-wip'); s.style.flex = wip; $bar.appendChild(s); }
+  if (blocked)  { const s = dl('seg-blocked'); s.style.flex = blocked; $bar.appendChild(s); }
+  if (open + deferred) { const s = dl('seg-open'); s.style.flex = open + deferred; $bar.appendChild(s); }
+  $ov.appendChild($bar);
+
+  // Percentage
+  const $pct = dl('ov-pct'); $pct.textContent = `${pct}%`; $ov.appendChild($pct);
+
+  // Stat chips
+  const addStat = (cls, val, label) => {
+    const $s = dl(`ov-stat ${cls}`);
+    $s.innerHTML = `<strong>${val}</strong> ${label}`;
+    $ov.appendChild($s);
+  };
+  addStat('st-done', done, 'done');
+  addStat('st-wip', wip, 'active');
+  addStat('st-blocked', blocked, 'blocked');
+  addStat('st-open', open + deferred, 'open');
+
+  // People avatars
+  const people = [...new Set(recs.map(r => r.assignee?.trim() || ''))].sort((a,b) => !a ? 1 : !b ? -1 : a.localeCompare(b));
+  const $ppl = dl('ov-people');
+  for (const p of people) {
+    const disp = p || '?';
+    const $a = dl('ov-av');
+    $a.style.background = p ? avColor(p) : 'var(--ink-4)';
+    $a.textContent = initials(disp);
+    $a.title = disp;
+    $ppl.appendChild($a);
+  }
+  $ov.appendChild($ppl);
+  $wrap.appendChild($ov);
+
+  // ── Thin progress strip ──
+  const $strip = dl('lanes-strip');
+  if (done)     { const s = dl('seg-done'); s.style.flex = done; $strip.appendChild(s); }
+  if (wip)      { const s = dl('seg-wip'); s.style.flex = wip; $strip.appendChild(s); }
+  if (blocked)  { const s = dl('seg-blocked'); s.style.flex = blocked; $strip.appendChild(s); }
+  if (open + deferred) { const s = dl('seg-open'); s.style.flex = open + deferred; $strip.appendChild(s); }
+  $wrap.appendChild($strip);
+
+  // ── Person lanes ──
+  const $body = dl('lanes-body');
+
+  // Group by assignee
+  const amap = new Map();
+  for (const r of recs) {
+    const a = r.assignee?.trim() || '';
+    if (!amap.has(a)) amap.set(a, []);
     amap.get(a).push(r);
   }
-  const sorted=[...amap.entries()].sort((a,b)=>!a[0]?1:!b[0]?-1:(b[1].filter(r=>r.status==='open').length)-(a[1].filter(r=>r.status==='open').length)||a[0].localeCompare(b[0]));
-  for(const[name,tasks]of sorted){
-    const disp=name||'Unassigned';const color=name?avColor(name):'oklch(68% .01 82)';
-    const openCnt=tasks.filter(r=>r.status==='open').length;
-    const $sec=dl('person-section');
-    const $hdr=dl('ps-header');
-    $hdr.innerHTML=`<div class="av" style="background:${color};width:28px;height:28px;font-size:.68rem">${esc(initials(disp))}</div>
-      <span class="ps-name">${esc(disp)}</span>
-      <span class="ps-stats">${openCnt} open · ${tasks.length} total</span>`;
-    $sec.appendChild($hdr);
-    const $tasks=dl('ps-tasks');
-    [...tasks].sort((a,b)=>(a.status==='open'?0:1)-(b.status==='open'?0:1)||(a.priority??99)-(b.priority??99)).forEach(r=>$tasks.appendChild(buildCard(r)));
-    $sec.appendChild($tasks);$sv.appendChild($sec);
-  }
-  if(!amap.size){const e=dl('');e.style.cssText='padding:2rem 1.5rem;color:var(--ink-4);';e.textContent='No tasks.';$sv.appendChild(e);}
-  $ca.appendChild($sv);
-}
 
-/* ── Dep tree ── */
-function renderDepView($ca){
-  const $sv=dl('scroll-view');
-  const{roots}=state.depTree;
-  if(!roots.length){const e=dl('');e.style.cssText='padding:2rem 1.5rem;color:var(--ink-4);';e.textContent='No tasks.';$sv.appendChild(e);}
-  else roots.forEach(n=>$sv.appendChild(depNode(n)));
-  $ca.appendChild($sv);
-}
-function depNode(n){
-  if(n.type==='ref'){const d=dl('ref-node');d.innerHTML=`<span>↳ ref</span><span>${esc(n.rec.title)}</span><span class="ref-id">${esc(n.id)}</span>`;return d;}
-  if(n.type==='cycle'){const d=dl('ref-node');d.innerHTML=`<span>⟳</span><span>${esc(n.rec.title)}</span><span class="ref-id">${esc(n.id)}</span>`;return d;}
-  const w=dl('tree-node');
-  w.appendChild(buildCard(n.rec,n.children.length>0));
-  if(n.children.length){const ch=dl('tree-children');n.children.forEach(c=>ch.appendChild(depNode(c)));w.appendChild(ch);}
-  return w;
-}
+  // Sort: most active first, unassigned last
+  const sorted = [...amap.entries()].sort((a, b) => {
+    if (!a[0]) return 1;
+    if (!b[0]) return -1;
+    const aActive = a[1].filter(r => r.status === 'in_progress' || r.status === 'blocked').length;
+    const bActive = b[1].filter(r => r.status === 'in_progress' || r.status === 'blocked').length;
+    return bActive - aActive || a[0].localeCompare(b[0]);
+  });
 
-/* ── Grouped ── */
-function renderGroupView($ca){
-  const $sv=dl('scroll-view');
-  const{sections,nodeWarns}=state.groupedTree;
-  for(const sec of sections){
-    const $sec=dl('group-section');
-    const $hdr=dl('group-header');
-    $hdr.innerHTML=`<span class="group-title">${esc(sec.title)}</span><span class="group-count">${sec.nodes.length}</span><span class="gchev open">▲</span>`;
-    const $body=dl('group-body');
-    const ids=new Set(sec.nodes.map(n=>n.id));
-    const cm=new Map(sec.nodes.map(n=>[n.id,[]]));const top=[];
-    for(const r of sec.nodes){if(r.parentId&&ids.has(r.parentId))cm.get(r.parentId).push(r);else top.push(r);}
-    function gNode(r,depth){
-      const w=dl('tree-node');if(depth>0)w.style.marginLeft=(depth*1.25)+'rem';
-      const wn=nodeWarns.get(r.id)||[];
-      w.appendChild(buildCard(r,cm.get(r.id).length>0,wn));
-      cm.get(r.id).forEach(c=>$body.appendChild(gNode(c,depth+1)));return w;
+  // Dependency-aware sort: tasks that are "ready" (no pending deps) first, then by priority
+  const byId = new Map(recs.map(r => [r.id, r]));
+  const isReady = r => {
+    if (!r.dependsOnIds.length) return true;
+    return r.dependsOnIds.every(id => {
+      const dep = byId.get(id);
+      return !dep || dep.status === 'closed';
+    });
+  };
+  const byPri = arr => [...arr].sort((a,b) => {
+    const aReady = isReady(a) ? 0 : 1;
+    const bReady = isReady(b) ? 0 : 1;
+    return aReady - bReady || (a.priority??99) - (b.priority??99) || a.title.localeCompare(b.title);
+  });
+
+  for (const [name, tasks] of sorted) {
+    const disp = name || 'Unassigned';
+    const color = name ? avColor(name) : 'var(--ink-4)';
+    const doneCnt = tasks.filter(r => r.status === 'closed').length;
+    const activeTasks = tasks.filter(r => r.status === 'in_progress');
+    const blockedTasks = tasks.filter(r => r.status === 'blocked');
+    const openTasks = tasks.filter(r => r.status === 'open');
+    const deferredTasks = tasks.filter(r => r.status === 'deferred');
+    const personPct = tasks.length ? Math.round((doneCnt / tasks.length) * 100) : 0;
+    const hasActive = activeTasks.length > 0 || blockedTasks.length > 0;
+    const isIdle = !hasActive && openTasks.length === 0 && deferredTasks.length === 0;
+
+    const $lane = dl(`lane${isIdle ? ' idle' : ''}${!name ? ' unassigned' : ''}`);
+
+    // ── Person info (left) ──
+    const $person = dl('lane-person');
+    $person.innerHTML = `
+      <div class="lane-av" style="background:${color}">
+        ${esc(initials(disp))}
+        <div class="${hasActive ? 'online' : 'offline'}"></div>
+      </div>
+      <div class="lane-name" title="${esc(disp)}">${esc(disp)}</div>
+      <div class="lane-stats">${tasks.length - doneCnt} open · ${doneCnt} done</div>
+      <div class="lane-prog"><div class="lane-prog-fill" style="width:${personPct}%;background:${color}"></div></div>
+      <div class="lane-pct" style="color:${color}">${personPct}%</div>
+    `;
+    $lane.appendChild($person);
+
+    // ── Task cards flow (right) ──
+    const $tasks = dl('lane-tasks');
+
+    const makeLCard = (r, type) => {
+      const cls = {
+        'active': 'lc-active', 'blocked': 'lc-blocked', 'open': 'lc-open',
+        'done': 'lc-done', 'queue': 'lc-queue', 'deferred': 'lc-deferred'
+      }[type] || 'lc-queue';
+      const labelMap = {
+        'active': '▶ Đang làm', 'blocked': '🚫 Blocked', 'open': '○ Open',
+        'done': '✓ Done', 'queue': '📋 Queue', 'deferred': '⊡ Deferred'
+      };
+      const $c = dl(`lcard ${cls}`);
+      let html = `<div class="lcard-label">${labelMap[type] || type}</div>`;
+      html += `<div class="lcard-title">${esc(r.title)}</div>`;
+      html += `<div class="lcard-meta">${esc(r.id)}${r.type ? ' · ' + esc(r.type) : ''}</div>`;
+      if (r.dependsOnIds.length) {
+        html += `<div class="lcard-dep">→ chờ ${r.dependsOnIds.map(id => esc(id)).join(', ')}</div>`;
+      }
+      if (r.priority != null) {
+        const pcls = {0:'b-p0',1:'b-p1',2:'b-p2'}[r.priority] || 'b-type';
+        html += `<span class="lcard-badge ${pcls}">P${r.priority} ${PM[r.priority] || ''}</span>`;
+      }
+      $c.innerHTML = html;
+      $c.addEventListener('click', () => openModal(r));
+      return $c;
+    };
+
+    let hasCards = false;
+
+    // Active tasks
+    if (activeTasks.length) {
+      byPri(activeTasks).forEach(r => $tasks.appendChild(makeLCard(r, 'active')));
+      hasCards = true;
     }
-    top.forEach(r=>$body.appendChild(gNode(r,0)));
-    $hdr.addEventListener('click',()=>{$body.classList.toggle('collapsed');$hdr.querySelector('.gchev').classList.toggle('open');});
-    $sec.appendChild($hdr);$sec.appendChild($body);$sv.appendChild($sec);
+
+    // Blocked tasks
+    if (blockedTasks.length) {
+      if (hasCards) $tasks.appendChild(dl('lane-sep'));
+      byPri(blockedTasks).forEach(r => $tasks.appendChild(makeLCard(r, 'blocked')));
+      hasCards = true;
+    }
+
+    // Open tasks (queue)
+    if (openTasks.length) {
+      if (hasCards) $tasks.appendChild(dl('lane-sep'));
+      byPri(openTasks).forEach(r => $tasks.appendChild(makeLCard(r, 'open')));
+      hasCards = true;
+    }
+
+    // Deferred tasks
+    if (deferredTasks.length) {
+      if (hasCards) $tasks.appendChild(dl('lane-sep'));
+      byPri(deferredTasks).forEach(r => $tasks.appendChild(makeLCard(r, 'deferred')));
+      hasCards = true;
+    }
+
+    // Done count (collapsed)
+    if (doneCnt > 0) {
+      const $done = dl('done-toggle');
+      $done.textContent = `✅ ${doneCnt} done`;
+      $done.title = `${doneCnt} completed tasks`;
+      $done.addEventListener('click', () => {
+        // Toggle showing done tasks
+        const existing = $tasks.querySelectorAll('.lcard.lc-done');
+        if (existing.length) {
+          existing.forEach(el => el.remove());
+          $done.textContent = `✅ ${doneCnt} done`;
+        } else {
+          const doneTasks = tasks.filter(r => r.status === 'closed');
+          byPri(doneTasks).forEach(r => {
+            $tasks.insertBefore(makeLCard(r, 'done'), $done);
+          });
+          $done.textContent = `▲ hide done`;
+        }
+      });
+      $tasks.appendChild($done);
+    }
+
+    // Idle message
+    if (!hasCards && doneCnt === 0) {
+      const $idle = dl('lane-idle-msg');
+      $idle.textContent = 'No tasks assigned';
+      $tasks.appendChild($idle);
+    }
+
+    $lane.appendChild($tasks);
+    $body.appendChild($lane);
   }
-  if(!sections.length){const e=dl('');e.style.cssText='padding:2rem 1.5rem;color:var(--ink-4);';e.textContent='No tasks.';$sv.appendChild(e);}
-  $ca.appendChild($sv);
+
+  if (!sorted.length) {
+    const e = dl(''); e.style.cssText = 'padding:2rem 1.5rem;color:var(--ink-4);';
+    e.textContent = 'No tasks match the current filter.';
+    $body.appendChild(e);
+  }
+
+  $wrap.appendChild($body);
+  $ca.appendChild($wrap);
+}
+
+/* ══════════════════════════════════════
+   IMPROVED DEPENDENCY VIEW
+══════════════════════════════════════ */
+function renderDepView($ca) {
+  const $dv = dl('dep-view');
+  const {roots} = state.depTree;
+
+  if (!roots.length) {
+    const e = dl(''); e.style.cssText = 'padding:2rem 1.5rem;color:var(--ink-4);';
+    e.textContent = 'No tasks.'; $dv.appendChild(e);
+  } else {
+    roots.forEach(n => {
+      const $root = dl('dep-root');
+      $root.appendChild(depNodeNew(n));
+      $dv.appendChild($root);
+    });
+  }
+  $ca.appendChild($dv);
+}
+
+function depNodeNew(n) {
+  // Ref nodes
+  if (n.type === 'ref') {
+    const $ref = dl('dep-ref dep-node-wrap');
+    $ref.innerHTML = `<span class="dep-ref-label">↳ ref</span><span>${esc(n.rec.title)}</span><span class="dep-card-id">${esc(n.id)}</span>`;
+    $ref.style.cursor = 'pointer';
+    $ref.addEventListener('click', () => openModal(n.rec));
+    return $ref;
+  }
+  if (n.type === 'cycle') {
+    const $ref = dl('dep-ref dep-node-wrap');
+    $ref.innerHTML = `<span class="dep-ref-label">⟳ cycle</span><span>${esc(n.rec.title)}</span><span class="dep-card-id">${esc(n.id)}</span>`;
+    return $ref;
+  }
+
+  const $wrap = dl('dep-node-wrap');
+  const r = n.rec;
+  const hasChildren = n.children.length > 0;
+  const ac = r.assignee ? avColor(r.assignee) : 'var(--ink-4)';
+  const SL = {open:'Open', in_progress:'In Progress', blocked:'Blocked', deferred:'Deferred', closed:'Done'};
+  const SC = {open:'b-open', in_progress:'b-wip', blocked:'b-blocked', deferred:'b-deferred', closed:'b-done'};
+  const PM = {0:'Critical',1:'High',2:'Medium',3:'Low',4:'Backlog'};
+
+  // Card
+  const $card = dl(`dep-card ds-${r.status || 'other'}`);
+  let cardHtml = '';
+
+  // Toggle button
+  if (hasChildren) {
+    cardHtml += `<button class="dep-card-toggle expanded">▶</button>`;
+  }
+
+  // Body
+  cardHtml += `<div class="dep-card-body">
+    <div class="dep-card-title">${esc(r.title)}</div>
+    <div class="dep-card-sub">
+      <span class="dep-card-id">${esc(r.id)}</span>
+      <span class="badge ${SC[r.status] || 'b-type'}">${SL[r.status] || esc(r.status || '?')}</span>
+      ${r.priority != null ? `<span class="badge ${({0:'b-p0',1:'b-p1',2:'b-p2'})[r.priority] || 'b-type'}">P${r.priority} ${PM[r.priority] || ''}</span>` : ''}
+      ${r.type ? `<span class="badge b-type">${esc(r.type)}</span>` : ''}
+      ${hasChildren ? `<span class="dep-blocker-count">blocks ${n.children.length}</span>` : ''}
+    </div>
+  </div>`;
+
+  // Assignee avatar
+  if (r.assignee) {
+    cardHtml += `<div class="dep-card-av" style="background:${ac}" title="${esc(r.assignee)}">${esc(initials(r.assignee))}</div>`;
+  }
+
+  $card.innerHTML = cardHtml;
+
+  // Click to open modal (not on toggle)
+  $card.addEventListener('click', e => {
+    if (e.target.closest('.dep-card-toggle')) return;
+    openModal(r);
+  });
+
+  $wrap.appendChild($card);
+
+  // Children
+  if (hasChildren) {
+    const $ch = dl('dep-children');
+    n.children.forEach(c => $ch.appendChild(depNodeNew(c)));
+    $wrap.appendChild($ch);
+
+    // Toggle
+    const $tog = $card.querySelector('.dep-card-toggle');
+    $tog.addEventListener('click', e => {
+      e.stopPropagation();
+      $ch.classList.toggle('collapsed');
+      $tog.classList.toggle('expanded');
+    });
+  }
+
+  return $wrap;
 }
 
 /* ── Card builder ── */

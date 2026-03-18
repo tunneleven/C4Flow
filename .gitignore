@@ -9,3 +9,7 @@
 
 # C4Flow quality gate (ephemeral, regenerated each review run)
 quality-gate-status.json
+
+.beads/
+
+.superpowers/
