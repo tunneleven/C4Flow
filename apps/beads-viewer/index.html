@@ -1,0 +1,1728 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beads DoltHub Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,300&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet" />
+<style>
+/* ─────────────────────── Tokens ─────────────────────── */
+:root {
+  --bg:        oklch(96%  0.011 82);
+  --panel:     oklch(98.5% 0.007 82);
+  --surface:   oklch(99.5% 0.004 82);
+  --border:    oklch(89%  0.013 82);
+  --border-2:  oklch(81%  0.017 82);
+
+  --ink:   oklch(15%  0.017 82);
+  --ink-2: oklch(34%  0.019 82);
+  --ink-3: oklch(54%  0.013 82);
+  --ink-4: oklch(70%  0.009 82);
+
+  --accent:     oklch(58%  0.19 75);
+  --accent-bg:  oklch(96%  0.04 78);
+  --accent-txt: oklch(32%  0.13 75);
+
+  --open:      oklch(49%  0.16 145);
+  --open-bg:   oklch(96%  0.06 145);
+  --wip:       oklch(52%  0.18 75);
+  --wip-bg:    oklch(96%  0.05 75);
+  --blocked:   oklch(50%  0.18 28);
+  --blocked-bg:oklch(96%  0.05 30);
+  --deferred:  oklch(54%  0.08 270);
+  --deferred-bg:oklch(96% 0.03 270);
+  --done:      oklch(46%  0.09 230);
+  --done-bg:   oklch(94%  0.04 230);
+
+  --font-d: 'Fraunces', Georgia, serif;
+  --font-b: 'DM Sans', system-ui, sans-serif;
+  --font-m: 'IBM Plex Mono', monospace;
+  --r: 5px;
+}
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { color-scheme:light; background:var(--bg); }
+body { font-family:var(--font-b); font-size:.9375rem; line-height:1.5;
+       color:var(--ink); -webkit-font-smoothing:antialiased;
+       overflow:hidden; height:100dvh; display:grid;
+       grid-template-rows:48px 1fr; }
+button { cursor:pointer; font-family:inherit; }
+input  { font-family:inherit; }
+
+/* ─────────────────────── Topbar ─────────────────────── */
+.topbar {
+  background:var(--panel); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; gap:.875rem; padding:0 1.25rem;
+  position:relative; z-index:10;
+}
+.topbar::after {
+  content:''; position:absolute; inset:auto 0 0 0; height:2px;
+  background:var(--accent); transform:scaleX(0); transform-origin:left;
+  opacity:0; pointer-events:none; border-radius:0 2px 0 0;
+}
+.topbar.is-loading::after { animation:loadbar 1.1s ease-in-out infinite; opacity:1; }
+@keyframes loadbar { 0%{transform:scaleX(0);opacity:1} 70%{transform:scaleX(1);opacity:1} 100%{transform:scaleX(1);opacity:0} }
+
+.brand { font-family:var(--font-d); font-size:1.05rem; font-weight:500;
+         letter-spacing:-.02em; white-space:nowrap; flex-shrink:0; }
+.brand em { font-style:italic; font-weight:300; color:var(--ink-4); font-size:.88rem; }
+
+.repo-form { display:flex; gap:.35rem; flex:1; max-width:380px; min-width:160px; }
+.repo-input {
+  flex:1; height:30px; padding:0 .6rem;
+  border:1px solid var(--border); border-radius:var(--r);
+  background:var(--bg); color:var(--ink); font-size:.8rem; font-family:var(--font-m);
+  outline:none; transition:border-color 100ms; min-width:0;
+}
+.repo-input:focus { border-color:var(--accent); }
+.repo-input::placeholder { font-family:var(--font-b); font-style:italic; color:var(--ink-4); }
+.btn {
+  height:30px; padding:0 .875rem; border-radius:var(--r); border:none;
+  font-size:.78rem; font-weight:500; white-space:nowrap;
+  background:var(--accent); color:#fff; transition:filter 100ms;
+}
+.btn:hover:not(:disabled) { filter:brightness(1.1); }
+.btn:disabled { opacity:.35; cursor:not-allowed; }
+
+.tb-right { margin-left:auto; display:flex; align-items:center; gap:.875rem; flex-shrink:0; }
+.tb-meta  { font-size:.72rem; color:var(--ink-3); font-family:var(--font-m); }
+.refresh-ring { display:inline-flex; align-items:center; gap:.3rem; }
+.refresh-ring svg { display:block; }
+.ring-track { stroke:var(--border); fill:none; }
+.ring-fill  { fill:none; stroke:var(--accent); stroke-linecap:round;
+              transition:stroke-dashoffset 1s linear; transform-origin:center; transform:rotate(-90deg); }
+.rlabel { font-size:.67rem; font-family:var(--font-m); color:var(--ink-4); }
+.tb-link { font-size:.74rem; color:var(--ink-3); text-decoration:none; }
+.tb-link:hover { color:var(--accent-txt); }
+
+/* ─────────────────────── Main layout ─────────────────── */
+.layout { display:grid; grid-template-columns:200px 1fr; height:100%; overflow:hidden; }
+
+/* ─────────────────────── Sidebar ─────────────────────── */
+.sidebar {
+  background:var(--panel); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; overflow-y:auto; overflow-x:hidden;
+}
+.sidebar::-webkit-scrollbar { width:3px; }
+.sidebar::-webkit-scrollbar-thumb { background:var(--border); border-radius:99px; }
+.sb-sec { padding:.75rem .875rem; border-bottom:1px solid var(--border); }
+.sb-lbl {
+  font-size:.6rem; font-weight:500; text-transform:uppercase; letter-spacing:.1em;
+  color:var(--ink-4); font-family:var(--font-m); margin-bottom:.45rem;
+}
+
+/* Progress */
+.progress-bar { height:3px; background:var(--border); border-radius:99px; overflow:hidden; margin:.4rem 0 .6rem; }
+.progress-fill { height:100%; background:var(--done); border-radius:99px; transition:width .5s; }
+.stat-rows { display:flex; flex-direction:column; gap:2px; }
+.stat-row {
+  display:flex; align-items:center; gap:.45rem;
+  font-size:.8rem; color:var(--ink-2); padding:.25rem .35rem; border-radius:var(--r);
+  cursor:pointer; transition:background 80ms; user-select:none;
+}
+.stat-row:hover { background:var(--bg); }
+.stat-row.active { background:var(--accent-bg); color:var(--accent-txt); }
+.sdot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.sdot.all      { background:var(--ink-3); }
+.sdot.open     { background:var(--open); }
+.sdot.wip      { background:var(--wip); }
+.sdot.blocked  { background:var(--blocked); }
+.sdot.deferred { background:var(--deferred); }
+.sdot.done     { background:var(--done); }
+.scount { margin-left:auto; font-family:var(--font-m); font-size:.68rem; color:var(--ink-4); }
+.stat-row.active .scount { color:var(--accent-txt); }
+
+/* Views nav */
+.view-nav { display:flex; flex-direction:column; gap:1px; }
+.vnav-btn {
+  display:flex; align-items:center; gap:.55rem;
+  padding:.42rem .625rem; border-radius:var(--r);
+  font-size:.8rem; color:var(--ink-3); background:none; border:none;
+  text-align:left; width:100%; transition:background 80ms, color 80ms;
+}
+.vnav-btn:hover { background:var(--bg); color:var(--ink); }
+.vnav-btn.active { background:var(--accent-bg); color:var(--accent-txt); font-weight:500; }
+.vicon { font-size:.78rem; width:14px; text-align:center; flex-shrink:0; opacity:.7; }
+
+/* Team list */
+.team-list { display:flex; flex-direction:column; gap:2px; }
+.person-btn {
+  display:flex; align-items:center; gap:.55rem;
+  padding:.35rem .45rem; border-radius:var(--r);
+  cursor:pointer; border:none; background:none; text-align:left; width:100%;
+  transition:background 80ms;
+}
+.person-btn:hover { background:var(--bg); }
+.person-btn.active { background:var(--accent-bg); }
+
+.av {
+  width:22px; height:22px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.55rem; font-weight:700; color:#fff; letter-spacing:0;
+}
+.pname { font-size:.78rem; color:var(--ink-2); flex:1; min-width:0;
+         white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.person-btn.active .pname { color:var(--accent-txt); }
+.pcnt  { font-family:var(--font-m); font-size:.65rem; color:var(--ink-4); }
+.pocnt { color:var(--open); font-family:var(--font-m); font-size:.65rem; }
+
+/* Column toggles */
+.col-toggles { display:flex; flex-direction:column; gap:2px; }
+.ctog-chip {
+  display:flex; align-items:center; gap:.45rem;
+  padding:.3rem .45rem; border-radius:var(--r);
+  font-size:.78rem; color:var(--ink-3); background:none; border:none;
+  text-align:left; width:100%; cursor:pointer; transition:background 80ms, color 80ms;
+  user-select:none;
+}
+.ctog-chip:hover { background:var(--bg); color:var(--ink-2); }
+.ctog-chip.on  { color:var(--ink-2); }
+.ctog-chip.off { opacity:.45; }
+.ctog-icon { font-size:.65rem; width:14px; text-align:center; font-family:var(--font-m); }
+
+/* ─────────────────────── Content ─────────────────────── */
+.content { display:flex; flex-direction:column; overflow:hidden; }
+
+.warn-bar {
+  background:oklch(96% .05 65); border-bottom:1px solid oklch(88% .07 65);
+  padding:.3rem 1rem; font-size:.71rem; color:oklch(36% .13 58);
+  display:none; flex-wrap:wrap; gap:.25rem .75rem; flex-shrink:0;
+}
+.warn-bar.vis { display:flex; }
+
+/* ─────────── SWIMLANE KANBAN ─────────── */
+.kanban-wrap { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+
+/* Fixed column header row */
+.kanban-header {
+  display:grid;
+  grid-template-columns: 150px 1fr 1fr 1fr 1fr;
+  border-bottom:2px solid var(--border);
+  background:var(--panel);
+  flex-shrink:0;
+}
+.kh-person-cell {
+  padding:.5rem .75rem;
+  border-right:1px solid var(--border);
+  font-size:.62rem; font-weight:500; text-transform:uppercase;
+  letter-spacing:.09em; color:var(--ink-4); font-family:var(--font-m);
+  display:flex; align-items:center;
+}
+.kh-status-cell {
+  padding:.5rem .75rem;
+  border-right:1px solid var(--border);
+  display:flex; align-items:center; gap:.4rem;
+}
+.kh-status-cell:last-child { border-right:none; }
+.kh-status-title { font-size:.65rem; font-weight:500; text-transform:uppercase; letter-spacing:.07em; }
+.kh-status-title.open     { color:var(--open); }
+.kh-status-title.wip      { color:var(--wip); }
+.kh-status-title.blocked  { color:var(--blocked); }
+.kh-status-title.deferred { color:var(--deferred); }
+.kh-status-title.done     { color:var(--done); }
+.kh-count { font-family:var(--font-m); font-size:.62rem; color:var(--ink-4);
+            background:var(--bg); border:1px solid var(--border);
+            border-radius:99px; padding:.05em .4em; }
+
+/* Scrollable swimlane body */
+.kanban-body { flex:1; overflow-y:auto; overflow-x:hidden; }
+.kanban-body::-webkit-scrollbar { width:3px; }
+.kanban-body::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
+
+/* Each swimlane row */
+.swim-row {
+  display:grid;
+  grid-template-columns:150px 1fr 1fr 1fr 1fr;
+  border-bottom:1px solid var(--border);
+  min-height:64px;
+}
+.swim-row:last-child { border-bottom:none; }
+
+/* Person label cell */
+.swim-person {
+  border-right:1px solid var(--border);
+  padding:.625rem .75rem;
+  display:flex; align-items:flex-start; gap:.5rem;
+  background:var(--panel);
+  position:sticky; left:0;
+}
+.swim-person-info { flex:1; min-width:0; }
+.swim-pname { font-size:.8rem; font-weight:500; color:var(--ink); line-height:1.3;
+              white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.swim-pstats { font-size:.65rem; font-family:var(--font-m); color:var(--ink-4); margin-top:.15rem; }
+.swim-open-count { color:var(--open); font-weight:500; }
+
+/* Task cells */
+.swim-cell {
+  border-right:1px solid var(--border);
+  padding:.5rem .625rem;
+  display:flex; flex-wrap:wrap; gap:.375rem; align-content:flex-start;
+  max-height:200px; overflow-y:auto; overflow-x:hidden;
+  transition:max-height .18s ease;
+}
+.swim-cell::-webkit-scrollbar { width:3px; }
+.swim-cell::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
+.swim-cell:last-child { border-right:none; }
+/* Collapsed row: shrinks all cells to zero height */
+.swim-row.row-collapsed .swim-cell { max-height:0; padding-top:0; padding-bottom:0; overflow:hidden; }
+.swim-row.row-collapsed .swim-empty { display:none; }
+
+/* Row expand toggle */
+.row-toggle {
+  background:none; border:none; cursor:pointer; padding:.1rem .15rem;
+  color:var(--ink-4); font-size:.58rem; line-height:1; margin-left:auto;
+  border-radius:3px; transition:background 80ms, color 80ms, transform .15s;
+  flex-shrink:0; align-self:flex-start; margin-top:2px;
+}
+.row-toggle:hover { background:var(--bg); color:var(--ink-2); }
+.swim-row.row-collapsed .row-toggle { transform:rotate(-90deg); }
+
+/* Hover-expand removed: was causing layout shift/jitter on hover.
+   Expand is now click-only via the "+ N more" badge. */
+
+/* Empty column visual: dimmer border and narrow min-width */
+.swim-cell.col-empty { background: transparent; }
+.swim-cell.col-empty .swim-empty { color:var(--ink-4); opacity:.4; font-size:.67rem; }
+
+/* "+ N more" overflow badge */
+.more-badge {
+  display:inline-flex; align-items:center;
+  font-size:.6rem; font-family:var(--font-m);
+  color:var(--ink-4); background:var(--bg);
+  border:1px solid var(--border); border-radius:var(--r);
+  padding:.1em .5em; width:100%; justify-content:center;
+  cursor:pointer; margin-top:.1rem;
+  transition:background 80ms, color 80ms;
+}
+.more-badge:hover { background:var(--accent-bg); color:var(--accent-txt); border-color:var(--accent); }
+
+/* ─── Mini task card ─── */
+.task-card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-left:3px solid var(--border-2);
+  border-radius:var(--r);
+  padding:.45rem .55rem;
+  width:100%;
+  cursor:pointer;
+  transition:box-shadow 100ms, border-color 100ms;
+  position:relative;
+}
+.task-card:hover { box-shadow:0 2px 10px oklch(0% 0 0 / .06); border-color:var(--border-2); }
+.task-card.status-open        { border-left-color:var(--open); }
+.task-card.status-in_progress { border-left-color:var(--wip); background:oklch(99.5% 0.016 75); }
+.task-card.status-blocked     { border-left-color:var(--blocked); }
+.task-card.status-deferred    { border-left-color:var(--deferred); opacity:.8; }
+.task-card.status-closed      { border-left-color:var(--done); opacity:.68; }
+
+.card-title { font-size:.8125rem; font-weight:500; line-height:1.35; color:var(--ink); word-break:break-word; }
+.task-card.status-in_progress .card-title { font-weight:600; }
+.task-card.status-closed .card-title { text-decoration:line-through; color:var(--ink-3); text-decoration-color:var(--ink-4); }
+.task-card.status-deferred .card-title { color:var(--ink-3); }
+.card-id   { font-family:var(--font-m); font-size:.6rem; color:var(--ink-4); margin-top:.1rem; }
+
+/* Compact card mode */
+.cards-compact .task-card {
+  padding:.25rem .45rem;
+}
+.cards-compact .card-id,
+.cards-compact .card-badges,
+.cards-compact .card-deps,
+.cards-compact .more-badge { display:none !important; }
+.cards-compact .card-title { font-size:.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cards-compact .task-card .av { width:16px!important; height:16px!important; font-size:.45rem!important; }
+/* Compact toggle button (inside kanban header) */
+.compact-btn {
+  background:none; border:1px solid var(--border); border-radius:var(--r);
+  font-size:.65rem; font-family:var(--font-m); color:var(--ink-4);
+  padding:.15rem .45rem; cursor:pointer; white-space:nowrap;
+  transition:background 80ms, color 80ms, border-color 80ms;
+  margin-left:auto;
+}
+.compact-btn:hover { background:var(--bg); color:var(--ink-2); }
+.compact-btn.on { background:var(--accent-bg); color:var(--accent-txt); border-color:var(--accent); }
+
+.card-badges { display:flex; flex-wrap:wrap; gap:.2rem; margin-top:.35rem; align-items:center; }
+.badge {
+  display:inline-flex; align-items:center;
+  padding:.08em .38em; border-radius:2px;
+  font-size:.58rem; font-weight:500; letter-spacing:.04em; text-transform:uppercase;
+  white-space:nowrap;
+}
+.b-open     { background:var(--open-bg);     color:var(--open); }
+.b-wip      { background:var(--wip-bg);      color:var(--wip); }
+.b-blocked  { background:var(--blocked-bg);  color:var(--blocked); }
+.b-deferred { background:var(--deferred-bg); color:var(--deferred); }
+.b-done     { background:var(--done-bg);     color:var(--done); }
+.b-p0   { background:oklch(95% .06 28); color:oklch(36% .18 28); }
+.b-p1   { background:oklch(96% .04 60); color:oklch(40% .15 60); }
+.b-p2   { background:var(--bg); color:var(--ink-3); border:1px solid var(--border); }
+.b-type { background:var(--bg); color:var(--ink-4); border:1px solid var(--border); }
+
+.card-deps { display:flex; flex-wrap:wrap; gap:.2rem; align-items:center; margin-top:.3rem; }
+.dep-label { font-size:.58rem; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-4); }
+.dep-chip  {
+  font-family:var(--font-m); font-size:.58rem;
+  background:var(--bg); border:1px solid var(--border); border-radius:2px;
+  padding:.03em .3em; color:var(--ink-3);
+}
+
+/* ─────────────────────── Modal ──────────────────────── */
+.modal-overlay {
+  position:fixed; inset:0; z-index:100;
+  background:oklch(10% 0.01 82 / .52); backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center;
+  animation:fade-in .12s ease;
+}
+@keyframes fade-in { from{opacity:0} to{opacity:1} }
+.modal {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:8px; width:min(640px, 92vw); max-height:85vh;
+  display:flex; flex-direction:column;
+  box-shadow:0 20px 60px oklch(0% 0 0 / .24);
+  animation:slide-up .15s cubic-bezier(.22,1,.36,1);
+  overflow:hidden;
+}
+@keyframes slide-up { from{transform:translateY(14px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-header {
+  display:flex; align-items:flex-start; gap:.75rem;
+  padding:1rem 1.25rem .875rem; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.modal-title-group { flex:1; min-width:0; }
+.modal-title { font-size:1rem; font-weight:500; line-height:1.4; word-break:break-word; }
+.modal-id { font-family:var(--font-m); font-size:.67rem; color:var(--ink-4); margin-top:.25rem; }
+.modal-close {
+  background:none; border:none; cursor:pointer; font-size:.9rem;
+  color:var(--ink-4); padding:.2rem .4rem; border-radius:var(--r);
+  flex-shrink:0; line-height:1; transition:background 80ms, color 80ms;
+}
+.modal-close:hover { background:var(--bg); color:var(--ink); }
+.modal-body { padding:1rem 1.25rem; overflow-y:auto; display:flex; flex-direction:column; gap:1rem; }
+.modal-body::-webkit-scrollbar { width:4px; }
+.modal-body::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
+.modal-badges { display:flex; flex-wrap:wrap; gap:.4rem; }
+.modal-section { display:flex; flex-direction:column; gap:.4rem; }
+.modal-sec-lbl {
+  font-size:.6rem; font-weight:500; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--ink-4); font-family:var(--font-m);
+}
+.modal-assignee { display:flex; align-items:center; gap:.5rem; font-size:.875rem; color:var(--ink-2); }
+.modal-desc {
+  font-size:.85rem; color:var(--ink-2); line-height:1.65;
+  white-space:pre-wrap; word-break:break-word;
+  background:var(--bg); border:1px solid var(--border);
+  border-radius:var(--r); padding:.75rem .875rem;
+}
+.modal-deps { display:flex; flex-wrap:wrap; gap:.35rem; }
+
+/* Description (toggle on click) */
+.card-desc { font-size:.75rem; color:var(--ink-2); line-height:1.45;
+             margin-top:.35rem; display:none; }
+.card-desc.open { display:block; }
+
+/* Empty cell placeholder */
+.swim-empty { font-size:.72rem; color:var(--ink-4); padding:.5rem .25rem;
+              font-style:italic; align-self:center; }
+
+/* ─────────── OTHER VIEWS  ─────────── */
+.scroll-view {
+  flex:1; overflow-y:auto; padding:.875rem 1.125rem;
+  display:flex; flex-direction:column; gap:.625rem;
+}
+.scroll-view::-webkit-scrollbar { width:3px; }
+.scroll-view::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
+
+/* Tree */
+.tree-children { margin-left:1.25rem; padding-left:.875rem; border-left:2px solid var(--border);
+                 margin-top:.35rem; display:flex; flex-direction:column; gap:.35rem; }
+.tree-children.collapsed { display:none; }
+.ref-node { display:flex; align-items:center; gap:.4rem; padding:.3rem .6rem;
+            background:var(--bg); border:1px dashed var(--border); border-radius:var(--r);
+            font-size:.73rem; color:var(--ink-3); }
+.ref-id { font-family:var(--font-m); font-size:.6rem; color:var(--ink-4); }
+.ctog { flex-shrink:0; width:16px; height:16px; background:none; border:none;
+        color:var(--ink-4); font-size:.5rem; display:flex; align-items:center;
+        justify-content:center; transition:transform 100ms; padding:0; margin-top:2px; }
+.ctog.open { transform:rotate(90deg); }
+
+/* ─────────── LANES VIEW (E2) ─────────── */
+.lanes-wrap { display:flex; flex-direction:column; flex:1; overflow:hidden; }
+
+/* Overview bar */
+.lanes-overview {
+  background:var(--panel); border-bottom:1px solid var(--border);
+  padding:.5rem 1rem; display:flex; align-items:center; gap:1rem; flex-shrink:0;
+}
+.ov-bar { height:5px; display:flex; gap:1px; border-radius:4px; overflow:hidden;
+          flex:1; max-width:160px; }
+.ov-bar .seg-done { background:var(--done); }
+.ov-bar .seg-wip { background:var(--wip); }
+.ov-bar .seg-blocked { background:var(--blocked); }
+.ov-bar .seg-open { background:var(--border-2); }
+.ov-pct { font-size:.82rem; font-weight:700; color:var(--done); font-family:var(--font-m); }
+.ov-stat { display:flex; align-items:center; gap:.3rem; font-size:.75rem; color:var(--ink-3); }
+.ov-stat strong { font-weight:700; }
+.ov-stat.st-done strong { color:var(--done); }
+.ov-stat.st-wip strong { color:var(--wip); }
+.ov-stat.st-blocked strong { color:var(--blocked); }
+.ov-stat.st-open strong { color:var(--open); }
+.ov-people { display:flex; margin-left:auto; }
+.ov-av {
+  width:24px; height:24px; border-radius:50%;
+  font-size:.55rem; font-weight:700; color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  border:2px solid var(--panel); margin-left:-5px;
+}
+.ov-av:first-child { margin-left:0; }
+
+/* Progress strip under overview */
+.lanes-strip { display:flex; height:2px; flex-shrink:0; }
+.lanes-strip .seg-done { background:var(--done); }
+.lanes-strip .seg-wip { background:var(--wip); }
+.lanes-strip .seg-blocked { background:var(--blocked); }
+.lanes-strip .seg-open { background:var(--border-2); }
+
+/* Person lanes container */
+.lanes-body {
+  flex:1; overflow-y:auto; padding:.75rem 1rem;
+  display:flex; flex-direction:column; gap:.5rem;
+}
+.lanes-body::-webkit-scrollbar { width:3px; }
+.lanes-body::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
+
+/* Person lane */
+.lane {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:8px; display:flex; overflow:hidden;
+  transition:box-shadow .15s, border-color .15s;
+}
+.lane:hover { box-shadow:0 2px 10px oklch(0% 0 0 / .06); border-color:var(--border-2); }
+.lane.idle { opacity:.5; }
+.lane.idle:hover { opacity:.75; }
+.lane.unassigned { border-style:dashed; }
+
+/* Person info (left side) */
+.lane-person {
+  width:130px; padding:.75rem .625rem; border-right:1px solid var(--border);
+  display:flex; flex-direction:column; align-items:center; gap:.2rem;
+  background:var(--panel); flex-shrink:0;
+}
+.lane-av {
+  width:34px; height:34px; border-radius:50%;
+  font-size:.82rem; font-weight:800; color:#fff;
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+}
+.lane-av .online {
+  position:absolute; bottom:0; right:0; width:9px; height:9px;
+  border-radius:50%; background:var(--open); border:2px solid var(--panel);
+}
+.lane-av .offline {
+  position:absolute; bottom:0; right:0; width:9px; height:9px;
+  border-radius:50%; background:var(--ink-4); border:2px solid var(--panel);
+}
+.lane-name { font-weight:600; font-size:.8rem; color:var(--ink); text-align:center;
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+.lane-stats { font-size:.62rem; font-family:var(--font-m); color:var(--ink-4); text-align:center; }
+.lane-prog { width:100%; height:3px; background:var(--border); border-radius:3px; margin-top:.15rem; overflow:hidden; }
+.lane-prog-fill { height:100%; border-radius:3px; transition:width .5s; }
+.lane-pct { font-size:.62rem; font-weight:700; font-family:var(--font-m); }
+
+/* Task flow area (right side) */
+.lane-tasks {
+  flex:1; padding:.5rem; display:flex; gap:.5rem; align-items:flex-start;
+  overflow-x:auto; overflow-y:hidden;
+}
+.lane-tasks::-webkit-scrollbar { height:3px; }
+.lane-tasks::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
+
+/* Lane separator line */
+.lane-sep {
+  width:1px; background:var(--border); margin:4px 0; flex-shrink:0; align-self:stretch;
+}
+
+/* Lane task card */
+.lcard {
+  min-width:170px; max-width:210px; border-radius:6px;
+  padding:.5rem .625rem; flex-shrink:0; cursor:pointer;
+  transition:transform .12s, box-shadow .12s;
+}
+.lcard:hover { transform:translateY(-1px); box-shadow:0 3px 10px oklch(0% 0 0 / .08); }
+
+.lcard.lc-active { background:var(--wip-bg); border:1.5px solid oklch(85% .07 75); }
+.lcard.lc-blocked { background:var(--blocked-bg); border:1.5px solid oklch(87% .06 28); }
+.lcard.lc-open { background:var(--open-bg); border:1.5px solid oklch(87% .06 145); }
+.lcard.lc-done { background:var(--done-bg); border:1.5px solid oklch(87% .04 230); opacity:.45; }
+.lcard.lc-queue { background:var(--panel); border:1px solid var(--border); opacity:.55; }
+.lcard.lc-deferred { background:var(--deferred-bg); border:1px solid oklch(87% .03 270); opacity:.55; }
+
+.lcard-label {
+  font-size:.52rem; text-transform:uppercase; letter-spacing:.12em;
+  font-weight:700; margin-bottom:.2rem;
+}
+.lcard.lc-active .lcard-label { color:var(--wip); }
+.lcard.lc-blocked .lcard-label { color:var(--blocked); }
+.lcard.lc-open .lcard-label { color:var(--open); }
+.lcard.lc-done .lcard-label { color:var(--done); }
+.lcard.lc-queue .lcard-label { color:var(--ink-4); }
+.lcard.lc-deferred .lcard-label { color:var(--deferred); }
+
+.lcard-title { font-weight:600; font-size:.78rem; color:var(--ink); line-height:1.3;
+               display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.lcard.lc-done .lcard-title { text-decoration:line-through; color:var(--ink-3); }
+.lcard-meta { font-size:.6rem; font-family:var(--font-m); color:var(--ink-4); margin-top:.15rem; }
+.lcard-dep { font-size:.58rem; color:var(--blocked); margin-top:.2rem; font-weight:500; }
+.lcard-badge {
+  display:inline-block; font-size:.5rem; font-weight:600;
+  padding:1px 5px; border-radius:2px; margin-top:.25rem;
+  text-transform:uppercase; letter-spacing:.05em;
+}
+
+.lane-idle-msg {
+  font-size:.78rem; color:var(--ink-4); font-style:italic;
+  display:flex; align-items:center; padding:0 1rem;
+}
+.done-toggle {
+  min-width:70px; display:flex; align-items:center; justify-content:center;
+  font-size:.68rem; font-family:var(--font-m); color:var(--ink-4);
+  background:var(--panel); border:1px dashed var(--border); border-radius:6px;
+  padding:.5rem; flex-shrink:0; cursor:pointer; transition:all .1s;
+}
+.done-toggle:hover { background:var(--bg); color:var(--ink-3); border-color:var(--border-2); }
+
+/* ─────────── IMPROVED DEP VIEW ─────────── */
+.dep-view {
+  flex:1; overflow-y:auto; padding:1rem 1.25rem;
+  display:flex; flex-direction:column; gap:.5rem;
+}
+.dep-view::-webkit-scrollbar { width:3px; }
+.dep-view::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
+
+.dep-root { margin-bottom:.5rem; }
+.dep-root > .dep-node-wrap { border-left:none; padding-left:0; }
+
+.dep-node-wrap { position:relative; }
+
+.dep-card {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:6px; padding:.5rem .75rem; cursor:pointer;
+  transition:box-shadow .1s, border-color .1s;
+  display:flex; align-items:flex-start; gap:.5rem;
+}
+.dep-card:hover { box-shadow:0 2px 8px oklch(0% 0 0 / .06); border-color:var(--border-2); }
+.dep-card.ds-open { border-left:3px solid var(--open); }
+.dep-card.ds-in_progress { border-left:3px solid var(--wip); background:oklch(99.5% 0.016 75); }
+.dep-card.ds-blocked { border-left:3px solid var(--blocked); }
+.dep-card.ds-deferred { border-left:3px solid var(--deferred); opacity:.7; }
+.dep-card.ds-closed { border-left:3px solid var(--done); opacity:.55; }
+.dep-card.ds-closed .dep-card-title { text-decoration:line-through; color:var(--ink-3); }
+
+.dep-card-toggle {
+  flex-shrink:0; width:18px; height:18px; background:none; border:none;
+  color:var(--ink-4); font-size:.55rem; display:flex; align-items:center;
+  justify-content:center; transition:transform 100ms; padding:0; cursor:pointer;
+  border-radius:3px; margin-top:1px;
+}
+.dep-card-toggle:hover { background:var(--bg); color:var(--ink-2); }
+.dep-card-toggle.expanded { transform:rotate(90deg); }
+
+.dep-card-body { flex:1; min-width:0; }
+.dep-card-title { font-size:.8rem; font-weight:500; color:var(--ink); line-height:1.3; }
+.dep-card-sub { display:flex; gap:.3rem; align-items:center; margin-top:.2rem; flex-wrap:wrap; }
+.dep-card-id { font-family:var(--font-m); font-size:.58rem; color:var(--ink-4); }
+.dep-card-av {
+  width:18px; height:18px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.45rem; font-weight:700; color:#fff; margin-left:auto;
+}
+
+.dep-children {
+  margin-left:1rem; padding-left:1rem; margin-top:.35rem;
+  border-left:2px solid var(--border);
+  display:flex; flex-direction:column; gap:.35rem;
+}
+.dep-children.collapsed { display:none; }
+.dep-children .dep-card { margin-left:0; }
+
+/* Dep connectors */
+.dep-children > .dep-node-wrap::before {
+  content:''; position:absolute; left:-1rem; top:14px;
+  width:1rem; height:0; border-top:2px solid var(--border);
+}
+.dep-ref {
+  display:flex; align-items:center; gap:.35rem; padding:.25rem .6rem;
+  background:var(--bg); border:1px dashed var(--border); border-radius:var(--r);
+  font-size:.7rem; color:var(--ink-3);
+}
+.dep-ref-label { font-size:.55rem; font-weight:600; text-transform:uppercase;
+  letter-spacing:.08em; color:var(--ink-4); }
+.dep-blocker-count {
+  font-size:.55rem; font-family:var(--font-m); padding:1px 5px;
+  background:var(--blocked-bg); color:var(--blocked); border-radius:3px;
+  font-weight:600;
+}
+
+/* Empty/error states */
+.state-panel { display:flex; flex-direction:column; gap:.5rem; padding:2.5rem 1.5rem; }
+.state-icon  { font-size:1.75rem; line-height:1; }
+.state-title { font-family:var(--font-d); font-size:1.25rem; font-weight:500; color:var(--ink); letter-spacing:-.02em; }
+.state-body  { font-size:.875rem; color:var(--ink-2); line-height:1.5; max-width:380px; }
+.state-hint  { font-size:.74rem; font-family:var(--font-m); color:var(--ink-4); }
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ── -->
+<header class="topbar" id="topbar">
+  <span class="brand">Beads <em>Viewer</em></span>
+  <form class="repo-form" onsubmit="handleLoad(event)">
+    <input class="repo-input" id="repo-input" type="text"
+      placeholder="owner/repo" autocomplete="off" spellcheck="false"
+      oninput="updateLoadBtn()" />
+    <button class="btn" id="load-btn" type="submit" disabled>Load</button>
+  </form>
+  <div class="tb-right">
+    <div class="tb-meta" id="tb-meta" style="display:none"><span id="tb-repo"></span></div>
+    <div class="refresh-ring" id="rring" style="display:none" title="Auto-refresh every 5s">
+      <svg width="16" height="16" viewBox="0 0 16 16">
+        <circle class="ring-track" cx="8" cy="8" r="6" stroke-width="2"/>
+        <circle class="ring-fill"  cx="8" cy="8" r="6" stroke-width="2"
+                id="ring-fill" stroke-dasharray="37.7" stroke-dashoffset="0"/>
+      </svg>
+      <span class="rlabel" id="rlabel">5s</span>
+    </div>
+    <a class="tb-link" href="https://docs.dolthub.com/" target="_blank" rel="noopener">DoltHub ↗</a>
+  </div>
+</header>
+
+<!-- ── Layout ── -->
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sb-sec" id="sb-progress" style="display:none">
+      <div class="sb-lbl">Progress</div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="stat-rows">
+        <div class="stat-row active" id="fr-all"      onclick="setStatusFilter('all')">
+          <span class="sdot all"></span>All<span class="scount" id="cnt-all">0</span>
+        </div>
+        <div class="stat-row" id="fr-open"       onclick="setStatusFilter('open')">
+          <span class="sdot open"></span>Open<span class="scount" id="cnt-open">0</span>
+        </div>
+        <div class="stat-row" id="fr-in_progress" onclick="setStatusFilter('in_progress')">
+          <span class="sdot wip"></span>In Progress<span class="scount" id="cnt-wip">0</span>
+        </div>
+        <div class="stat-row" id="fr-blocked"     onclick="setStatusFilter('blocked')">
+          <span class="sdot blocked"></span>Blocked<span class="scount" id="cnt-blocked">0</span>
+        </div>
+        <div class="stat-row" id="fr-deferred"    onclick="setStatusFilter('deferred')">
+          <span class="sdot deferred"></span>Deferred<span class="scount" id="cnt-deferred">0</span>
+        </div>
+        <div class="stat-row" id="fr-closed"      onclick="setStatusFilter('closed')">
+          <span class="sdot done"></span>Done<span class="scount" id="cnt-done">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-sec">
+      <div class="sb-lbl">View</div>
+      <div class="view-nav">
+        <button class="vnav-btn active" id="vb-lanes"  onclick="setView('lanes')"><span class="vicon">☰</span>Lanes</button>
+        <button class="vnav-btn"        id="vb-kanban" onclick="setView('kanban')"><span class="vicon">⊞</span>Kanban</button>
+        <button class="vnav-btn"        id="vb-dep"    onclick="setView('dep')"><span class="vicon">⤳</span>Dependency</button>
+      </div>
+    </div>
+
+    <div class="sb-sec" id="sb-cols" style="display:none">
+      <div class="sb-lbl">Columns</div>
+      <div class="col-toggles">
+        <button class="ctog-chip on" id="ctb-open"        onclick="toggleCol('open')">
+          <span class="sdot open"></span>Open
+          <span class="ctog-icon" style="margin-left:auto" id="cti-open">✓</span>
+        </button>
+        <button class="ctog-chip on" id="ctb-in_progress" onclick="toggleCol('in_progress')">
+          <span class="sdot wip"></span>In Progress
+          <span class="ctog-icon" style="margin-left:auto" id="cti-in_progress">✓</span>
+        </button>
+        <button class="ctog-chip on" id="ctb-blocked"     onclick="toggleCol('blocked')">
+          <span class="sdot blocked"></span>Blocked
+          <span class="ctog-icon" style="margin-left:auto" id="cti-blocked">✓</span>
+        </button>
+        <button class="ctog-chip on" id="ctb-deferred"    onclick="toggleCol('deferred')">
+          <span class="sdot deferred"></span>Deferred
+          <span class="ctog-icon" style="margin-left:auto" id="cti-deferred">✓</span>
+        </button>
+        <button class="ctog-chip on" id="ctb-closed"      onclick="toggleCol('closed')">
+          <span class="sdot done"></span>Done
+          <span class="ctog-icon" style="margin-left:auto" id="cti-closed">✓</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="sb-sec" id="sb-team" style="display:none">
+      <div class="sb-lbl">Team</div>
+      <div class="team-list" id="team-list"></div>
+    </div>
+
+  </aside>
+
+  <!-- Content -->
+  <div class="content">
+    <div class="warn-bar" id="warn-bar"></div>
+    <div id="content-area" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+      <div class="state-panel">
+        <div class="state-icon">⬡</div>
+        <div class="state-title">No repository loaded</div>
+        <div class="state-body">Enter a public DoltHub repository to view its task board.</div>
+        <div class="state-hint">owner/repo · or full dolthub.com URL</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Task Detail Modal ── -->
+<div id="task-modal" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <div class="modal-title" id="m-title"></div>
+        <div class="modal-id" id="m-id"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-badges" id="m-badges"></div>
+      <div class="modal-section" id="m-assign-sec" style="display:none">
+        <div class="modal-sec-lbl">Assignee</div>
+        <div class="modal-assignee" id="m-assign"></div>
+      </div>
+      <div class="modal-section" id="m-desc-sec" style="display:none">
+        <div class="modal-sec-lbl">Description</div>
+        <div class="modal-desc" id="m-desc"></div>
+      </div>
+      <div class="modal-section" id="m-deps-sec" style="display:none">
+        <div class="modal-sec-lbl">Dependencies</div>
+        <div class="modal-deps" id="m-deps"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Constants ── */
+const STORAGE_KEY = 'beads-viewer:last-repo';
+const REFRESH_SEC = 5;
+const API_BASE    = 'https://www.dolthub.com/api/v1alpha1';
+const HUB_BASE    = 'https://www.dolthub.com/repositories';
+const CIRC        = 2 * Math.PI * 6;
+const MAX_DESC    = 200;
+
+const AV_COLORS = [
+  'oklch(50% .19 76)','oklch(46% .16 145)','oklch(47% .15 230)',
+  'oklch(50% .17 310)','oklch(49% .19 28)','oklch(46% .15 190)',
+  'oklch(50% .16 55)','oklch(48% .14 270)',
+];
+function avColor(name) {
+  let h=0; for(let i=0;i<name.length;i++) h=(Math.imul(31,h)+name.charCodeAt(i))|0;
+  return AV_COLORS[Math.abs(h)%AV_COLORS.length];
+}
+function initials(name) {
+  return (name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase()||'?';
+}
+
+let state = {
+  repo:null, records:[], warnings:[], depTree:null, groupedTree:null,
+  view:'lanes', statusFilter:'all', personFilter:null,
+  visibleCols: new Set(['open','in_progress','blocked','deferred','closed']),
+  compactCards: false,
+};
+let timer=null, countdown=REFRESH_SEC;
+
+/* ── Boot ── */
+(function boot(){
+  updateLoadBtn();
+  const {repo} = readLastRepo();
+  if (repo) { document.getElementById('repo-input').value=repo.rawInput; updateLoadBtn(); loadRepo(repo.canonicalRepo,false); }
+})();
+
+/* ── Normalization ── */
+function normalizeRepo(raw) {
+  const s=(raw||'').trim(); if(!s) throw new Error('Required');
+  if(s.startsWith('http')) {
+    let u; try{u=new URL(s)}catch{throw new Error('Bad URL');}
+    if(!['www.dolthub.com','dolthub.com'].includes(u.hostname)) throw new Error('Not DoltHub URL');
+    const p=u.pathname.replace(/^\/+|\/+$/g,'').split('/');
+    if(p.length!==3||p[0]!=='repositories') throw new Error('Bad URL path');
+    return cfg(raw,p[1],p[2]);
+  }
+  const p=s.split('/');
+  if(p.length===2&&p[0]&&p[1]) return cfg(raw,p[0],p[1]);
+  throw new Error('Use owner/repo or full DoltHub URL');
+}
+function cfg(rawInput,owner,repoName) {
+  return {rawInput,owner,repoName,canonicalRepo:`${owner}/${repoName}`,sourceUrl:`${HUB_BASE}/${owner}/${repoName}`};
+}
+
+/* ── LocalStorage ── */
+function readLastRepo() {
+  try {
+    const r=localStorage.getItem(STORAGE_KEY); if(!r) return {repo:null};
+    const o=JSON.parse(r);
+    if(!o?.rawInput||!o?.canonicalRepo) { localStorage.removeItem(STORAGE_KEY); return {repo:null}; }
+    return {repo:o};
+  } catch { localStorage.removeItem(STORAGE_KEY); return {repo:null}; }
+}
+function writeLastRepo(r) { localStorage.setItem(STORAGE_KEY,JSON.stringify({rawInput:r.rawInput,canonicalRepo:r.canonicalRepo,sourceUrl:r.sourceUrl})); }
+
+/* ── DoltHub Client ── */
+async function sqlQ(owner,repo,q) {
+  const r=await fetch(`${API_BASE}/${owner}/${repo}?q=${encodeURIComponent(q)}`).catch(e=>{throw{kind:'fetch',msg:e.message};});
+  if(!r.ok) throw{kind:'fetch',msg:`HTTP ${r.status}`};
+  const b=await r.json().catch(()=>{throw{kind:'fetch',msg:'Bad JSON'};});
+  if(b.query_execution_status!=='Success') throw{kind:'query',msg:b.query_execution_message||'Query failed'};
+  return b.rows||[];
+}
+async function fetchData(owner,repo) {
+  const tables=(await sqlQ(owner,repo,'SHOW TABLES')).map(r=>Object.values(r)[0]);
+  if(!tables.includes('issues')||!tables.includes('dependencies'))
+    throw{kind:'schema',msg:`Missing tables. Found: ${tables.join(', ')||'none'}`};
+  const issues=await sqlQ(owner,repo,'SELECT id,title,description,status,priority,issue_type,assignee,metadata FROM issues');
+  const deps  =await sqlQ(owner,repo,'SELECT issue_id,depends_on_id,type,metadata FROM dependencies');
+  return {issues,deps};
+}
+
+/* ── Adapter ── */
+function parseMeta(raw) {
+  if(!raw) return {};
+  if(typeof raw==='object'&&!Array.isArray(raw)) return raw;
+  if(typeof raw==='string'){try{const p=JSON.parse(raw);if(p&&typeof p==='object'&&!Array.isArray(p))return p;}catch{}}
+  return {};
+}
+function adapt({issues,deps}) {
+  const warns=[]; const map=new Map();
+  for(const r of issues){
+    const m=parseMeta(r.metadata);
+    map.set(r.id,{id:r.id,title:r.title||'(no title)',status:(r.status||'').toLowerCase(),
+      priority:r.priority??null,type:r.issue_type||'',assignee:r.assignee||'',
+      description:r.description||'',parentId:m.parent_id||null,groupId:m.group_id||null,
+      groupLabel:m.group_label||null,dependsOnIds:[],blocksCount:0,raw:r});
+  }
+  const wc=new Map(); const aw=msg=>wc.set(msg,(wc.get(msg)||0)+1);
+  for(const d of deps){
+    if(d.type==='parent-child'||d.type==='parentchild'){
+      const c=map.get(d.issue_id); if(c&&d.depends_on_id&&!c.parentId)c.parentId=d.depends_on_id; continue;
+    }
+    if(d.type!=='blocks'){aw(`Dep type "${d.type}" ignored`);continue;}
+    const rec=map.get(d.issue_id); if(!rec){aw(`Unknown "${d.issue_id}"`);continue;}
+    if(!rec.dependsOnIds.includes(d.depends_on_id))rec.dependsOnIds.push(d.depends_on_id);
+    const bl=map.get(d.depends_on_id); if(bl)bl.blocksCount++; else aw(`Missing dep target "${d.depends_on_id}"`);
+  }
+  for(const[msg,n]of wc)warns.push(n>1?`${msg} ×${n}`:msg);
+  return{records:[...map.values()],warnings:warns};
+}
+
+/* ── Tree builders ── */
+function buildDepTree(records) {
+  const byId=new Map(records.map(r=>[r.id,r]));
+  const down=new Map(records.map(r=>[r.id,[]]));
+  for(const r of records)for(const id of r.dependsOnIds)if(down.has(id))down.get(id).push(r.id);
+  const roots=records.filter(r=>r.dependsOnIds.filter(id=>byId.has(id)).length===0).map(r=>r.id).sort();
+  const seen=new Set();const tw=[];
+  function node(id,stack){
+    const rec=byId.get(id);if(!rec)return null;
+    if(stack.includes(id)){tw.push(`Cycle: ${id}`);return{type:'cycle',id,rec};}
+    if(seen.has(id))return{type:'ref',id,rec};
+    seen.add(id);
+    const ch=(down.get(id)||[]).sort().map(c=>node(c,[...stack,id])).filter(Boolean);
+    return{type:'full',id,rec,children:ch};
+  }
+  const proc=new Set();function mark(n){if(!n)return;proc.add(n.id);(n.children||[]).forEach(mark);}
+  const treeRoots=roots.map(id=>{const n=node(id,[]);mark(n);return n;}).filter(Boolean);
+  for(const id of [...byId.keys()].sort())if(!proc.has(id)){const n=node(id,[]);mark(n);if(n)treeRoots.push(n);}
+  return{roots:treeRoots,warnings:tw};
+}
+function buildGroupedTree(records) {
+  const byId=new Map(records.map(r=>[r.id,r]));
+  const secs=new Map();const nw=new Map();
+  const getS=(k,t)=>{if(!secs.has(k))secs.set(k,{key:k,title:t,nodes:[]});return secs.get(k);};
+  const getW=id=>{if(!nw.has(id))nw.set(id,[]);return nw.get(id);};
+  for(const r of records){
+    if(r.groupId)getS(`g:${r.groupId}`,r.groupLabel||r.groupId).nodes.push(r);
+    else if(r.parentId){const p=byId.get(r.parentId);getS(`p:${r.parentId}`,p?p.title:r.parentId).nodes.push(r);}
+    else getS('ug','Ungrouped').nodes.push(r);
+  }
+  for(const sec of secs.values()){
+    const ids=new Set(sec.nodes.map(n=>n.id));
+    for(const r of sec.nodes)if(r.parentId&&!ids.has(r.parentId))getW(r.id).push({code:byId.has(r.parentId)?'cross_section':'missing_parent'});
+  }
+  const list=[...secs.values()].sort((a,b)=>a.key==='ug'?1:b.key==='ug'?-1:a.title.localeCompare(b.title));
+  return{sections:list,nodeWarns:nw};
+}
+
+/* ── Load ── */
+async function loadRepo(rawInput,persist=true) {
+  let cfg;
+  try{cfg=normalizeRepo(rawInput);}catch(e){showErr('Invalid input',e.message);return;}
+  const sv=state.view,sf=state.statusFilter,sp=state.personFilter;
+  setLoading(true,cfg); stopTimer();
+  try{
+    const {issues,deps}=await fetchData(cfg.owner,cfg.repoName);
+    const {records,warnings}=adapt({issues,deps});
+    state={...state,repo:cfg,records,warnings,depTree:buildDepTree(records),groupedTree:buildGroupedTree(records),
+            view:sv,statusFilter:sf,personFilter:sp};
+    if(persist)writeLastRepo(cfg);
+    setLoading(false); renderAll(); startTimer();
+  }catch(err){
+    setLoading(false);
+    const e=err instanceof Error?{kind:'fetch',msg:err.message}:(err||{kind:'fetch',msg:'Unknown'});
+    showErr({fetch:'Fetch failed',query:'Query failed',schema:'Unsupported schema'}[e.kind]||'Error',e.msg);
+  }
+}
+
+/* ── Timer ── */
+function startTimer(){
+  stopTimer(); countdown=REFRESH_SEC; updateRing();
+  document.getElementById('rring').style.display='inline-flex';
+  timer=setInterval(()=>{
+    countdown--;updateRing();
+    if(countdown<=0){stopTimer();if(state.repo)loadRepo(state.repo.canonicalRepo,false);}
+  },1000);
+}
+function stopTimer(){ if(timer){clearInterval(timer);timer=null;} document.getElementById('rring').style.display='none'; }
+function updateRing(){
+  const f=document.getElementById('ring-fill'),l=document.getElementById('rlabel');
+  if(!f||!l)return;
+  f.style.strokeDashoffset=CIRC*(1-countdown/REFRESH_SEC);
+  l.textContent=`${countdown}s`;
+}
+
+/* ── UI interactions ── */
+function handleLoad(e){e.preventDefault();const v=(document.getElementById('repo-input').value||'').trim();if(v)loadRepo(v,true);}
+function updateLoadBtn(){document.getElementById('load-btn').disabled=!(document.getElementById('repo-input').value||'').trim();}
+function setLoading(on,cfg){
+  document.getElementById('topbar').classList.toggle('is-loading',on);
+  if(on&&cfg){document.getElementById('tb-repo').textContent=cfg.canonicalRepo;document.getElementById('tb-meta').style.display='block';}
+}
+function setStatusFilter(f){
+  state.statusFilter=f;state.personFilter=null;
+  document.querySelectorAll('.stat-row').forEach(el=>el.classList.remove('active'));
+  document.getElementById(`fr-${f}`)?.classList.add('active');
+  document.querySelectorAll('.person-btn').forEach(el=>el.classList.remove('active'));
+  renderContent();
+}
+function setPersonFilter(name){
+  state.personFilter=state.personFilter===name?null:name;
+  state.statusFilter='all';
+  document.querySelectorAll('.stat-row').forEach(el=>el.classList.remove('active'));
+  document.getElementById('fr-all')?.classList.add('active');
+  document.querySelectorAll('.person-btn').forEach(el=>el.classList.remove('active'));
+  if(state.personFilter!=null)document.querySelector(`.person-btn[data-name="${CSS.escape(name)}"]`)?.classList.add('active');
+  renderContent();
+}
+function toggleCompact(){
+  state.compactCards=!state.compactCards;
+  if(state.view==='kanban')renderContent();
+}
+function setView(v){
+  state.view=v;
+  ['lanes','kanban','dep'].forEach(k=>document.getElementById(`vb-${k}`)?.classList.toggle('active',k===v));
+  // Show the Columns panel only in Kanban view
+  const $sc=document.getElementById('sb-cols');
+  if($sc)$sc.style.display=v==='kanban'&&state.records.length?'block':'none';
+  renderContent();
+}
+
+/* ── Render all ── */
+function renderAll(){renderSidebar();renderContent();}
+/* ── Column visibility ── */
+function toggleCol(col){
+  if(state.visibleCols.has(col)){
+    if(state.visibleCols.size<=1)return; // keep at least one
+    state.visibleCols.delete(col);
+  } else {
+    state.visibleCols.add(col);
+  }
+  // Update chip states
+  ['open','in_progress','blocked','deferred','closed'].forEach(c=>{
+    const btn=document.getElementById(`ctb-${c}`);
+    const ico=document.getElementById(`cti-${c}`);
+    const on=state.visibleCols.has(c);
+    if(btn){btn.classList.toggle('on',on);btn.classList.toggle('off',!on);}
+    if(ico)ico.textContent=on?'✓':'○';
+  });
+  if(state.view==='kanban')renderContent();
+}
+
+function renderSidebar(){
+  const recs=state.records;
+  const c = st => recs.filter(r=>r.status===st).length;
+  const open=c('open'), wip=c('in_progress'), blocked=c('blocked'), deferred=c('deferred'), done=c('closed');
+  const total=recs.length;
+
+  document.getElementById('sb-progress').style.display=total?'block':'none';
+  document.getElementById('cnt-all').textContent=total;
+  document.getElementById('cnt-open').textContent=open;
+  document.getElementById('cnt-wip').textContent=wip;
+  document.getElementById('cnt-blocked').textContent=blocked;
+  document.getElementById('cnt-deferred').textContent=deferred;
+  document.getElementById('cnt-done').textContent=done;
+  document.getElementById('prog-fill').style.width=total?`${((done+wip)/total*100).toFixed(1)}%`:'0%';
+  document.getElementById('tb-repo').textContent=state.repo?.canonicalRepo||'';
+  document.getElementById('tb-meta').style.display=state.repo?'block':'none';
+  // Columns panel: only in kanban view when data is loaded
+  const $sc=document.getElementById('sb-cols');
+  if($sc)$sc.style.display=(state.view==='kanban'&&total)?'block':'none';
+
+  // Team
+  const amap=new Map();
+  for(const r of recs){
+    const a=r.assignee?.trim()||'';
+    if(!amap.has(a))amap.set(a,{open:0,wip:0,total:0});
+    amap.get(a).total++;
+    if(r.status==='open')amap.get(a).open++;
+    if(r.status==='in_progress')amap.get(a).wip++;
+  }
+  const sorted=[...amap.entries()].sort((a,b)=>(!a[0]?1:!b[0]?-1:(b[1].wip+b[1].open)-(a[1].wip+a[1].open)||a[0].localeCompare(b[0])));
+  const $team=document.getElementById('sb-team');
+  const $list=document.getElementById('team-list');
+  $team.style.display=sorted.length?'block':'none';
+  $list.innerHTML=sorted.map(([name,c])=>{
+    const disp=name||'Unassigned';
+    const color=name?avColor(name):'var(--ink-4)';
+    const act=state.personFilter===name?'active':'';
+    return `<button class="person-btn ${act}" data-name="${esc(name)}" onclick="setPersonFilter(${JSON.stringify(name)})">
+      <div class="av" style="background:${color}">${esc(initials(disp))}</div>
+      <span class="pname">${esc(disp)}</span>
+      <span class="pocnt">${c.open}</span><span style="font-size:.6rem;color:var(--ink-4)">/</span><span class="pcnt">${c.total}</span>
+    </button>`;
+  }).join('');
+}
+
+/* ── Filtered records ── */
+function filtered(){
+  let recs=state.records;
+  if(state.personFilter!=null)recs=recs.filter(r=>(r.assignee?.trim()||'')===state.personFilter);
+  if(state.statusFilter!=='all')recs=recs.filter(r=>r.status===state.statusFilter);
+  return recs;
+}
+
+/* ── Content ── */
+function renderContent(){
+  const $ca=document.getElementById('content-area');
+
+  // Warnings
+  const $wb=document.getElementById('warn-bar');
+  const allW=[...(state.depTree?.warnings||[]),...state.warnings];
+  if(allW.length){$wb.innerHTML=allW.map(w=>`<span>⚠ ${esc(w)}</span>`).join('');$wb.classList.add('vis');}
+  else $wb.classList.remove('vis');
+
+  // Save scroll + collapsed state before re-render
+  const prevBody=$ca.querySelector('.kanban-body');
+  const savedScroll=prevBody?{top:prevBody.scrollTop,left:prevBody.scrollLeft}:null;
+  const savedCollapsed=new Set(
+    [...($ca.querySelectorAll('.swim-row.row-collapsed'))].
+    map(el=>el.dataset.swimPerson)
+  );
+
+  $ca.innerHTML='';
+  $ca.style.cssText='display:flex;flex-direction:column;flex:1;overflow:hidden;';
+
+  const v=state.view;
+  if(v==='lanes')       renderLanes($ca);
+  else if(v==='kanban') renderKanban($ca);
+  else if(v==='dep')    renderDepView($ca);
+
+  // Restore scroll + collapsed states after re-render
+  if(savedScroll){
+    const newBody=$ca.querySelector('.kanban-body');
+    if(newBody){newBody.scrollTop=savedScroll.top;newBody.scrollLeft=savedScroll.left;}
+    $ca.querySelectorAll('.swim-row').forEach(row=>{
+      if(savedCollapsed.has(row.dataset.swimPerson))row.classList.add('row-collapsed');
+    });
+  }
+}
+
+/* ══════════════════════════════════════
+   SWIMLANE KANBAN
+══════════════════════════════════════ */
+function renderKanban($ca) {
+  const recs = filtered();
+
+  // Status badge color
+  const stColor = {
+    open:'b-open', in_progress:'b-wip', blocked:'b-blocked', deferred:'b-deferred', closed:'b-done'
+  };
+  const stLabel = {
+    open:'Open', in_progress:'In Progress', blocked:'Blocked', deferred:'Deferred', closed:'Done'
+  };
+  // Group by assignee
+  const amap = new Map();
+  for (const r of recs) {
+    const a = r.assignee?.trim() || '';
+    if (!amap.has(a)) amap.set(a, {open:[], wip:[], blocked:[], deferred:[], closed:[]});
+    const s = r.status==='in_progress'?'wip':
+              r.status==='blocked'?'blocked':
+              r.status==='deferred'?'deferred':
+              r.status==='closed'?'closed':'open';
+    amap.get(a)[s].push(r);
+  }
+  // Sort: most active (open+wip) first, unassigned last
+  const sorted = [...amap.entries()].sort((a,b) =>
+    !a[0] ? 1 : !b[0] ? -1 :
+    (b[1].wip.length + b[1].open.length) - (a[1].wip.length + a[1].open.length) ||
+    a[0].localeCompare(b[0])
+  );
+
+  const byPri = arr => [...arr].sort((a,b)=>(a.priority??99)-(b.priority??99)||a.title.localeCompare(b.title));
+
+  const cnt = st => recs.filter(r => {
+    if (st==='wip') return r.status==='in_progress';
+    if (st==='done') return r.status==='closed';
+    return r.status===st;
+  }).length;
+
+  // Columns config — filter by visibleCols
+  const ALL_COLS = [
+    {key:'open',        bucket:'open',    label:'● Open',        cls:'open',     bg:null},
+    {key:'in_progress', bucket:'wip',     label:'▶ In Progress', cls:'wip',      bg:'oklch(98.5% 0.025 75 / 0.5)'},
+    {key:'blocked',     bucket:'blocked', label:'⊘ Blocked',     cls:'blocked',  bg:'oklch(98.5% 0.025 28 / 0.4)'},
+    {key:'deferred',    bucket:'deferred',label:'⊡ Deferred',    cls:'deferred', bg:'oklch(98.5% 0.015 270 / 0.4)'},
+    {key:'closed',      bucket:'closed',  label:'✓ Done',        cls:'done',     bg:'oklch(98.5% 0.013 230 / 0.5)'},
+  ];
+  const cols = ALL_COLS.filter(c => state.visibleCols.has(c.key));
+
+  // Determine which columns have zero tasks across ALL persons (globally empty)
+  const colCounts = {};
+  for (const col of cols) colCounts[col.key] = recs.filter(r => r.status===col.key).length;
+  const gridTpl = '150px ' + cols.map(c => colCounts[c.key]===0 ? 'minmax(60px,0.35fr)' : '1fr').join(' ');
+
+  const $wrap = dl('kanban-wrap');
+
+  // Dynamic header
+  const $hdr = dl('kanban-header');
+  $hdr.style.gridTemplateColumns = gridTpl;
+  let hdrHtml = `<div class="kh-person-cell">Person
+    <button class="compact-btn${state.compactCards?' on':''}" onclick="toggleCompact()" title="Toggle compact cards">${state.compactCards?'⊟ Full':'⊞ Compact'}</button>
+  </div>`;
+  for (const col of cols) {
+    const cntVal = recs.filter(r => r.status===col.key).length;
+    hdrHtml += `<div class="kh-status-cell">
+      <span class="kh-status-title ${col.cls}">${col.label}</span>
+      <span class="kh-count">${cntVal}</span>
+    </div>`;
+  }
+  $hdr.innerHTML = hdrHtml;
+  $wrap.appendChild($hdr);
+
+  const $body = dl('kanban-body');
+  if (state.compactCards) $body.classList.add('cards-compact');
+
+  if (sorted.length === 0) {
+    const e = dl(''); e.style.cssText = 'padding:2rem 1.5rem;font-size:.85rem;color:var(--ink-4);';
+    e.textContent = 'No tasks match the current filter.';
+    $body.appendChild(e);
+  }
+
+  // Card height estimate for calculating overflow
+  const CARD_H = 76; // px approx
+  const MAX_H  = 200;
+  const mkCell = (tasks, bg, colKey) => {
+    const $cell = dl('swim-cell');
+    if (bg) $cell.style.background = bg;
+    if (tasks.length === 0) {
+      $cell.classList.add('col-empty');
+      const e = dl('swim-empty'); e.textContent = '—'; $cell.appendChild(e);
+    } else {
+      const sorted = byPri(tasks);
+      sorted.forEach(r => $cell.appendChild(buildCard(r)));
+      // Estimated overflow badge
+      const visible = Math.max(1, Math.floor(MAX_H / CARD_H));
+      if (sorted.length > visible) {
+        const over = sorted.length - visible;
+        const $more = document.createElement('button');
+        $more.className = 'more-badge';
+        $more.textContent = `+ ${over} more`;
+        $more.addEventListener('click', e => {
+          e.stopPropagation();
+          $cell.style.maxHeight = $cell.style.maxHeight === '800px' ? '' : '800px';
+          $more.textContent = $cell.style.maxHeight ? '▲ collapse' : `+ ${over} more`;
+        });
+        $cell.appendChild($more);
+      }
+    }
+    return $cell;
+  };
+
+  for (const [name, buckets] of sorted) {
+    const disp  = name || 'Unassigned';
+    const color = name ? avColor(name) : 'oklch(68% .01 82)';
+    const actv  = buckets.wip.length;
+    const total = Object.values(buckets).flat().length;
+    const row   = dl('swim-row');
+    row.style.gridTemplateColumns = gridTpl;
+    row.dataset.swimPerson = name; // for collapse state tracking
+
+    const $person = dl('swim-person');
+    $person.innerHTML = `
+      <div class="av" style="background:${color};width:24px;height:24px;font-size:.57rem">${esc(initials(disp))}</div>
+      <div class="swim-person-info">
+        <div class="swim-pname">${esc(disp)}</div>
+        <div class="swim-pstats">
+          ${actv ? `<span style="color:var(--wip);font-weight:500">${actv} active</span> · ` : ''}
+          ${buckets.open.length} open · ${total} total
+        </div>
+      </div>
+      <button class="row-toggle" title="Collapse/expand row">▼</button>`;
+
+    // Collapse toggle
+    $person.querySelector('.row-toggle').addEventListener('click', () => {
+      row.classList.toggle('row-collapsed');
+    });
+    row.appendChild($person);
+
+    for (const col of cols) {
+      row.appendChild(mkCell(buckets[col.bucket], col.bg));
+    }
+
+    $body.appendChild(row);
+  }
+
+  $wrap.appendChild($body);
+  $ca.appendChild($wrap);
+}
+
+/* ══════════════════════════════════════
+   LANES VIEW (E2 — Person Horizontal Lanes)
+══════════════════════════════════════ */
+function renderLanes($ca) {
+  const recs = state.records;
+  const PM = {0:'Critical',1:'High',2:'Medium',3:'Low',4:'Backlog'};
+
+  // Counts
+  const cnt = st => recs.filter(r => r.status === st).length;
+  const done = cnt('closed'), wip = cnt('in_progress'), blocked = cnt('blocked'),
+        open = cnt('open'), deferred = cnt('deferred');
+  const total = recs.length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
+
+  const $wrap = dl('lanes-wrap');
+
+  // ── Overview bar ──
+  const $ov = dl('lanes-overview');
+  // Progress bar segments
+  const $bar = dl('ov-bar');
+  if (done)     { const s = dl('seg-done'); s.style.flex = done; $bar.appendChild(s); }
+  if (wip)      { const s = dl('seg-wip'); s.style.flex = wip; $bar.appendChild(s); }
+  if (blocked)  { const s = dl('seg-blocked'); s.style.flex = blocked; $bar.appendChild(s); }
+  if (open + deferred) { const s = dl('seg-open'); s.style.flex = open + deferred; $bar.appendChild(s); }
+  $ov.appendChild($bar);
+
+  // Percentage
+  const $pct = dl('ov-pct'); $pct.textContent = `${pct}%`; $ov.appendChild($pct);
+
+  // Stat chips
+  const addStat = (cls, val, label) => {
+    const $s = dl(`ov-stat ${cls}`);
+    $s.innerHTML = `<strong>${val}</strong> ${label}`;
+    $ov.appendChild($s);
+  };
+  addStat('st-done', done, 'done');
+  addStat('st-wip', wip, 'active');
+  addStat('st-blocked', blocked, 'blocked');
+  addStat('st-open', open + deferred, 'open');
+
+  // People avatars
+  const people = [...new Set(recs.map(r => r.assignee?.trim() || ''))].sort((a,b) => !a ? 1 : !b ? -1 : a.localeCompare(b));
+  const $ppl = dl('ov-people');
+  for (const p of people) {
+    const disp = p || '?';
+    const $a = dl('ov-av');
+    $a.style.background = p ? avColor(p) : 'var(--ink-4)';
+    $a.textContent = initials(disp);
+    $a.title = disp;
+    $ppl.appendChild($a);
+  }
+  $ov.appendChild($ppl);
+  $wrap.appendChild($ov);
+
+  // ── Thin progress strip ──
+  const $strip = dl('lanes-strip');
+  if (done)     { const s = dl('seg-done'); s.style.flex = done; $strip.appendChild(s); }
+  if (wip)      { const s = dl('seg-wip'); s.style.flex = wip; $strip.appendChild(s); }
+  if (blocked)  { const s = dl('seg-blocked'); s.style.flex = blocked; $strip.appendChild(s); }
+  if (open + deferred) { const s = dl('seg-open'); s.style.flex = open + deferred; $strip.appendChild(s); }
+  $wrap.appendChild($strip);
+
+  // ── Person lanes ──
+  const $body = dl('lanes-body');
+
+  // Group by assignee
+  const amap = new Map();
+  for (const r of recs) {
+    const a = r.assignee?.trim() || '';
+    if (!amap.has(a)) amap.set(a, []);
+    amap.get(a).push(r);
+  }
+
+  // Sort: most active first, unassigned last
+  const sorted = [...amap.entries()].sort((a, b) => {
+    if (!a[0]) return 1;
+    if (!b[0]) return -1;
+    const aActive = a[1].filter(r => r.status === 'in_progress' || r.status === 'blocked').length;
+    const bActive = b[1].filter(r => r.status === 'in_progress' || r.status === 'blocked').length;
+    return bActive - aActive || a[0].localeCompare(b[0]);
+  });
+
+  // Dependency-aware sort: tasks that are "ready" (no pending deps) first, then by priority
+  const byId = new Map(recs.map(r => [r.id, r]));
+  const isReady = r => {
+    if (!r.dependsOnIds.length) return true;
+    return r.dependsOnIds.every(id => {
+      const dep = byId.get(id);
+      return !dep || dep.status === 'closed';
+    });
+  };
+  const byPri = arr => [...arr].sort((a,b) => {
+    const aReady = isReady(a) ? 0 : 1;
+    const bReady = isReady(b) ? 0 : 1;
+    return aReady - bReady || (a.priority??99) - (b.priority??99) || a.title.localeCompare(b.title);
+  });
+
+  for (const [name, tasks] of sorted) {
+    const disp = name || 'Unassigned';
+    const color = name ? avColor(name) : 'var(--ink-4)';
+    const doneCnt = tasks.filter(r => r.status === 'closed').length;
+    const activeTasks = tasks.filter(r => r.status === 'in_progress');
+    const blockedTasks = tasks.filter(r => r.status === 'blocked');
+    const openTasks = tasks.filter(r => r.status === 'open');
+    const deferredTasks = tasks.filter(r => r.status === 'deferred');
+    const personPct = tasks.length ? Math.round((doneCnt / tasks.length) * 100) : 0;
+    const hasActive = activeTasks.length > 0 || blockedTasks.length > 0;
+    const isIdle = !hasActive && openTasks.length === 0 && deferredTasks.length === 0;
+
+    const $lane = dl(`lane${isIdle ? ' idle' : ''}${!name ? ' unassigned' : ''}`);
+
+    // ── Person info (left) ──
+    const $person = dl('lane-person');
+    $person.innerHTML = `
+      <div class="lane-av" style="background:${color}">
+        ${esc(initials(disp))}
+        <div class="${hasActive ? 'online' : 'offline'}"></div>
+      </div>
+      <div class="lane-name" title="${esc(disp)}">${esc(disp)}</div>
+      <div class="lane-stats">${tasks.length - doneCnt} open · ${doneCnt} done</div>
+      <div class="lane-prog"><div class="lane-prog-fill" style="width:${personPct}%;background:${color}"></div></div>
+      <div class="lane-pct" style="color:${color}">${personPct}%</div>
+    `;
+    $lane.appendChild($person);
+
+    // ── Task cards flow (right) ──
+    const $tasks = dl('lane-tasks');
+
+    const makeLCard = (r, type) => {
+      const cls = {
+        'active': 'lc-active', 'blocked': 'lc-blocked', 'open': 'lc-open',
+        'done': 'lc-done', 'queue': 'lc-queue', 'deferred': 'lc-deferred'
+      }[type] || 'lc-queue';
+      const labelMap = {
+        'active': '▶ Đang làm', 'blocked': '🚫 Blocked', 'open': '○ Open',
+        'done': '✓ Done', 'queue': '📋 Queue', 'deferred': '⊡ Deferred'
+      };
+      const $c = dl(`lcard ${cls}`);
+      let html = `<div class="lcard-label">${labelMap[type] || type}</div>`;
+      html += `<div class="lcard-title">${esc(r.title)}</div>`;
+      html += `<div class="lcard-meta">${esc(r.id)}${r.type ? ' · ' + esc(r.type) : ''}</div>`;
+      if (r.dependsOnIds.length) {
+        html += `<div class="lcard-dep">→ chờ ${r.dependsOnIds.map(id => esc(id)).join(', ')}</div>`;
+      }
+      if (r.priority != null) {
+        const pcls = {0:'b-p0',1:'b-p1',2:'b-p2'}[r.priority] || 'b-type';
+        html += `<span class="lcard-badge ${pcls}">P${r.priority} ${PM[r.priority] || ''}</span>`;
+      }
+      $c.innerHTML = html;
+      $c.addEventListener('click', () => openModal(r));
+      return $c;
+    };
+
+    let hasCards = false;
+
+    // Active tasks
+    if (activeTasks.length) {
+      byPri(activeTasks).forEach(r => $tasks.appendChild(makeLCard(r, 'active')));
+      hasCards = true;
+    }
+
+    // Blocked tasks
+    if (blockedTasks.length) {
+      if (hasCards) $tasks.appendChild(dl('lane-sep'));
+      byPri(blockedTasks).forEach(r => $tasks.appendChild(makeLCard(r, 'blocked')));
+      hasCards = true;
+    }
+
+    // Open tasks (queue)
+    if (openTasks.length) {
+      if (hasCards) $tasks.appendChild(dl('lane-sep'));
+      byPri(openTasks).forEach(r => $tasks.appendChild(makeLCard(r, 'open')));
+      hasCards = true;
+    }
+
+    // Deferred tasks
+    if (deferredTasks.length) {
+      if (hasCards) $tasks.appendChild(dl('lane-sep'));
+      byPri(deferredTasks).forEach(r => $tasks.appendChild(makeLCard(r, 'deferred')));
+      hasCards = true;
+    }
+
+    // Done count (collapsed)
+    if (doneCnt > 0) {
+      const $done = dl('done-toggle');
+      $done.textContent = `✅ ${doneCnt} done`;
+      $done.title = `${doneCnt} completed tasks`;
+      $done.addEventListener('click', () => {
+        // Toggle showing done tasks
+        const existing = $tasks.querySelectorAll('.lcard.lc-done');
+        if (existing.length) {
+          existing.forEach(el => el.remove());
+          $done.textContent = `✅ ${doneCnt} done`;
+        } else {
+          const doneTasks = tasks.filter(r => r.status === 'closed');
+          byPri(doneTasks).forEach(r => {
+            $tasks.insertBefore(makeLCard(r, 'done'), $done);
+          });
+          $done.textContent = `▲ hide done`;
+        }
+      });
+      $tasks.appendChild($done);
+    }
+
+    // Idle message
+    if (!hasCards && doneCnt === 0) {
+      const $idle = dl('lane-idle-msg');
+      $idle.textContent = 'No tasks assigned';
+      $tasks.appendChild($idle);
+    }
+
+    $lane.appendChild($tasks);
+    $body.appendChild($lane);
+  }
+
+  if (!sorted.length) {
+    const e = dl(''); e.style.cssText = 'padding:2rem 1.5rem;color:var(--ink-4);';
+    e.textContent = 'No tasks match the current filter.';
+    $body.appendChild(e);
+  }
+
+  $wrap.appendChild($body);
+  $ca.appendChild($wrap);
+}
+
+/* ══════════════════════════════════════
+   IMPROVED DEPENDENCY VIEW
+══════════════════════════════════════ */
+function renderDepView($ca) {
+  const $dv = dl('dep-view');
+  const {roots} = state.depTree;
+
+  if (!roots.length) {
+    const e = dl(''); e.style.cssText = 'padding:2rem 1.5rem;color:var(--ink-4);';
+    e.textContent = 'No tasks.'; $dv.appendChild(e);
+  } else {
+    roots.forEach(n => {
+      const $root = dl('dep-root');
+      $root.appendChild(depNodeNew(n));
+      $dv.appendChild($root);
+    });
+  }
+  $ca.appendChild($dv);
+}
+
+function depNodeNew(n) {
+  // Ref nodes
+  if (n.type === 'ref') {
+    const $ref = dl('dep-ref dep-node-wrap');
+    $ref.innerHTML = `<span class="dep-ref-label">↳ ref</span><span>${esc(n.rec.title)}</span><span class="dep-card-id">${esc(n.id)}</span>`;
+    $ref.style.cursor = 'pointer';
+    $ref.addEventListener('click', () => openModal(n.rec));
+    return $ref;
+  }
+  if (n.type === 'cycle') {
+    const $ref = dl('dep-ref dep-node-wrap');
+    $ref.innerHTML = `<span class="dep-ref-label">⟳ cycle</span><span>${esc(n.rec.title)}</span><span class="dep-card-id">${esc(n.id)}</span>`;
+    return $ref;
+  }
+
+  const $wrap = dl('dep-node-wrap');
+  const r = n.rec;
+  const hasChildren = n.children.length > 0;
+  const ac = r.assignee ? avColor(r.assignee) : 'var(--ink-4)';
+  const SL = {open:'Open', in_progress:'In Progress', blocked:'Blocked', deferred:'Deferred', closed:'Done'};
+  const SC = {open:'b-open', in_progress:'b-wip', blocked:'b-blocked', deferred:'b-deferred', closed:'b-done'};
+  const PM = {0:'Critical',1:'High',2:'Medium',3:'Low',4:'Backlog'};
+
+  // Card
+  const $card = dl(`dep-card ds-${r.status || 'other'}`);
+  let cardHtml = '';
+
+  // Toggle button
+  if (hasChildren) {
+    cardHtml += `<button class="dep-card-toggle expanded">▶</button>`;
+  }
+
+  // Body
+  cardHtml += `<div class="dep-card-body">
+    <div class="dep-card-title">${esc(r.title)}</div>
+    <div class="dep-card-sub">
+      <span class="dep-card-id">${esc(r.id)}</span>
+      <span class="badge ${SC[r.status] || 'b-type'}">${SL[r.status] || esc(r.status || '?')}</span>
+      ${r.priority != null ? `<span class="badge ${({0:'b-p0',1:'b-p1',2:'b-p2'})[r.priority] || 'b-type'}">P${r.priority} ${PM[r.priority] || ''}</span>` : ''}
+      ${r.type ? `<span class="badge b-type">${esc(r.type)}</span>` : ''}
+      ${hasChildren ? `<span class="dep-blocker-count">blocks ${n.children.length}</span>` : ''}
+    </div>
+  </div>`;
+
+  // Assignee avatar
+  if (r.assignee) {
+    cardHtml += `<div class="dep-card-av" style="background:${ac}" title="${esc(r.assignee)}">${esc(initials(r.assignee))}</div>`;
+  }
+
+  $card.innerHTML = cardHtml;
+
+  // Click to open modal (not on toggle)
+  $card.addEventListener('click', e => {
+    if (e.target.closest('.dep-card-toggle')) return;
+    openModal(r);
+  });
+
+  $wrap.appendChild($card);
+
+  // Children
+  if (hasChildren) {
+    const $ch = dl('dep-children');
+    n.children.forEach(c => $ch.appendChild(depNodeNew(c)));
+    $wrap.appendChild($ch);
+
+    // Toggle
+    const $tog = $card.querySelector('.dep-card-toggle');
+    $tog.addEventListener('click', e => {
+      e.stopPropagation();
+      $ch.classList.toggle('collapsed');
+      $tog.classList.toggle('expanded');
+    });
+  }
+
+  return $wrap;
+}
+
+/* ── Card builder ── */
+function buildCard(r, hasChildren=false, extraWarns=[]) {
+  const card=dl(`task-card status-${r.status||'other'}`);
+  const PM={0:'Critical',1:'High',2:'Medium',3:'Low',4:'Backlog'};
+  const PC={0:'b-p0',1:'b-p1',2:'b-p2',3:'b-type',4:'b-type'};
+  const desc=(r.description||'').trim();
+  const trunc=desc.length>MAX_DESC?desc.slice(0,MAX_DESC)+'…':desc;
+  const ac=r.assignee?avColor(r.assignee):'var(--ink-4)';
+
+  card.innerHTML=`
+    <div style="display:flex;align-items:flex-start;gap:.45rem">
+      ${hasChildren?`<button class="ctog open">▶</button>`:''}
+      <div style="flex:1;min-width:0">
+        <div class="card-title">${esc(r.title)}</div>
+        <div class="card-id">${esc(r.id)}</div>
+      </div>
+      ${r.assignee?`<div class="av" style="background:${ac};width:20px;height:20px;font-size:.5rem;flex-shrink:0;margin-top:1px" title="${esc(r.assignee)}">${esc(initials(r.assignee))}</div>`:''}
+    </div>
+    <div class="card-badges">
+      <span class="badge ${{open:'b-open',in_progress:'b-wip',blocked:'b-blocked',deferred:'b-deferred',closed:'b-done'}[r.status]||'b-type'}">${{open:'Open',in_progress:'In Progress',blocked:'Blocked',deferred:'Deferred',closed:'Done'}[r.status]||esc(r.status||'?')}</span>
+      ${r.priority!=null?`<span class="badge ${PC[r.priority]||'b-type'}">P${r.priority} ${PM[r.priority]||''}</span>`:''}
+      ${r.type?`<span class="badge b-type">${esc(r.type)}</span>`:''}
+      ${extraWarns.map(w=>`<span class="badge" style="background:var(--warn-bg,oklch(96% .05 65));color:oklch(36% .13 58)">${esc(w.code)}</span>`).join('')}
+    </div>
+    ${r.dependsOnIds.length?`<div class="card-deps"><span class="dep-label">blocked by</span>${r.dependsOnIds.map(id=>`<span class="dep-chip">${esc(id)}</span>`).join('')}</div>`:''}
+    ${desc?`<div class="card-desc">${esc(trunc)}</div>`:''}`;
+
+  const tog=card.querySelector('.ctog');
+  if(tog&&hasChildren)tog.addEventListener('click',e=>{
+    e.stopPropagation();
+    const ch=card.parentElement?.querySelector('.tree-children');
+    if(ch){ch.classList.toggle('collapsed');tog.classList.toggle('open');}
+  });
+  // Open detail modal on click
+  card.addEventListener('click',e=>{
+    if(e.target.closest('.ctog')||e.target.closest('.more-badge'))return;
+    openModal(r);
+  });
+  return card;
+}
+
+/* ── Task Detail Modal ── */
+function openModal(r){
+  const PM={0:'Critical',1:'High',2:'Medium',3:'Low',4:'Backlog'};
+  const PC={0:'b-p0',1:'b-p1',2:'b-p2',3:'b-type',4:'b-type'};
+  const SL={open:'Open',in_progress:'In Progress',blocked:'Blocked',deferred:'Deferred',closed:'Done'};
+  const SC={open:'b-open',in_progress:'b-wip',blocked:'b-blocked',deferred:'b-deferred',closed:'b-done'};
+  const ac=r.assignee?avColor(r.assignee):'var(--ink-4)';
+
+  document.getElementById('m-title').textContent=r.title;
+  document.getElementById('m-id').textContent=r.id;
+
+  // Badges
+  let badges=`<span class="badge ${SC[r.status]||'b-type'}">${SL[r.status]||r.status||'?'}</span>`;
+  if(r.priority!=null)badges+=`<span class="badge ${PC[r.priority]||'b-type'}">P${r.priority} ${PM[r.priority]||''}</span>`;
+  if(r.type)badges+=`<span class="badge b-type">${esc(r.type)}</span>`;
+  document.getElementById('m-badges').innerHTML=badges;
+
+  // Assignee
+  const $asec=document.getElementById('m-assign-sec');
+  if(r.assignee){
+    $asec.style.display='';
+    document.getElementById('m-assign').innerHTML=
+      `<div class="av" style="background:${ac};width:22px;height:22px;font-size:.55rem">${esc(initials(r.assignee))}</div>
+       <span>${esc(r.assignee)}</span>`;
+  }else{$asec.style.display='none';}
+
+  // Description
+  const desc=(r.description||'').trim();
+  const $dsec=document.getElementById('m-desc-sec');
+  if(desc){
+    $dsec.style.display='';
+    document.getElementById('m-desc').textContent=desc;
+  }else{$dsec.style.display='none';}
+
+  // Dependencies
+  const $depSec=document.getElementById('m-deps-sec');
+  if(r.dependsOnIds?.length){
+    $depSec.style.display='';
+    document.getElementById('m-deps').innerHTML=r.dependsOnIds.map(id=>
+      `<span class="dep-chip">${esc(id)}</span>`).join('');
+  }else{$depSec.style.display='none';}
+
+  const $overlay=document.getElementById('task-modal');
+  $overlay.style.display='flex';
+  // Re-trigger animation
+  const $box=document.getElementById('modal-box');
+  $box.style.animation='none';
+  requestAnimationFrame(()=>{ $box.style.animation=''; });
+}
+function closeModal(e){
+  if(e&&e.target!==document.getElementById('task-modal'))return;
+  document.getElementById('task-modal').style.display='none';
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')document.getElementById('task-modal').style.display='none';
+});
+
+/* ── Error state ── */
+function showErr(title,msg){
+  setLoading(false);
+  const $ca=document.getElementById('content-area');
+  $ca.innerHTML=`<div class="state-panel"><div class="state-icon">⚠</div><div class="state-title">${esc(title)}</div><div class="state-body">${esc(msg)}</div></div>`;
+}
+
+/* ── Helpers ── */
+function dl(cls){const e=document.createElement('div');if(cls)e.className=cls;return e;}
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+</script>
+</body>
+</html>

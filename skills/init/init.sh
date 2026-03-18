@@ -61,12 +61,35 @@ has() { command -v "$1" &>/dev/null; }
 
 # ─── Git ──────────────────────────────────────────────────────────────────────
 
-check_git() {
-  if ! git rev-parse --is-inside-work-tree &>/dev/null; then
-    err "Not inside a git repository. Run from a git project root."
-    exit 1
+setup_git() {
+  if ! has git; then
+    info "Installing git..."
+    if has apt-get; then
+      sudo apt-get install -y git
+    elif has brew; then
+      brew install git
+    elif has dnf; then
+      sudo dnf install -y git
+    elif has pacman; then
+      sudo pacman -S --noconfirm git
+    else
+      err "Cannot install git: no supported package manager found."
+      exit 1
+    fi
+    has git || { err "Git installation failed"; exit 1; }
   fi
-  ok "git: $(git --version)"
+
+  if ! git rev-parse --is-inside-work-tree &>/dev/null; then
+    info "Not inside a git repository. Initializing..."
+    git init
+    # Set default branch to main if not configured
+    git symbolic-ref HEAD refs/heads/main 2>/dev/null || true
+    # Create initial commit so branch exists
+    git commit --allow-empty -m "chore: initial commit" 2>/dev/null || true
+    ok "git: initialized new repository"
+  else
+    ok "git: $(git --version)"
+  fi
 }
 
 # ─── Dolt ─────────────────────────────────────────────────────────────────────
@@ -304,7 +327,7 @@ main() {
   echo -e "${BLUE}━━━ C4Flow Init ━━━${NC}"
   echo ""
 
-  check_git
+  setup_git
 
   if [ "$SKIP_BEADS" = false ]; then
     install_dolt

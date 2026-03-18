@@ -1,6 +1,6 @@
 ---
 name: c4flow:code
-description: Execute code implementation via subagents, one task per agent, with two-stage review
+description: Execute code implementation via sub-agents, one per task. Uses the beads agent loop (bd ready → claim → implement → close → repeat) to coordinate parallel work across sub-agents. Trigger when the user wants to start coding, implement tasks, or run the implementation phase.
 ---
 
 # /c4flow:code — Subagent-Driven Code Execution
@@ -13,6 +13,7 @@ Execute plan by dispatching a fresh subagent per task, with two-stage review aft
 **Why subagents:** Fresh context per task prevents pollution. You construct exactly what each subagent needs — they never inherit session history. This preserves your context for coordination.
 
 **Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+
 
 ## Prerequisites
 
@@ -213,3 +214,259 @@ The per-task reviews in CODE catch task-level issues. The full-branch Codex revi
 - `skills/code/implementer-prompt.md`
 - `skills/code/spec-reviewer-prompt.md`
 - `skills/code/code-quality-reviewer-prompt.md`
+
+---
+
+## Beads Agent Loop Integration
+
+**Agent type**: Main agent (dispatches sub-agents)
+**Status**: Implemented
+
+## Overview
+
+This skill drives the implementation phase by following the beads agent loop pattern. It queries `bd ready` for unblocked tasks, dispatches sub-agents to implement them in parallel, and closes tasks as they complete — naturally unblocking downstream work.
+
+The key insight from the beads architecture: tasks are **parallel by default**. The `bd ready` command surfaces all tasks with no open blockers, so multiple sub-agents can work simultaneously on independent tasks. As each task closes, `bd ready` automatically surfaces newly unblocked downstream tasks.
+
+## Input
+- Beads epic ID from `docs/c4flow/.state.json` (`beadsEpic` field)
+- `docs/specs/<feature>/spec.md` — feature requirements
+- `docs/specs/<feature>/design.md` — architecture decisions
+- `docs/specs/<feature>/tech-stack.md` — technology choices
+
+## Output
+- Implemented code for all tasks in the epic
+- Each task closed with `--reason` for audit trail
+- Issues discovered during work tracked via `discovered-from` dependency
+
+## Gate Condition
+```
+CODE -> TEST: All tasks in epic are closed (status: closed)
+```
+
+## Instructions
+
+You are the code execution agent. You coordinate sub-agents to implement all tasks in the beads epic, following the agent loop pattern.
+
+### Step 1: Read Context and Verify State
+
+```bash
+# Read the epic ID from state
+EPIC_ID=$(jq -r '.beadsEpic // empty' docs/c4flow/.state.json 2>/dev/null)
+FEATURE_SLUG=$(jq -r '.feature.slug // empty' docs/c4flow/.state.json 2>/dev/null)
+
+if [ -z "$EPIC_ID" ]; then
+  echo "ERROR: No beads epic found. Run /c4flow:beads first."
+  exit 1
+fi
+
+# Verify the epic exists and has tasks
+bd show "$EPIC_ID" --json
+bd dep tree "$EPIC_ID"
+```
+
+Read the spec files:
+- `docs/specs/<feature>/spec.md`
+- `docs/specs/<feature>/design.md`
+- `docs/specs/<feature>/tech-stack.md`
+
+### Step 2: Get Ready Tasks
+
+Query beads for tasks that have no open blockers:
+
+```bash
+bd ready --json
+```
+
+This returns all tasks where:
+- Status is `open` (not claimed, not closed)
+- No `blocks` dependencies on open/in_progress tasks
+- Parent is not blocked
+
+If no tasks are ready but tasks remain open, check what's blocking:
+
+```bash
+bd blocked --json
+```
+
+### Step 3: Claim and Dispatch — The Agent Loop
+
+For each batch of ready tasks, follow this loop:
+
+```
+┌─────────────────────────────────────┐
+│  bd ready --json                    │
+│  ↓                                  │
+│  For each ready task:               │
+│    1. bd update <id> --claim        │
+│    2. Dispatch sub-agent            │
+│    3. Sub-agent implements          │
+│    4. bd close <id> --reason "..."  │
+│  ↓                                  │
+│  New tasks unblocked → loop back    │
+└─────────────────────────────────────┘
+```
+
+#### Claiming a task
+
+Before dispatching, claim the task so other agents don't pick it up:
+
+```bash
+bd update <task-id> --claim --json
+```
+
+This sets `status: in_progress` and `assignee` to the current actor.
+
+#### Dispatching sub-agents
+
+Dispatch one sub-agent per ready task. Independent tasks run in **parallel** — this is the key advantage of the molecule model.
+
+**Sub-agent prompt template:**
+
+```
+You are implementing a single task from a beads work graph.
+
+## Task
+ID: <task-id>
+Title: <task-title>
+Description: <task-description>
+
+## Feature Context
+Spec: docs/specs/<feature-slug>/spec.md
+Design: docs/specs/<feature-slug>/design.md
+Tech Stack: docs/specs/<feature-slug>/tech-stack.md
+
+## Instructions
+1. Read the spec, design, and tech-stack files for context
+2. Implement the task according to its description and acceptance criteria
+3. Write tests for your implementation (follow the testing patterns in tech-stack.md)
+4. If you discover a bug or new requirement during implementation, report it — do NOT silently fix unrelated code
+
+## Output
+Save all code to the appropriate project directories.
+When done, report:
+- FILES_CHANGED: list of files you created or modified
+- TESTS_ADDED: list of test files you created or modified
+- DISCOVERED_ISSUES: any bugs or new requirements found (title + description for each)
+- SUMMARY: brief description of what was implemented
+```
+
+#### Handling discovered issues
+
+When a sub-agent reports discovering a new issue during implementation, create it with a `discovered-from` link:
+
+```bash
+bd create "Discovered: <issue-title>" \
+  -t bug \
+  -p <priority> \
+  --description="<issue-description>
+Discovered while implementing: <source-task-id>" \
+  --deps discovered-from:<source-task-id> \
+  -l "discovered,needs-triage" \
+  --json
+```
+
+The `discovered-from` dependency is **non-blocking** — it's a traceability link, not a gate. The discovered issue will be triaged separately.
+
+#### Closing completed tasks
+
+After a sub-agent finishes successfully:
+
+```bash
+bd close <task-id> --reason "Implemented: <brief summary of what was done>. Files: <key files changed>"
+```
+
+The `--reason` flag is required for audit trail. Without it, the closure lacks context for future reference.
+
+### Step 4: Monitor Progress
+
+After each batch of sub-agents completes, check progress:
+
+```bash
+# See what's newly unblocked
+bd ready --json
+
+# Check overall epic progress
+bd dep tree "$EPIC_ID"
+
+# Quick stats
+bd stats --json 2>/dev/null
+```
+
+If new tasks became ready (because their blockers just closed), loop back to Step 3.
+
+### Step 5: Handle Edge Cases
+
+#### All tasks blocked (circular dependency)
+
+```bash
+bd dep cycles --json 2>/dev/null
+```
+
+If cycles exist, present them to the user and ask which dependency to remove.
+
+#### Sub-agent fails
+
+If a sub-agent cannot complete its task:
+1. Do NOT close the task
+2. Add a comment with the failure reason:
+   ```bash
+   bd comment <task-id> "Implementation failed: <reason>"
+   ```
+3. Update the task with error context:
+   ```bash
+   bd update <task-id> --status open -l "blocked,needs-help"
+   ```
+4. Report to the user and ask for guidance
+
+#### Task depends on external input
+
+If a task is blocked on something outside the codebase (API key, external service, user decision):
+1. Add a comment explaining the blocker
+2. Move on to other ready tasks
+3. Report the blocked task to the user
+
+### Step 6: Completion Check
+
+When `bd ready --json` returns empty AND no tasks are `in_progress`:
+
+```bash
+# Verify all tasks under the epic are closed
+OPEN_COUNT=$(bd list --json 2>/dev/null | \
+  jq --arg epic "$EPIC_ID" '[.[] | select(.status != "closed")] | length')
+
+if [ "$OPEN_COUNT" -eq 0 ]; then
+  echo "All tasks complete. Ready for testing phase."
+else
+  echo "$OPEN_COUNT tasks still open."
+fi
+```
+
+If all tasks are closed, report completion to the orchestrator.
+
+If discovered issues remain open, present them to the user:
+```bash
+bd list --json 2>/dev/null | \
+  jq '[.[] | select(.status != "closed") | select(.labels[]? | contains("discovered"))]'
+```
+
+Ask: "These issues were discovered during implementation. Should we address them now or defer to a follow-up?"
+
+### Step 7: Sync (Team Mode)
+
+If working with a team or DoltHub remote:
+
+```bash
+bd dolt push 2>/dev/null
+```
+
+This syncs task state to the remote so other team members see the progress.
+
+## Implementation Notes
+
+- **Parallel dispatch is the default.** If `bd ready` returns 3 tasks, dispatch 3 sub-agents simultaneously. Sequential execution is a last resort.
+- **`bd ready` is the source of truth.** Never manually decide what to work on — let the dependency graph determine readiness.
+- **Claim before starting.** `bd update --claim` prevents duplicate work when multiple agents run concurrently.
+- **Always close with `--reason`.** The audit trail is valuable for review and debugging later.
+- **`discovered-from` for traceability.** New issues found during work get linked back to the source task, building a traceable web of work.
+- **Never resolve issues you didn't work on.** Each sub-agent closes only its own task.

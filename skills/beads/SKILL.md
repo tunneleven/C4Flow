@@ -1,9 +1,9 @@
 ---
 name: c4flow:beads
-description: Break down the feature into tasks and create a beads epic.
+description: Break down a feature into a detailed beads epic with rich task metadata — priority, assignee, acceptance criteria, design notes, dependency graph (blocks/waits-for/conditional), and spec links. Use when the user wants to plan work, decompose features into tasks, create an epic, or set up a dependency-aware work graph. Triggers on task breakdown, epic creation, work planning, or "break this into tasks".
 ---
 
-# /c4flow:beads — Task Breakdown
+# /c4flow:beads — Task Breakdown & Work Graph
 
 **Phase**: 2: Design & Beads
 **Agent type**: Main agent (interactive with user)
@@ -14,147 +14,353 @@ description: Break down the feature into tasks and create a beads epic.
 - `docs/specs/<feature>/design.md` (from spec phase)
 
 ## Output
-- Beads epic + tasks (if `bd` installed)
+- Beads epic with rich child tasks (if `bd` installed)
 - OR `docs/specs/<feature>/tasks.md` (fallback)
 
 ## Instructions
 
-You are the task breakdown agent. You read the spec and design documents, ask the user a few planning questions, then break the feature into trackable tasks.
+You are the task breakdown agent. Read the spec and design, ask planning questions, then decompose the feature into a fully detailed beads work graph — with proper priorities, descriptions, notes, acceptance criteria, assignees, and dependencies.
 
 ### Step 1: Read Context
 
-Read these files to understand the feature scope:
+Read these files to understand the feature:
 - `docs/specs/<feature>/spec.md`
 - `docs/specs/<feature>/design.md`
-- `docs/specs/<feature>/proposal.md` (if exists, for high-level context)
+- `docs/specs/<feature>/proposal.md` (if exists)
 
 ### Step 2: Pre-Breakdown Questions
 
 Ask the user:
-1. How many people on the team? (name/role of each — use "solo" if just the user)
-2. Expected timeline? (rough: days, weeks, sprint)
-3. Confirm spec + design are complete and approved?
+1. Team members? (name/role of each — "solo" if just the user)
+2. Expected timeline? (days, weeks, sprint)
+3. Spec + design approved?
+4. Any hard ordering constraints, or mostly parallel?
 
-### Step 3: Check if Beads is installed and initialized
+### Step 3: Check Beads Installation
 
 ```bash
 command -v bd 2>/dev/null && echo "BD_INSTALLED" || echo "BD_MISSING"
 [ -d ".beads" ] && echo "BEADS_INIT" || echo "BEADS_NOT_INIT"
 ```
 
-Branch based on result:
+| `bd`? | `.beads/`? | Action |
+|-------|-----------|--------|
+| Yes | Yes | → Step 4a |
+| Yes | No | Run `c4flow:init`, then → Step 4a |
+| No | — | Offer `c4flow:init`. If declined → Step 4b |
 
-| `bd` installed? | `.beads/` exists? | Action |
-|-----------------|-------------------|--------|
-| Yes | Yes | → Step 4a (use Beads) |
-| Yes | No | Run `bd init`, then → Step 4a |
-| No | — | Offer to run `c4flow:init` skill. If user declines → Step 4b |
+### Step 4a: Create Epic + Tasks (Beads Path)
 
-**If bd is missing**, tell the user:
-> "Beads (bd) is not installed. I can set it up automatically with `/c4flow:init`, or fall back to tasks.md. Which do you prefer?"
+#### Check for duplicates
 
-If they choose init, invoke the `c4flow:init` skill, then return here.
+```bash
+bd duplicates --json 2>/dev/null
+bd list --status open --json 2>/dev/null
+```
 
-**If bd is installed but .beads/ missing**, invoke the `c4flow:init` skill (it handles `bd init` + Dolt server with proper timeouts), then continue to Step 4a.
-
-### Step 4a: Create Epic + Tasks (Beads path)
+If overlapping open issues exist, ask user whether to reuse, merge, or create fresh.
 
 #### Create the epic
 
+Write a description file first to avoid shell escaping issues:
+
 ```bash
+cat > /tmp/epic-desc.md << 'EOF'
+## Feature: <feature-name>
+
+**Spec:** docs/specs/<feature>/spec.md
+**Design:** docs/specs/<feature>/design.md
+**Proposal:** docs/specs/<feature>/proposal.md
+
+### Summary
+<2-3 sentence summary from spec>
+
+### Success Criteria
+<from spec acceptance criteria>
+EOF
+
 bd create "<feature-name>" -t epic -p 1 \
-  --description="Spec: docs/specs/<feature>/
-Proposal: docs/specs/<feature>/proposal.md
-Tech Stack: docs/specs/<feature>/tech-stack.md
-Spec: docs/specs/<feature>/spec.md
-Design: docs/specs/<feature>/design.md" \
+  --body-file /tmp/epic-desc.md \
+  --spec-id "docs/specs/<feature>/spec.md" \
+  -l "c4flow-epic,phase:beads" \
   --json
 ```
 
-Save the epic ID (e.g., `bd-a1b2`) — this gets stored in `.state.json` as `beadsEpic`.
+Save the epic ID — store in `.state.json` as `beadsEpic`.
 
-#### Break into tasks
+#### Create child tasks with full metadata
 
-Read `spec.md` requirements and `design.md` components, then create tasks following these rules:
-- **Minimize cross-person dependencies** — each person gets an independent group of tasks
-- **Parallel-first** — tasks across different people can run in parallel
-- **Dependencies only within same person** — if task A must finish before task B, assign both to the same person
-- **Integration tasks separate** — final integration/wiring tasks assigned to lead or shared
+For each task, write a description file, then create using `--parent` for auto-numbered hierarchical IDs:
 
-For each task:
 ```bash
-bd create "Task title" \
-  -t task \
+# 1. Write detailed description to file
+cat > /tmp/task-desc.md << 'EOF'
+## Context
+Why this task exists and how it fits the feature.
+
+## Input
+What's needed to start: files, APIs, data, outputs from other tasks.
+
+## Deliverables
+- Concrete output 1
+- Concrete output 2
+
+## Files to modify
+- `src/auth/login.ts`
+- `src/api/routes.ts`
+
+## Technical notes
+Implementation hints, patterns to follow, gotchas.
+
+## Spec reference
+docs/specs/<feature>/spec.md#<requirement-section>
+EOF
+
+# 2. Create task with --parent (auto-numbered child ID)
+bd create "Task title" -t task \
   -p <0-4> \
-  --description="Context: why this task is needed
-Input: what is needed to start (files, APIs, data)
-Output: expected deliverables
-Acceptance criteria: conditions for completion
-Files to modify: list of files
-Technical notes: implementation hints
-Spec ref: docs/specs/<feature>/spec.md#<requirement>" \
-  --deps parent-child:<epic-id> \
+  --parent <epic-id> \
+  --body-file /tmp/task-desc.md \
+  --spec-id "docs/specs/<feature>/spec.md" \
+  -l "<component>,<size>" \
   --json
 ```
 
-Then assign and set dependencies:
+#### Set assignee
+
 ```bash
-bd update <task-id> --assignee "<person-name>"
-bd dep add <task-id> <depends-on-id>   # only if task depends on another
+bd update <task-id> --assignee "<person-name>" --json
 ```
 
-#### Present task tree to user
-
-Show the full breakdown in tree format:
-```
-Epic: bd-a1b2 "Feature Name"
-  Spec: docs/specs/<feature>/
-├── Person A (Role):
-│   ├── bd-xxxx [P1] "Task title"
-│   └── bd-xxxx [P1] "Task title" (depends: bd-xxxx)
-├── Person B (Role):
-│   └── bd-xxxx [P1] "Task title"
-└── Integration (shared):
-    └── bd-xxxx [P1] "Wire components" (depends: bd-xxxx, bd-xxxx)
+For solo projects, claim immediately:
+```bash
+bd update <task-id> --claim --json
 ```
 
-Ask user to review and approve. Iterate if they want changes (add/remove/reorder tasks).
+#### Add acceptance criteria and notes
+
+After creating each task, enrich it with structured metadata. Write to temp files and pipe in:
+
+```bash
+# Acceptance criteria — the "done" conditions
+cat > /tmp/acceptance.md << 'EOF'
+- [ ] Unit tests pass with >80% coverage
+- [ ] API returns correct response format per spec
+- [ ] Error handling for all edge cases in spec section 3.2
+- [ ] No regressions in existing tests
+EOF
+cat /tmp/acceptance.md | bd edit <task-id> --acceptance --stdin
+
+# Design notes — architecture decisions for this task
+cat > /tmp/design.md << 'EOF'
+Use the repository pattern from design.md section 2.1.
+JWT validation middleware already exists in src/middleware/auth.ts — extend it.
+Database schema change requires migration file.
+EOF
+cat /tmp/design.md | bd edit <task-id> --design --stdin
+
+# Notes — implementation context, warnings, references
+cat > /tmp/notes.md << 'EOF'
+Related PR: #142 (similar pattern)
+Watch out for race condition in concurrent token refresh.
+See design.md section 4 for caching strategy.
+EOF
+cat /tmp/notes.md | bd edit <task-id> --notes --stdin
+```
+
+#### Set up dependencies
+
+Dependencies control the execution order. Choose the right type based on the real relationship:
+
+**Blocking types** (affect `bd ready`):
+
+| Type | When | Example |
+|------|------|---------|
+| `blocks` (default) | B literally cannot start without A's output | DB schema → API layer |
+| `conditional-blocks` | B runs only if A fails | Fallback/error paths |
+| `waits-for` | B waits for ALL of A's children | Fanout aggregation |
+
+**Non-blocking types** (graph annotations):
+
+| Type | When | Example |
+|------|------|---------|
+| `related` | Loose connection | Two auth tasks |
+| `discovered-from` | Found during work | Bug found while implementing |
+| `caused-by` | Root cause link | Bug → underlying issue |
+| `validates` | Test/verification | Test task → feature task |
+| `tracks` | Progress tracking | Tracking issue → work items |
+| `supersedes` | Replaces another | New approach → old approach |
+
+```bash
+# B depends on A (A blocks B) — use requirement language
+bd dep add <task-B> <task-A>
+
+# With explicit type
+bd dep add <task-B> <task-A> --type validates
+
+# Create discovered work linked to parent
+bd create "Found bug" -t bug -p 1 --deps discovered-from:<parent-id> --json
+```
+
+**Common pitfall — temporal language inverts dependencies:**
+- ❌ "Phase 1 comes before Phase 2" → `bd dep add phase1 phase2`
+- ✅ "Phase 2 needs Phase 1" → `bd dep add phase2 phase1`
+
+Always think in terms of "what does this task **need** to start?"
+
+#### Add gates for external conditions
+
+When a task depends on something outside beads (PR merge, CI pass, manual approval):
+
+```bash
+# Wait for PR to merge before deploying
+bd create --type=gate --title="Wait for PR #42" \
+  --await-type=gh:pr --await-id=42 --json
+bd dep add <deploy-task> <gate-id>
+
+# Manual approval gate
+bd create --type=gate --title="Deploy approval" --json
+bd dep add <deploy-task> <gate-id>
+# Later: bd gate resolve <gate-id> --reason "Approved"
+```
+
+#### Labels for categorization
+
+Use lowercase, hyphen-separated. Keep it small:
+
+**Component:** `backend`, `frontend`, `api`, `database`, `infra`
+**Size:** `small` (<1 day), `medium` (1-3 days), `large` (>3 days)
+**Quality:** `needs-review`, `needs-tests`, `breaking-change`
+**C4Flow:** `c4flow-epic`, `phase:beads`, `phase:code`
+
+```bash
+bd label add <task-id> backend,medium --json
+```
+
+#### Verify the work graph
+
+```bash
+# Check for dependency cycles
+bd dep cycles 2>/dev/null
+
+# View dependency tree
+bd dep tree <epic-id>
+
+# Visualize as layer diagram (parallel vs sequential)
+bd graph <epic-id> --box
+
+# What's ready now?
+bd ready --json
+
+# What's blocked and by what?
+bd blocked
+```
+
+#### Present to user
+
+Show the full breakdown with all metadata:
+
+```
+Epic: bd-a1b2 "Feature Name" [P1]
+  Spec: docs/specs/<feature>/spec.md
+
+├── Person A (Backend):
+│   ├── bd-a1b2.1 [P1] "Create DB schema" [backend,medium]
+│   │   Acceptance: migration file, indexes, rollback tested
+│   │   Notes: Use design.md section 2.1 schema
+│   │
+│   └── bd-a1b2.2 [P1] "Build API endpoints" [backend,medium]
+│       ⛓ blocked by: bd-a1b2.1 (needs schema)
+│       Acceptance: REST endpoints match spec, auth middleware
+│
+├── Person B (Frontend):
+│   └── bd-a1b2.3 [P2] "Login UI component" [frontend,medium]
+│       Acceptance: matches Figma, form validation, a11y
+│
+└── Integration:
+    └── bd-a1b2.4 [P1] "Wire frontend to API" [frontend,small]
+        ⛓ blocked by: bd-a1b2.2, bd-a1b2.3
+        Acceptance: end-to-end login flow works
+
+Layer 0 (parallel): bd-a1b2.1, bd-a1b2.3  ← start immediately
+Layer 1:            bd-a1b2.2              ← after schema
+Layer 2:            bd-a1b2.4              ← after API + UI
+```
+
+Also show `bd ready --json` output. Ask user to review and iterate.
 
 ### Step 4b: Fallback to tasks.md (no Beads)
 
-Create `docs/specs/<feature>/tasks.md`:
+Create `docs/specs/<feature>/tasks.md` with the same level of detail:
 
 ```markdown
 # Tasks: <feature-name>
 
-> Spec: docs/specs/<feature>/
+> Spec: docs/specs/<feature>/spec.md
 
 ## Person A (Role)
-### [ ] Task 1: <title> [P1]
-- **Depends on:** none
+### [ ] Task 1: <title> [P1] [backend,medium]
+- **Depends on:** none (parallel)
 - **Assignee:** Person A
 - **Description:** ...
-- **Acceptance criteria:** ...
-- **Files:** ...
-- **Spec ref:** docs/specs/<feature>/spec.md#<requirement>
-
-### [ ] Task 2: <title> [P1]
-- **Depends on:** Task 1
-- ...
+- **Acceptance criteria:**
+  - [ ] ...
+  - [ ] ...
+- **Design notes:** ...
+- **Files:** src/...
+- **Spec ref:** spec.md#section
+- **Notes:** ...
 ```
 
-Tell user: "Using `tasks.md` fallback. Run `/c4flow:init` to install Beads for atomic task claiming and dependency resolution."
+Tell user: "Using `tasks.md` fallback. Run `/c4flow:init` to install Beads for dependency resolution and atomic task claiming."
 
-Present the task list to user for review. Iterate if needed.
+### Step 5: Sync to Dolt Remote
 
-### Step 5: Update State
+After all tasks are created, check if a Dolt remote is configured and push:
+
+```bash
+# Check if doltRemote is configured in .state.json
+DOLT_REMOTE=$(jq -r '.doltRemote // empty' docs/c4flow/.state.json 2>/dev/null)
+
+if [ -n "$DOLT_REMOTE" ]; then
+  echo "Syncing beads to Dolt remote: $DOLT_REMOTE"
+  bd dolt push 2>&1
+  if [ $? -eq 0 ]; then
+    echo "✅ Beads synced to remote"
+  else
+    echo "⚠️ Dolt push failed — tasks created locally. Run 'bd dolt push' manually to retry."
+  fi
+fi
+```
+
+If push fails due to auth, tell the user to run `dolt login` first, then `bd dolt push`.
+
+### Step 6: Update State
 
 Update `docs/c4flow/.state.json`:
-- Set `beadsEpic` to the epic ID (or `null` if using fallback)
-- Orchestrator will handle state transition after gate check
+- Set `beadsEpic` to the epic ID (or `null` if fallback)
+- Orchestrator handles state transition after gate check
 
-### Step 6: Report Completion
+### Step 7: Report Completion
 
-Report back to the orchestrator that BEADS is complete. The gate condition is:
-- **Beads path**: epic exists with at least 1 task
-- **Fallback path**: `tasks.md` exists with at least 1 task
+Gate condition:
+- **Beads path**: epic exists with ≥1 child task, each has description + acceptance criteria + priority
+- **Fallback**: `tasks.md` exists with ≥1 task
+
+```bash
+bd dep tree <epic-id>
+bd stats --json 2>/dev/null
+```
+
+## Quality Checklist
+
+Every task created by this skill should have:
+- ✅ Meaningful priority (P0-P4, not all P2)
+- ✅ Detailed description via `--body-file` (context, input, deliverables, files, tech notes)
+- ✅ Acceptance criteria via `bd edit --acceptance`
+- ✅ Assignee (or claimed for solo)
+- ✅ Spec link via `--spec-id`
+- ✅ Component + size labels
+- ✅ Correct dependency type (`blocks` only when truly sequential)
+- ✅ Notes with implementation context via `bd edit --notes`
+- ✅ Design notes when architecture decisions apply via `bd edit --design`
