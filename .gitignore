@@ -13,3 +13,6 @@ quality-gate-status.json
 .beads/
 
 .superpowers/
+
+# Local git worktrees
+.worktrees/
