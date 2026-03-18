@@ -42,6 +42,12 @@ assert_contains "GITHUB_TOKEN" "script references GITHUB_TOKEN"
 assert_contains "GITHUB_APP_ID" "script references GITHUB_APP_ID"
 assert_contains "GITHUB_APP_INSTALLATION_ID" "script references GITHUB_APP_INSTALLATION_ID"
 assert_contains "GITHUB_APP_PEM_FILE" "script references GITHUB_APP_PEM_FILE"
+assert_contains "git remote get-url origin" "script checks existing origin remote"
+assert_contains "git remote remove origin" "script can replace origin remote"
+assert_contains "git remote add origin" "script adds origin remote"
+assert_contains "git push -u origin" "script pushes initial branch"
+assert_contains "Complete the GitHub App install from the CodeRabbit dashboard" "script includes manual CodeRabbit fallback"
+assert_contains "CodeRabbit config has been created at .coderabbit.yaml." "script reports local CodeRabbit config creation"
 
 TOTAL=$((PASS + FAIL))
 echo ""

@@ -20,6 +20,8 @@ Detects, installs, and configures all C4Flow dependencies in the current project
 - Installs git hooks for data consistency (`bd hooks install`)
 - Optionally configures **DoltHub sync** for cloud backup
 - Sets up `bd prime` for Claude context injection
+- Optionally creates or manages a **GitHub repository** through Terraform
+- Optionally creates **`.coderabbit.yaml`** and helps attach **CodeRabbit**
 
 ## Instructions
 
@@ -54,7 +56,11 @@ The script will:
 3. Run `bd init` with a 30s timeout
 4. Start Dolt server if not running
 5. Configure DoltHub remote (if `--remote` provided)
-6. Verify connectivity with `bd list`
+6. Ask `Do you want to create/manage a GitHub repository for this project?`
+7. If approved, run a Terraform bootstrap for the GitHub repo and push the local branch
+8. Ask `Do you want to set up CodeRabbit for this repository?`
+9. If approved, create `.coderabbit.yaml` and attach CodeRabbit when installation metadata is available
+10. Verify connectivity with `bd list`
 
 **All steps have timeouts. Total time should be under 30 seconds.**
 
@@ -135,7 +141,30 @@ If a DoltHub remote was configured, save the API URL to `docs/c4flow/.state.json
 
 Read the existing `.state.json` first (create it if missing), then merge the `doltRemote` field.
 
-### Step 4: Report Result
+### Step 4: GitHub Bootstrap Requirements
+
+If the user approves GitHub bootstrap, the script requires:
+
+- `terraform` installed locally
+- `GITHUB_OWNER` or `--github-owner`
+- either `GITHUB_TOKEN`
+- or all of `GITHUB_APP_ID`, `GITHUB_APP_INSTALLATION_ID`, and `GITHUB_APP_PEM_FILE`
+
+The GitHub bootstrap uses Terraform with the GitHub provider and manages a `github_repository` resource for the selected owner and repository name.
+
+If the user approves GitHub bootstrap but these variables are missing, stop and ask the user to set them before continuing.
+
+### Step 5: CodeRabbit Behavior
+
+If the user approves CodeRabbit setup, the script will:
+
+1. Create `.coderabbit.yaml` from the bundled template
+2. Try to attach an existing CodeRabbit GitHub App installation if `--coderabbit-installation-id` is provided
+3. Otherwise stop with manual setup guidance
+
+Manual fallback text should tell the user to complete the GitHub App install from the CodeRabbit dashboard for the selected repository.
+
+### Step 6: Report Result
 
 The script outputs a verification summary. Just relay it to the user.
 
@@ -154,12 +183,23 @@ curl -sSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/instal
 bd init
 ```
 
+The script also supports these non-interactive flags:
+
+- `--github` / `--no-github`
+- `--github-owner`
+- `--github-repo`
+- `--github-visibility`
+- `--coderabbit` / `--no-coderabbit`
+- `--coderabbit-installation-id`
+
 ## IMPORTANT Rules
 
 1. **Never run `bd doctor` or `bd doctor --fix`** — hangs indefinitely. The init script verifies with `bd list` instead.
 2. **Use `bd dolt start`** to start the server — never run `dolt sql-server` manually. Beads manages its own server lifecycle.
 3. **Default Dolt port is 3307** (not 3306) — avoids MySQL conflicts.
 4. Dolt server **auto-starts** when needed — calling `bd list` triggers it.
+5. **Never create a GitHub repository without an explicit yes from the user** unless `--github` was passed.
+6. **Never set up CodeRabbit without an explicit yes from the user** unless `--coderabbit` was passed.
 
 If Dolt connection fails after init, tell the user:
 > "Run `bd dolt start` to start the Dolt server, or `bd dolt status` to check."
@@ -175,3 +215,7 @@ If Dolt connection fails after init, tell the user:
 | Dolt won't connect | `bd dolt start`, then `bd dolt status` to check |
 | Hook manager conflict | `bd hooks install` auto-chains with lefthook/husky/pre-commit |
 | Git worktree | All worktrees share the same `.beads/` — database discovery is automatic |
+| Missing GitHub auth vars | Ask user to set `GITHUB_TOKEN` or GitHub App env vars |
+| Missing `terraform` | Ask user to install Terraform before GitHub bootstrap |
+| Existing git `origin` differs | Ask `This repo already has an origin remote. Do you want to replace it?` |
+| Missing CodeRabbit installation metadata | Create `.coderabbit.yaml`, then print manual CodeRabbit install instructions |
