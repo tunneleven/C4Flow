@@ -16,3 +16,10 @@ quality-gate-status.json
 
 # Local git worktrees
 .worktrees/
+
+# Init GitHub bootstrap local Terraform artifacts
+skills/init/terraform/github-bootstrap/.terraform/
+skills/init/terraform/github-bootstrap/.terraform.lock.hcl
+skills/init/terraform/github-bootstrap/*.tfstate
+skills/init/terraform/github-bootstrap/*.tfstate.*
+skills/init/terraform/github-bootstrap/terraform.tfvars.json
