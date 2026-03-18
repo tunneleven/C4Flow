@@ -64,7 +64,7 @@ Gap Analysis → Differentiation Strategy → Initial MVP Scope →
 Technical Approaches → Contrarian View → Risks → Recommendations → Sources
 ```
 
-See `references/spec-templates/research-template.md` for full artifact structure.
+See `references/research-template.md` for full artifact structure.
 
 ## How Spec Phase Uses This Output
 

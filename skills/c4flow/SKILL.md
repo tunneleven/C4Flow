@@ -71,7 +71,7 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
   - SPEC: check which of `proposal.md`, `tech-stack.md`, `spec.md`, `design.md` exist in `docs/specs/{feature.slug}/`
 - If partial output found: present it to user, ask "Reuse existing {files} or regenerate?"
 - Run the skill for the current state (see Skill Dispatch below)
-- After skill completes, check the exit gate condition (see `references/phase-transitions.md`)
+- After skill completes, check the exit gate condition (see `references/phase-transitions.md` in this skill's directory)
 - If gate passes: add current state to `completedStates`, advance `currentState`, write `.state.json`
 - If gate fails: tell user what's missing, ask what to do
 
@@ -113,7 +113,7 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 Dispatch a sub-agent. Provide the sub-agent with:
 
 1. Load the c4flow:research skill (overview) and read the research prompt at `skills/research/prompt.md` (execution steps)
-2. Read the output template: `references/spec-templates/research-template.md`
+2. Read the output template: `skills/research/references/research-template.md`
 3. Execute with these parameters:
 
 ```

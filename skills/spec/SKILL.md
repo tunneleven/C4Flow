@@ -176,7 +176,7 @@ Using the template from `references/spec-templates/proposal-template.md`:
 
 ### Step 4: Generate tech-stack.md
 
-Using the template from `references/spec-templates/tech-stack-template.md`:
+Using the template from `references/tech-stack-template.md`:
 
 1. **Map research Technical Approaches** to tech-stack categories:
    - For each category (Frontend, Backend, Infra, CI/CD, Monitoring):
@@ -243,7 +243,7 @@ Using the template from `references/spec-templates/spec-template.md`:
 
 ### Step 6: Generate design.md
 
-Using the template from `references/spec-templates/design-template.md`:
+Using the template from `references/design-template.md`:
 
 1. **Build the design** from all previous artifacts:
    - **Context**: Summarize from proposal Why + research Problem Statement

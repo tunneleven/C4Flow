@@ -217,7 +217,7 @@ Create the directory if it doesn't exist:
 mkdir -p docs/specs/<feature>
 ```
 
-Write findings to `docs/specs/<feature>/research.md` using the template from `references/spec-templates/research-template.md`. Fill ALL 16 sections with sourced, actionable content.
+Write findings to `docs/specs/<feature>/research.md` using the template from `references/research-template.md`. Fill ALL 16 sections with sourced, actionable content.
 
 **Fast mode only** — add disclaimer at top:
 > ⚠️ This analysis was generated in **fast mode** using AI internal knowledge only. Competitor data (pricing, features, market position) may be outdated. Run with `--research` for verified, current data.
