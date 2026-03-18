@@ -324,6 +324,27 @@ input  { font-family:inherit; }
 .task-card.status-deferred .card-title { color:var(--ink-3); }
 .card-id   { font-family:var(--font-m); font-size:.6rem; color:var(--ink-4); margin-top:.1rem; }
 
+/* Compact card mode */
+.cards-compact .task-card {
+  padding:.25rem .45rem;
+}
+.cards-compact .card-id,
+.cards-compact .card-badges,
+.cards-compact .card-deps,
+.cards-compact .more-badge { display:none !important; }
+.cards-compact .card-title { font-size:.75rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.cards-compact .task-card .av { width:16px!important; height:16px!important; font-size:.45rem!important; }
+/* Compact toggle button (inside kanban header) */
+.compact-btn {
+  background:none; border:1px solid var(--border); border-radius:var(--r);
+  font-size:.65rem; font-family:var(--font-m); color:var(--ink-4);
+  padding:.15rem .45rem; cursor:pointer; white-space:nowrap;
+  transition:background 80ms, color 80ms, border-color 80ms;
+  margin-left:auto;
+}
+.compact-btn:hover { background:var(--bg); color:var(--ink-2); }
+.compact-btn.on { background:var(--accent-bg); color:var(--accent-txt); border-color:var(--accent); }
+
 .card-badges { display:flex; flex-wrap:wrap; gap:.2rem; margin-top:.35rem; align-items:center; }
 .badge {
   display:inline-flex; align-items:center;
@@ -348,6 +369,54 @@ input  { font-family:inherit; }
   background:var(--bg); border:1px solid var(--border); border-radius:2px;
   padding:.03em .3em; color:var(--ink-3);
 }
+
+/* ─────────────────────── Modal ──────────────────────── */
+.modal-overlay {
+  position:fixed; inset:0; z-index:100;
+  background:oklch(10% 0.01 82 / .52); backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center;
+  animation:fade-in .12s ease;
+}
+@keyframes fade-in { from{opacity:0} to{opacity:1} }
+.modal {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:8px; width:min(640px, 92vw); max-height:85vh;
+  display:flex; flex-direction:column;
+  box-shadow:0 20px 60px oklch(0% 0 0 / .24);
+  animation:slide-up .15s cubic-bezier(.22,1,.36,1);
+  overflow:hidden;
+}
+@keyframes slide-up { from{transform:translateY(14px);opacity:0} to{transform:translateY(0);opacity:1} }
+.modal-header {
+  display:flex; align-items:flex-start; gap:.75rem;
+  padding:1rem 1.25rem .875rem; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.modal-title-group { flex:1; min-width:0; }
+.modal-title { font-size:1rem; font-weight:500; line-height:1.4; word-break:break-word; }
+.modal-id { font-family:var(--font-m); font-size:.67rem; color:var(--ink-4); margin-top:.25rem; }
+.modal-close {
+  background:none; border:none; cursor:pointer; font-size:.9rem;
+  color:var(--ink-4); padding:.2rem .4rem; border-radius:var(--r);
+  flex-shrink:0; line-height:1; transition:background 80ms, color 80ms;
+}
+.modal-close:hover { background:var(--bg); color:var(--ink); }
+.modal-body { padding:1rem 1.25rem; overflow-y:auto; display:flex; flex-direction:column; gap:1rem; }
+.modal-body::-webkit-scrollbar { width:4px; }
+.modal-body::-webkit-scrollbar-thumb { background:var(--border-2); border-radius:99px; }
+.modal-badges { display:flex; flex-wrap:wrap; gap:.4rem; }
+.modal-section { display:flex; flex-direction:column; gap:.4rem; }
+.modal-sec-lbl {
+  font-size:.6rem; font-weight:500; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--ink-4); font-family:var(--font-m);
+}
+.modal-assignee { display:flex; align-items:center; gap:.5rem; font-size:.875rem; color:var(--ink-2); }
+.modal-desc {
+  font-size:.85rem; color:var(--ink-2); line-height:1.65;
+  white-space:pre-wrap; word-break:break-word;
+  background:var(--bg); border:1px solid var(--border);
+  border-radius:var(--r); padding:.75rem .875rem;
+}
+.modal-deps { display:flex; flex-wrap:wrap; gap:.35rem; }
 
 /* Description (toggle on click) */
 .card-desc { font-size:.75rem; color:var(--ink-2); line-height:1.45;
@@ -535,6 +604,34 @@ input  { font-family:inherit; }
   </div>
 </div>
 
+<!-- ── Task Detail Modal ── -->
+<div id="task-modal" class="modal-overlay" style="display:none" onclick="closeModal(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-header">
+      <div class="modal-title-group">
+        <div class="modal-title" id="m-title"></div>
+        <div class="modal-id" id="m-id"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-badges" id="m-badges"></div>
+      <div class="modal-section" id="m-assign-sec" style="display:none">
+        <div class="modal-sec-lbl">Assignee</div>
+        <div class="modal-assignee" id="m-assign"></div>
+      </div>
+      <div class="modal-section" id="m-desc-sec" style="display:none">
+        <div class="modal-sec-lbl">Description</div>
+        <div class="modal-desc" id="m-desc"></div>
+      </div>
+      <div class="modal-section" id="m-deps-sec" style="display:none">
+        <div class="modal-sec-lbl">Dependencies</div>
+        <div class="modal-deps" id="m-deps"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ── Constants ── */
 const STORAGE_KEY = 'beads-viewer:last-repo';
@@ -561,6 +658,7 @@ let state = {
   repo:null, records:[], warnings:[], depTree:null, groupedTree:null,
   view:'kanban', statusFilter:'all', personFilter:null,
   visibleCols: new Set(['open','in_progress','blocked','deferred','closed']),
+  compactCards: false,
 };
 let timer=null, countdown=REFRESH_SEC;
 
@@ -745,6 +843,10 @@ function setPersonFilter(name){
   if(state.personFilter!=null)document.querySelector(`.person-btn[data-name="${CSS.escape(name)}"]`)?.classList.add('active');
   renderContent();
 }
+function toggleCompact(){
+  state.compactCards=!state.compactCards;
+  if(state.view==='kanban')renderContent();
+}
 function setView(v){
   state.view=v;
   ['kanban','person','dep','group'].forEach(k=>document.getElementById(`vb-${k}`)?.classList.toggle('active',k===v));
@@ -838,6 +940,14 @@ function renderContent(){
   if(allW.length){$wb.innerHTML=allW.map(w=>`<span>⚠ ${esc(w)}</span>`).join('');$wb.classList.add('vis');}
   else $wb.classList.remove('vis');
 
+  // Save scroll + collapsed state before re-render
+  const prevBody=$ca.querySelector('.kanban-body');
+  const savedScroll=prevBody?{top:prevBody.scrollTop,left:prevBody.scrollLeft}:null;
+  const savedCollapsed=new Set(
+    [...($ca.querySelectorAll('.swim-row.row-collapsed'))].
+    map(el=>el.dataset.swimPerson)
+  );
+
   $ca.innerHTML='';
   $ca.style.cssText='display:flex;flex-direction:column;flex:1;overflow:hidden;';
 
@@ -846,6 +956,15 @@ function renderContent(){
   else if(v==='person')renderByPerson($ca);
   else if(v==='dep')   renderDepView($ca);
   else if(v==='group') renderGroupView($ca);
+
+  // Restore scroll + collapsed states after re-render
+  if(savedScroll){
+    const newBody=$ca.querySelector('.kanban-body');
+    if(newBody){newBody.scrollTop=savedScroll.top;newBody.scrollLeft=savedScroll.left;}
+    $ca.querySelectorAll('.swim-row').forEach(row=>{
+      if(savedCollapsed.has(row.dataset.swimPerson))row.classList.add('row-collapsed');
+    });
+  }
 }
 
 /* ══════════════════════════════════════
@@ -907,7 +1026,9 @@ function renderKanban($ca) {
   // Dynamic header
   const $hdr = dl('kanban-header');
   $hdr.style.gridTemplateColumns = gridTpl;
-  let hdrHtml = '<div class="kh-person-cell">Person</div>';
+  let hdrHtml = `<div class="kh-person-cell">Person
+    <button class="compact-btn${state.compactCards?' on':''}" onclick="toggleCompact()" title="Toggle compact cards">${state.compactCards?'⊟ Full':'⊞ Compact'}</button>
+  </div>`;
   for (const col of cols) {
     const cntVal = recs.filter(r => r.status===col.key).length;
     hdrHtml += `<div class="kh-status-cell">
@@ -919,6 +1040,7 @@ function renderKanban($ca) {
   $wrap.appendChild($hdr);
 
   const $body = dl('kanban-body');
+  if (state.compactCards) $body.classList.add('cards-compact');
 
   if (sorted.length === 0) {
     const e = dl(''); e.style.cssText = 'padding:2rem 1.5rem;font-size:.85rem;color:var(--ink-4);';
@@ -963,6 +1085,7 @@ function renderKanban($ca) {
     const total = Object.values(buckets).flat().length;
     const row   = dl('swim-row');
     row.style.gridTemplateColumns = gridTpl;
+    row.dataset.swimPerson = name; // for collapse state tracking
 
     const $person = dl('swim-person');
     $person.innerHTML = `
@@ -1096,12 +1219,70 @@ function buildCard(r, hasChildren=false, extraWarns=[]) {
     const ch=card.parentElement?.querySelector('.tree-children');
     if(ch){ch.classList.toggle('collapsed');tog.classList.toggle('open');}
   });
+  // Open detail modal on click
   card.addEventListener('click',e=>{
-    if(e.target.closest('.ctog'))return;
-    const d=card.querySelector('.card-desc');if(d)d.classList.toggle('open');
+    if(e.target.closest('.ctog')||e.target.closest('.more-badge'))return;
+    openModal(r);
   });
   return card;
 }
+
+/* ── Task Detail Modal ── */
+function openModal(r){
+  const PM={0:'Critical',1:'High',2:'Medium',3:'Low',4:'Backlog'};
+  const PC={0:'b-p0',1:'b-p1',2:'b-p2',3:'b-type',4:'b-type'};
+  const SL={open:'Open',in_progress:'In Progress',blocked:'Blocked',deferred:'Deferred',closed:'Done'};
+  const SC={open:'b-open',in_progress:'b-wip',blocked:'b-blocked',deferred:'b-deferred',closed:'b-done'};
+  const ac=r.assignee?avColor(r.assignee):'var(--ink-4)';
+
+  document.getElementById('m-title').textContent=r.title;
+  document.getElementById('m-id').textContent=r.id;
+
+  // Badges
+  let badges=`<span class="badge ${SC[r.status]||'b-type'}">${SL[r.status]||r.status||'?'}</span>`;
+  if(r.priority!=null)badges+=`<span class="badge ${PC[r.priority]||'b-type'}">P${r.priority} ${PM[r.priority]||''}</span>`;
+  if(r.type)badges+=`<span class="badge b-type">${esc(r.type)}</span>`;
+  document.getElementById('m-badges').innerHTML=badges;
+
+  // Assignee
+  const $asec=document.getElementById('m-assign-sec');
+  if(r.assignee){
+    $asec.style.display='';
+    document.getElementById('m-assign').innerHTML=
+      `<div class="av" style="background:${ac};width:22px;height:22px;font-size:.55rem">${esc(initials(r.assignee))}</div>
+       <span>${esc(r.assignee)}</span>`;
+  }else{$asec.style.display='none';}
+
+  // Description
+  const desc=(r.description||'').trim();
+  const $dsec=document.getElementById('m-desc-sec');
+  if(desc){
+    $dsec.style.display='';
+    document.getElementById('m-desc').textContent=desc;
+  }else{$dsec.style.display='none';}
+
+  // Dependencies
+  const $depSec=document.getElementById('m-deps-sec');
+  if(r.dependsOnIds?.length){
+    $depSec.style.display='';
+    document.getElementById('m-deps').innerHTML=r.dependsOnIds.map(id=>
+      `<span class="dep-chip">${esc(id)}</span>`).join('');
+  }else{$depSec.style.display='none';}
+
+  const $overlay=document.getElementById('task-modal');
+  $overlay.style.display='flex';
+  // Re-trigger animation
+  const $box=document.getElementById('modal-box');
+  $box.style.animation='none';
+  requestAnimationFrame(()=>{ $box.style.animation=''; });
+}
+function closeModal(e){
+  if(e&&e.target!==document.getElementById('task-modal'))return;
+  document.getElementById('task-modal').style.display='none';
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')document.getElementById('task-modal').style.display='none';
+});
 
 /* ── Error state ── */
 function showErr(title,msg){
