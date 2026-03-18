@@ -214,15 +214,42 @@ EOF
 
 terraform_init_github_bootstrap() {
   # The Terraform module creates github_repository and optional github_app_installation_repository resources.
+  if [ "$GITHUB_AUTH_MODE" = "app" ]; then
+    run_with_timeout 60 env \
+      "TF_VAR_github_app_id=${GITHUB_APP_ID:-}" \
+      "TF_VAR_github_app_installation_id=${GITHUB_APP_INSTALLATION_ID:-}" \
+      "TF_VAR_github_app_pem_file=${GITHUB_APP_PEM_FILE:-}" \
+      terraform -chdir="$GITHUB_BOOTSTRAP_DIR" init -input=false
+    return
+  fi
+
   run_with_timeout 60 terraform -chdir="$GITHUB_BOOTSTRAP_DIR" init -input=false
 }
 
 terraform_apply_github_bootstrap() {
+  if [ "$GITHUB_AUTH_MODE" = "app" ]; then
+    run_with_timeout 120 env \
+      "TF_VAR_github_app_id=${GITHUB_APP_ID:-}" \
+      "TF_VAR_github_app_installation_id=${GITHUB_APP_INSTALLATION_ID:-}" \
+      "TF_VAR_github_app_pem_file=${GITHUB_APP_PEM_FILE:-}" \
+      terraform -chdir="$GITHUB_BOOTSTRAP_DIR" apply -input=false -auto-approve
+    return
+  fi
+
   run_with_timeout 120 terraform -chdir="$GITHUB_BOOTSTRAP_DIR" apply -input=false -auto-approve
 }
 
 terraform_output_github_bootstrap() {
   local key="$1"
+  if [ "$GITHUB_AUTH_MODE" = "app" ]; then
+    env \
+      "TF_VAR_github_app_id=${GITHUB_APP_ID:-}" \
+      "TF_VAR_github_app_installation_id=${GITHUB_APP_INSTALLATION_ID:-}" \
+      "TF_VAR_github_app_pem_file=${GITHUB_APP_PEM_FILE:-}" \
+      terraform -chdir="$GITHUB_BOOTSTRAP_DIR" output -raw "$key"
+    return
+  fi
+
   terraform -chdir="$GITHUB_BOOTSTRAP_DIR" output -raw "$key"
 }
 

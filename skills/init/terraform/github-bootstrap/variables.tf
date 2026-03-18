@@ -49,3 +49,22 @@ variable "github_auth_mode" {
   type        = string
   default     = "token"
 }
+
+variable "github_app_id" {
+  description = "GitHub App id used when github_auth_mode is app."
+  type        = string
+  default     = ""
+}
+
+variable "github_app_installation_id" {
+  description = "GitHub App installation id used when github_auth_mode is app."
+  type        = string
+  default     = ""
+}
+
+variable "github_app_pem_file" {
+  description = "GitHub App PEM contents used when github_auth_mode is app."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
