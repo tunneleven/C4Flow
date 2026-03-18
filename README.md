@@ -84,6 +84,20 @@ Restart Codex, then use `$c4flow` to start the workflow. See [Codex CLI docs](do
 
 The orchestrator will guide you through each phase, dispatching sub-agents for autonomous work and asking for your input on decisions.
 
+### Init Bootstrap
+
+```bash
+/c4flow:init
+```
+
+The init flow now:
+
+- installs and verifies Dolt + Beads
+- optionally asks whether to create or manage a GitHub repository for the current project
+- optionally asks whether to set up CodeRabbit for that repository
+
+GitHub bootstrap uses Terraform and GitHub auth environment variables. CodeRabbit setup creates `.coderabbit.yaml` and can auto-attach an existing installation when an installation id is provided.
+
 ## Current Status
 
 **MVP Phase 1 — Complete**
@@ -94,7 +108,7 @@ The orchestrator will guide you through each phase, dispatching sub-agents for a
 | `/c4flow:research` | Implemented (5 research standards, quality gate) |
 | `/c4flow:spec` | Implemented (4 artifacts, interactive) |
 | `/c4flow:beads` | Implemented (epic→spec linking, tasks.md fallback) |
-| `/c4flow:init` | Implemented (auto-install Dolt + Beads) |
+| `/c4flow:init` | Implemented (Dolt + Beads, optional GitHub + CodeRabbit bootstrap) |
 | Skills 03, 05-15 (design, code → deploy) | Stub (not yet implemented) |
 | `/c4flow:run` command | Implemented |
 | `/c4flow:status` command | Implemented |
@@ -110,8 +124,12 @@ c4flow/
 ├── skills/
 │   ├── c4flow/SKILL.md             # Master orchestrator
 │   ├── init/
-│   │   ├── SKILL.md                # Project init (auto-install deps)
-│   │   └── init.sh                 # Auto-install script (Dolt, Beads)
+│   │   ├── SKILL.md                # Project init (deps + optional remote bootstrap)
+│   │   ├── init.sh                 # Auto-install script (Dolt, Beads, GitHub, CodeRabbit)
+│   │   ├── templates/
+│   │   │   └── coderabbit.yaml     # Starter CodeRabbit config
+│   │   └── terraform/
+│   │       └── github-bootstrap/   # GitHub repo bootstrap via Terraform
 │   ├── research/SKILL.md           # Web research (implemented)
 │   ├── spec/SKILL.md               # Spec generation (implemented)
 │   ├── beads/SKILL.md              # Task breakdown (implemented)
