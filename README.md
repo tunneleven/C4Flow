@@ -3,33 +3,28 @@
 > Agentic development workflow plugin for Claude Code — from idea to deployment, one phase at a time.
 
 ```mermaid
-flowchart TD
-    IDLE([💤 Idle]) -->|new feature| RESEARCH([🔍 Research])
-    IDLE -->|skip research| SPEC
+flowchart LR
+    IDLE(["💤 Idle"]) --> RESEARCH(["🔍 Research"])
+    RESEARCH --> SPEC(["📋 Spec"])
+    SPEC --> DESIGN(["🎨 Design"])
+    DESIGN --> BEADS(["🧩 Beads"])
+    BEADS --> CODE(["💻 Code"])
+    CODE -- "loop until\nall tasks done" --> CODE
+    CODE --> TEST(["✅ Test"])
+    TEST --> REVIEW(["👁 Review"])
+    REVIEW --> VERIFY(["🔒 Verify"])
+    VERIFY --> PR(["📦 PR"])
+    PR --> MERGE(["🔀 Merge"])
+    MERGE --> DEPLOY(["🚀 Deploy"])
+    DEPLOY --> DONE(["🎉 Done"])
 
-    RESEARCH --> SPEC([📋 Spec])
-    SPEC --> DESIGN([🎨 Design])
-    DESIGN --> BEADS([🧩 Beads])
+    DONE -. "new feature" .-> IDLE
+    TEST -. "fail → go back" .-> CODE
+    REVIEW -. "fail → go back" .-> SPEC
 
-    BEADS --> CODE([💻 Code])
-    CODE -->|"bd ready → dispatch sub-agents\nclose tasks → repeat"| CODE
-    CODE -->|all tasks closed ✓| TEST([✅ Test])
-
-    TEST -->|pass ✓| REVIEW([👁 Review])
-    REVIEW --> VERIFY([🔒 Verify])
-    VERIFY --> PR([📦 PR])
-    PR --> MERGE([🔀 Merge])
-    MERGE --> DEPLOY([🚀 Deploy])
-    DEPLOY --> DONE([🎉 Done])
-
-    DONE -->|"new feature"| IDLE
-
-    REVIEW -->|"gate fail → retry ≤3x\nor go back"| SPEC
-    TEST -->|"gate fail → retry ≤3x\nor go back"| CODE
-
-    style IDLE fill:#e2e8f0,stroke:#94a3b8,color:#000
-    style DONE fill:#dcfce7,stroke:#86efac,color:#000
-    style CODE fill:#fef9c3,stroke:#fde047,color:#000
+    style IDLE fill:#e2e8f0,stroke:#94a3b8
+    style DONE fill:#dcfce7,stroke:#86efac
+    style CODE fill:#fef9c3,stroke:#fbbf24
 ```
 
 ---
