@@ -9,15 +9,13 @@ Each state transition requires its gate condition to be met before advancing.
 | IDLE → RESEARCH | User provides feature idea | User input received |
 | RESEARCH → SPEC | `research.md` exists and user confirmed | Check `docs/specs/<feature>/research.md` exists |
 | SPEC → DESIGN | All spec artifacts exist and user approved | Check `proposal.md`, `tech-stack.md`, `spec.md`, `design.md` in `docs/specs/<feature>/` |
-| DESIGN → BEADS | (1) `MASTER.md` exists, (2) `screen-map.md` exists, (3) `.pen` file has Design System frame with reusable components, (4) `.pen` file has ≥1 screen frame, (5) all screens in `screen-map.md` have frames in `.pen`, (6) AI Slop Test + squint test passed on hero screen, (7) user approved final review | Check files exist + user approval |
-| BEADS → CODE | Epic + tasks created, user confirmed | Check beads epic or `tasks.md` exists |
-| CODE → TEST | All tasks closed (per-task reviews passed) | Check beads issues closed or `tasks.md` items checked |
-| TEST → REVIEW | Tests pass, coverage >= threshold | Test runner output |
-| REVIEW → VERIFY | 0 CRITICAL + 0 HIGH issues | Review report |
-| VERIFY → PR | `Ready for PR: YES` | Verify output |
-| PR → PR_REVIEW_LOOP | PR created successfully | `prNumber` set in state |
-| PR_REVIEW_LOOP → MERGE | 0 unresolved PR comments | `gh` CLI check |
-| MERGE → DEPLOY | Merge successful | Git merge confirmed |
+| DESIGN → BEADS | Design system + mockups approved | User confirmation |
+| BEADS → CODE_LOOP | Epic + tasks created, user confirmed | Check beads epic or `tasks.md` exists |
+| CODE_LOOP (per task) | TDD → verify → review → PR → merge per task | Each task: tests pass, preflight pass, 0 CRITICAL/HIGH, PR merged |
+| CODE_LOOP → DEPLOY | All tasks closed (`bd ready` returns empty) | `bd ready --assignee <actor>` returns 0 tasks |
+| DEPLOY → DONE | Deploy verified healthy | Health check passed |
+
+> **Note**: TEST, REVIEW, VERIFY, PR, and MERGE are no longer top-level states. They execute per-task inside the CODE_LOOP task loop. Each task gets its own TDD cycle, verification, review, and PR before the next task starts.
 | DEPLOY → DONE | Deploy verified healthy | Health check passed |
 
 ## Error Handling

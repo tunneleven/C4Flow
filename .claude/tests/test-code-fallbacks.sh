@@ -21,40 +21,40 @@ fail() {
 
 echo "--- test-code-fallbacks.sh ---"
 
-if grep -q 'docs/c4flow/plans/YYYY-MM-DD-<feature-slug>.md' "$TARGET"; then
-  pass "skill includes local implementation-plan recovery path"
-else
-  fail "skill missing local implementation-plan recovery path"
-fi
-
-if grep -q '/c4flow:beads' "$TARGET"; then
-  pass "skill includes /c4flow:beads recovery command"
-else
-  fail "skill missing /c4flow:beads recovery command"
-fi
-
-if grep -q '\$gsd-plan-phase <phase>' "$TARGET"; then
-  pass "skill includes gsd-plan-phase recovery command"
-else
-  fail "skill missing gsd-plan-phase recovery command"
-fi
-
-if grep -qi 'manual fallback' "$TARGET" || grep -qi 'fall back to `tasks.md`' "$TARGET"; then
-  pass "skill documents manual fallback guidance"
-else
-  fail "skill missing manual fallback guidance"
-fi
-
-if grep -q 'Direct invocation is allowed' "$TARGET"; then
-  pass "skill documents direct invocation recovery mode"
-else
-  fail "skill missing direct invocation recovery guidance"
-fi
-
 if grep -q 'bd dolt push' "$TARGET"; then
   pass "skill includes Beads sync step"
 else
   fail "skill missing Beads sync step"
+fi
+
+if grep -qiE "Resume Logic|resume.*subState|taskLoop.*non-null" "$TARGET"; then
+  pass "skill documents resume logic from saved subState"
+else
+  fail "skill missing resume logic"
+fi
+
+if grep -qiE "no.*task.*ready|READY_COUNT.*0|No unblocked tasks" "$TARGET"; then
+  pass "skill handles empty task list gracefully"
+else
+  fail "skill missing empty task list handling"
+fi
+
+if grep -qiE "claim.*fail|already claimed|claim.*conflict" "$TARGET"; then
+  pass "skill handles claim conflict (task already taken)"
+else
+  fail "skill missing claim conflict handling"
+fi
+
+if grep -qiE "pull.*fail|BLOCKED.*git pull|git pull.*error" "$TARGET"; then
+  pass "skill handles git pull failure as BLOCKED"
+else
+  fail "skill missing git pull failure handling"
+fi
+
+if grep -qiE "bd ready.*empty|REMAINING.*0|no more task|tasks.*done" "$TARGET"; then
+  pass "skill handles completion: no more tasks → advance to DEPLOY"
+else
+  fail "skill missing completion/advance-to-DEPLOY logic"
 fi
 
 TOTAL=$((PASS + FAIL))

@@ -21,40 +21,34 @@ fail() {
 
 echo "--- test-c4flow-code-route.sh ---"
 
-CODE_BRANCH=$(awk '
-  /^### If state is CODE$/ { in_section=1; next }
-  /^### If state is any other/ { in_section=0 }
-  in_section { print }
-' "$TARGET")
-
-if grep -q "### If state is CODE" "$TARGET"; then
-  pass "CODE branch heading exists"
+if grep -q "### If state is CODE_LOOP" "$TARGET"; then
+  pass "CODE_LOOP branch heading exists in orchestrator"
 else
-  fail "missing CODE branch heading"
+  fail "missing CODE_LOOP branch heading in orchestrator"
 fi
 
-if grep -q "Load the c4flow:code skill" "$TARGET"; then
-  pass "CODE branch loads c4flow:code"
+if grep -q "c4flow:code" "$TARGET"; then
+  pass "orchestrator references c4flow:code skill"
 else
-  fail "missing Load the c4flow:code skill guidance"
+  fail "orchestrator missing c4flow:code skill reference"
 fi
 
-if printf '%s\n' "$CODE_BRANCH" | grep -q "implementationPlan"; then
-  pass "CODE branch references implementationPlan"
+if grep -qiE "CODE_LOOP.*DEPLOY|advance.*DEPLOY" "$TARGET"; then
+  pass "CODE_LOOP advances to DEPLOY (not TEST)"
 else
-  fail "CODE branch missing implementationPlan reference"
+  fail "CODE_LOOP missing DEPLOY transition"
 fi
 
-if printf '%s\n' "$CODE_BRANCH" | grep -q "TEST"; then
-  pass "CODE branch advances to TEST"
+if grep -qiE "legacy.*migration|CODE.*CODE_LOOP" "$TARGET"; then
+  pass "orchestrator handles legacy CODE → CODE_LOOP migration"
 else
-  fail "CODE branch missing TEST transition"
+  fail "orchestrator missing legacy CODE state migration"
 fi
 
-if printf '%s\n' "$CODE_BRANCH" | grep -q "taskSource"; then
-  pass "CODE branch references taskSource"
+if grep -qiE "serial.*task.*loop|one task at a time|serial loop" "$TARGET"; then
+  pass "orchestrator documents serial task loop"
 else
-  fail "CODE branch missing taskSource reference"
+  fail "orchestrator missing serial task loop description"
 fi
 
 if grep -q "unimplemented skills: DESIGN, CODE, REVIEW through DEPLOY" "$TARGET"; then

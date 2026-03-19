@@ -26,6 +26,11 @@ run_test_script "$SCRIPT_DIR/test-code-skill-file.sh"
 run_test_script "$SCRIPT_DIR/test-c4flow-code-route.sh"
 run_test_script "$SCRIPT_DIR/test-code-state-reference.sh"
 run_test_script "$SCRIPT_DIR/test-code-fallbacks.sh"
+run_test_script "$SCRIPT_DIR/test-code-actor-resolution.sh"
+run_test_script "$SCRIPT_DIR/test-code-branch-strategy.sh"
+run_test_script "$SCRIPT_DIR/test-code-tdd-cycle.sh"
+run_test_script "$SCRIPT_DIR/test-code-verify-review.sh"
+run_test_script "$SCRIPT_DIR/test-code-task-loop-state.sh"
 
 TOTAL=$((PASS_COUNT + FAIL_COUNT))
 echo ""

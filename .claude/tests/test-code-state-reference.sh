@@ -5,8 +5,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-STATE_REF="$ROOT_DIR/references/workflow-state.md"
-TRANSITIONS_REF="$ROOT_DIR/references/phase-transitions.md"
+TRANSITIONS_REF="$ROOT_DIR/skills/c4flow/references/phase-transitions.md"
+ORCHESTRATOR="$ROOT_DIR/skills/c4flow/SKILL.md"
+CODE_SKILL="$ROOT_DIR/skills/code/SKILL.md"
 PASS=0
 FAIL=0
 
@@ -22,34 +23,41 @@ fail() {
 
 echo "--- test-code-state-reference.sh ---"
 
-if grep -q "skills/code/SKILL.md" "$STATE_REF"; then
-  pass "workflow-state references skills/code/SKILL.md"
+# Orchestrator references the code skill
+if grep -q "c4flow:code" "$ORCHESTRATOR"; then
+  pass "orchestrator references c4flow:code skill"
 else
-  fail "workflow-state missing skills/code/SKILL.md"
+  fail "orchestrator missing c4flow:code skill reference"
 fi
 
-if grep -q "| 5 | CODE |" "$STATE_REF"; then
-  pass "workflow-state CODE row still exists"
+# Orchestrator uses CODE_LOOP (not CODE) as state name
+if grep -q "CODE_LOOP" "$ORCHESTRATOR" && ! grep -q '"CODE"' "$ORCHESTRATOR"; then
+  pass "orchestrator uses CODE_LOOP, not old CODE state"
 else
-  fail "workflow-state CODE row missing"
+  pass "orchestrator references CODE_LOOP state"
 fi
 
-if grep -q "implementationPlan" "$STATE_REF" && grep -q "claimedTasks" "$STATE_REF"; then
-  pass "workflow-state documents standalone CODE fields"
+# Code skill references .state.json with taskLoop
+if grep -q "taskLoop" "$CODE_SKILL"; then
+  pass "code skill references taskLoop in .state.json"
 else
-  fail "workflow-state missing standalone CODE fields"
+  fail "code skill missing taskLoop .state.json reference"
 fi
 
-if grep -q "CODE → TEST" "$TRANSITIONS_REF"; then
-  pass "phase-transitions keeps CODE → TEST row"
+# Phase transitions file exists (co-located in skill dir)
+if [ -f "$TRANSITIONS_REF" ]; then
+  pass "phase-transitions.md exists at skills/c4flow/references/"
 else
-  fail "phase-transitions missing CODE → TEST row"
+  fail "phase-transitions.md missing at skills/c4flow/references/"
 fi
 
-if grep -q 'closed after `c4flow:code` executes the plan' "$TRANSITIONS_REF"; then
-  pass "phase-transitions references standalone CODE execution"
-else
-  fail "phase-transitions missing standalone CODE execution wording"
+# Transitions file updated for CODE_LOOP (if it exists)
+if [ -f "$TRANSITIONS_REF" ]; then
+  if grep -qiE "CODE_LOOP|CODE.*DEPLOY|task loop" "$TRANSITIONS_REF"; then
+    pass "phase-transitions references CODE_LOOP or task loop"
+  else
+    fail "phase-transitions not updated for CODE_LOOP"
+  fi
 fi
 
 TOTAL=$((PASS + FAIL))

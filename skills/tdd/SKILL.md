@@ -1,11 +1,11 @@
 ---
 name: c4flow:tdd
-description: "Use when implementing any feature or bugfix in C4Flow — RED-GREEN-REFACTOR cycles, write test first, watch it fail, then implement. Triggers on new features, bug fixes, refactoring, or any time an implementer subagent is about to write production code."
+description: Test-driven development — RED-GREEN-REFACTOR cycles for all C4Flow implementation work. Merged into c4flow:code as a sub-agent phase with a mandatory RED gate pause. Use c4flow:code to run the full task loop.
 ---
 
 # /c4flow:tdd — Test-Driven Development
 
-**Phase**: 3: Implementation (used by CODE subagents)
+**Phase**: 3: Implementation (sub-agent phase within c4flow:code)
 
 Write the test first. Watch it fail. Write minimal code to pass.
 
@@ -15,15 +15,40 @@ Write the test first. Watch it fail. Write minimal code to pass.
 
 ## How TDD Fits C4Flow
 
-TDD is embedded in the CODE phase. When `c4flow:code` dispatches implementer subagents, each subagent follows this TDD cycle per task. The flow:
+TDD is embedded as a sub-agent phase in `c4flow:code`. Each task goes through a full RED-GREEN-REFACTOR cycle with a **mandatory RED gate pause** — the coordinator pauses after RED is confirmed and shows you the test + failure output before any implementation begins.
 
 ```
-BEADS → CODE (subagent per task, each follows TDD) → TEST (coverage gate)
+BEADS → CODE_LOOP (per task: TDD sub-agent with RED gate → verify → review → PR → merge)
 ```
 
-- **Implementer subagents** follow RED-GREEN-REFACTOR for each task
-- **`c4flow:test`** runs the full test suite after CODE completes and checks coverage thresholds
-- If tests were skipped during CODE, the TEST gate catches it
+**RED gate format** (from c4flow:code):
+```
+── RED STATE CONFIRMED ──────────────────────────────────
+Task: <title> (<id>)
+Test: <file>
+Failure: <output>
+Does this test correctly capture the requirement? [yes / adjust]
+─────────────────────────────────────────────────────────
+```
+
+- **Trivial test detection**: if a test passes immediately (before implementation), it's flagged as invalid
+- **Adjust loop**: if you say "adjust", the sub-agent revises and confirms failure again before proceeding
+- See `skills/code/SKILL.md` for full coordinator instructions
+
+## When to Use
+
+**Always:**
+- New features
+- Bug fixes
+- Refactoring
+- Behavior changes
+
+**Exceptions (ask the user):**
+- Throwaway prototypes
+- Generated code
+- Configuration files
+
+Thinking "skip TDD just this once"? Stop. That's rationalization.
 
 ## When to Use
 

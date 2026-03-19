@@ -14,18 +14,13 @@ You are the c4flow orchestrator. You drive a multi-phase workflow that takes a f
 | `IDLE` | — | Start here |
 | `RESEARCH` | 1: Research & Spec | ✅ Implemented |
 | `SPEC` | 1: Research & Spec | ✅ Implemented |
-| `BEADS` | 2: Task Breakdown | ✅ Implemented |
-| `CODE` | 3: Implementation | ✅ Implemented |
-| `TEST` | 4: Testing | ✅ Implemented |
-| `REVIEW` | 5: Review & QA | ✅ Implemented |
-| `VERIFY` | 5: Review & QA | ✅ Implemented |
-| `PR` | 5: Review & QA | ✅ Implemented |
 | `DESIGN` | 2: Design | ✅ Implemented |
-| `E2E` | 4: Testing | ⏳ Not implemented |
-| `INFRA` | 6: Release | ⏳ Not implemented |
+| `BEADS` | 2: Task Breakdown | ✅ Implemented |
+| `CODE_LOOP` | 3: Implementation | ✅ Implemented |
 | `DEPLOY` | 6: Release | ⏳ Not implemented |
-| `MERGE` | 6: Release | ⏳ Not implemented |
 | `DONE` | — | Terminal state |
+
+> **Note**: TEST, REVIEW, VERIFY, PR, and MERGE are no longer top-level states. They execute per-task inside CODE_LOOP.
 
 ## How to Start
 
@@ -85,22 +80,14 @@ You are the c4flow orchestrator. You drive a multi-phase workflow that takes a f
 - If new feature: reset `.state.json` to IDLE state, ask for new feature info
 - If review: show summary of completed states and output files
 
-### If state is RESEARCH (implemented)
+### If state is RESEARCH or SPEC (implemented skills)
 - Check for partial output from a previous interrupted session:
-  - Check if `docs/specs/{feature.slug}/research.md` exists
-- If partial output found: present it to user, ask "Reuse existing research.md or regenerate?"
-- Run the research skill (see Skill Dispatch below)
-- After skill completes, check the exit gate condition (see `references/phase-transitions.md` in this skill's directory)
-- If gate passes: add RESEARCH to `completedStates`, advance `currentState` to SPEC, write `.state.json`
-- If gate fails: tell user what's missing, ask what to do
-
-### If state is SPEC (implemented)
-- Check for partial output from a previous interrupted session:
-  - Check which of `proposal.md`, `tech-stack.md`, `spec.md`, `design.md` exist in `docs/specs/{feature.slug}/`
+  - RESEARCH: check if `docs/specs/{feature.slug}/research.md` exists
+  - SPEC: check which of `proposal.md`, `tech-stack.md`, `spec.md`, `design.md` exist in `docs/specs/{feature.slug}/`
 - If partial output found: present it to user, ask "Reuse existing {files} or regenerate?"
-- Run the spec skill (see Skill Dispatch below)
+- Run the skill for the current state (see Skill Dispatch below)
 - After skill completes, check the exit gate condition (see `references/phase-transitions.md` in this skill's directory)
-- If gate passes: add SPEC to `completedStates`, advance `currentState` to **DESIGN**, write `.state.json`
+- If gate passes: add current state to `completedStates`, advance `currentState`, write `.state.json`
 - If gate fails: tell user what's missing, ask what to do
 
 ### If state is BEADS (implemented)
@@ -108,17 +95,8 @@ You are the c4flow orchestrator. You drive a multi-phase workflow that takes a f
 - If partial output found: present it to user, ask "Reuse existing tasks or regenerate?"
 - Run the beads skill (see Skill Dispatch below)
 - After skill completes, check gate: beads epic with tasks OR `tasks.md` exists
-- If gate passes: add BEADS to `completedStates`, advance `currentState` to CODE, write `.state.json`
+- If gate passes: add BEADS to `completedStates`, advance `currentState` to CODE_LOOP, write `.state.json`
 - If gate fails: tell user what's missing, ask what to do
-
-### If state is TEST (implemented)
-- Check for partial output: were tests already run in a previous session? Look for test coverage reports or cached results in the project
-- If partial output found: present results to user, ask "Reuse existing test results or re-run?"
-- Run the test skill (see Skill Dispatch below)
-- After skill completes, check gate: tests pass AND coverage ≥ threshold
-- If gate passes: add TEST to `completedStates`, advance `currentState` to REVIEW, write `.state.json`
-- If gate fails: tell user the results, ask what to do
-
 
 ### If state is DESIGN (implemented)
 - Check for partial output: does `docs/c4flow/designs/<feature.slug>/` exist?
@@ -129,20 +107,30 @@ You are the c4flow orchestrator. You drive a multi-phase workflow that takes a f
 - If gate passes: add `DESIGN` to `completedStates`, advance `currentState` to `BEADS`, write `.state.json`
 - If gate fails: tell user what's missing, ask what to do
 
-### If state is any other (unimplemented skills: E2E, INFRA, DEPLOY, MERGE)
+### If state is CODE_LOOP (implemented)
+- **Legacy migration**: if `currentState` is `"CODE"`, update to `"CODE_LOOP"` and set `taskLoop: null` before proceeding
+- Check for in-progress task: read `taskLoop` from `.state.json`
+  - If `taskLoop.currentTaskId` is set: tell user "Task `<id>` was in progress at sub-state `<subState>`. Resume?"
+  - If null: start from first ready task
+- Run the code skill (see Skill Dispatch below): `c4flow:code`
+- The code skill runs the full task loop internally — each task goes through TDD → verify → review → PR → merge before the next task starts
+- **CODE_LOOP → DEPLOY**: when `bd ready --assignee <actor>` returns empty and all epic tasks are closed, the code skill advances `currentState` to `"DEPLOY"` directly — no orchestrator action needed
+- If gate fails mid-loop: tell user which task is blocked, offer guidance
+
+### If state is DEPLOY (previously REVIEW/PR/MERGE — now handled inside CODE_LOOP)
+- TEST, REVIEW, PR, and MERGE phases are no longer top-level states
+- These happen per-task inside CODE_LOOP
+- Run the deploy skill (see Skill Dispatch below)
+- After skill completes, check gate: deployment succeeded
+- If gate passes: add DEPLOY to `completedStates`, advance `currentState` to DONE, write `.state.json`
+- If gate fails: tell user what failed, ask what to do
+
+### If state is any other (unimplemented skills)
 - Tell the user: "**{state}** (Phase {N}: {phase-name}) is not yet implemented."
 - Show the gate condition that would need to pass to advance
 - Offer options:
   1. Go back to a previous state
   2. Stop the workflow here
-
-### If state is CODE (implemented)
-- Check for partial progress: query `bd dep tree <epic-id>` to see which tasks are already closed
-- If partial progress found: present the tree to user, ask "Continue from where we left off?"
-- Run the code skill (see Skill Dispatch below)
-- After skill completes, check gate: all tasks in epic are closed
-- If gate passes: add CODE to `completedStates`, advance `currentState` to TEST, write `.state.json`
-- If gate fails: tell user which tasks remain open/blocked, ask what to do
 
 ## Skill Dispatch
 
@@ -169,54 +157,35 @@ After sub-agent returns:
 ### SPEC (Main agent)
 This runs in the main agent (you). Load the c4flow:spec skill and follow its instructions.
 
+### DESIGN (Main agent, dispatches sub-agents)
+This runs in the main agent (you). Load the c4flow:design skill and follow its instructions.
+
 ### BEADS (Main agent)
 This runs in the main agent (you). Load the c4flow:beads skill and follow its instructions.
 After the skill completes, update `beadsEpic` in `.state.json` with the epic ID (or `null` if using `tasks.md` fallback).
 
-### DESIGN (Main agent, dispatches sub-agents)
-This runs in the main agent (you). Load the c4flow:design skill and follow its instructions.
+### CODE_LOOP (Main agent, dispatches sub-agents per task)
+This runs in the main agent (you). Load the `c4flow:code` skill and follow its instructions.
 
-### CODE (Main agent, dispatches sub-agents)
-This runs in the main agent (you). Load the c4flow:code skill and follow its instructions.
+The code skill runs a **serial task loop** — one task at a time:
+1. Resolve actor (`--assignee` arg → `BD_ACTOR` → `git config user.name`)
+2. `bd ready --assignee <actor> --json` → pick one unblocked task
+3. `bd update <task-id> --claim` (atomic) → `bd dolt push`
+4. `git checkout -b feat/<bead-id>-<task-slug>` (always from latest main)
+5. Dispatch TDD sub-agent → RED gate pause → GREEN → REFACTOR
+6. Run tests + coverage + `bd preflight --check`
+7. Dispatch `c4flow:review` → route CRITICAL/HIGH back to TDD sub-agent
+8. `c4flow:pr` → merge to main
+9. `bd close <id> --reason "..."` → `bd dolt push`
+10. Loop back to step 2
 
-The code skill uses the beads agent loop:
-1. Query `bd ready --json` for unblocked tasks
-2. Dispatch sub-agents in parallel for each ready task
-3. As tasks complete, `bd close <id> --reason "..."` and check for newly unblocked tasks
-4. Loop until all tasks in the epic are closed
+When `bd ready` returns empty and all epic tasks are closed, the code skill writes `currentState: "DEPLOY"` to `.state.json` and exits.
 
-Before dispatching sub-agents, inject beads context using `bd prime`:
-```bash
-BD_CONTEXT=$(bd prime 2>/dev/null)
+Pass the actor to the skill:
 ```
-
-Include `BD_CONTEXT` in each sub-agent's prompt so they understand the current work graph state.
-
-After all tasks complete, sync state:
-```bash
-bd dolt push 2>/dev/null
+Invoke c4flow:code with any assignee override from user instructions.
+Example: "pickup task from Alice" → pass --assignee "Alice"
 ```
-
-### TEST (Sub-agent)
-Dispatch a sub-agent. Provide the sub-agent with:
-
-1. Read the full skill instructions: `skills/test/SKILL.md` (overview) + `skills/test/prompt.md` (execution steps)
-2. Execute with these parameters:
-
-```
-Feature: {feature name}
-Coverage threshold: {from tech-stack.md testing section, or 80% default}
-Spec: docs/specs/{feature}/spec.md
-Tech stack: docs/specs/{feature}/tech-stack.md
-```
-
-3. Follow `prompt.md` step by step (8 steps: detect framework → run tests → classify → check coverage → auto-write tests if needed → deep analyze → quality gate → report)
-
-After sub-agent returns:
-- If DONE: present test summary to user, ask "Tests pass with {coverage}% coverage. Ready to advance to review?"
-- If DONE_WITH_CONCERNS: present concerns (e.g., coverage below threshold), ask user how to proceed
-- If BLOCKED: present the issue (env failure, no framework), ask for guidance
-- If NEEDS_CONTEXT: present the question (spec ambiguity, design conflict), ask user for clarification
 
 ## State Management
 
