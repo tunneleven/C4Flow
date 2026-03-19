@@ -1,28 +1,49 @@
-# c4flow
+# C4Flow
 
-An **agentic development workflow** plugin for Claude Code — orchestrates your entire dev process from idea to deployment, one phase at a time.
+> Agentic development workflow plugin for Claude Code — from idea to deployment, one phase at a time.
 
+```mermaid
+flowchart LR
+    IDLE([💤 Idle]) --> RESEARCH([🔍 Research])
+    RESEARCH --> SPEC([📋 Spec])
+    SPEC --> DESIGN([🎨 Design])
+    DESIGN --> BEADS([🧩 Beads])
+    BEADS --> CODE([💻 Code])
+    CODE --> TDD([🧪 TDD])
+    TDD --> TEST([✅ Test])
+    TEST --> E2E([🌐 E2E])
+    E2E --> REVIEW([👁 Review])
+    REVIEW --> VERIFY([🔒 Verify])
+    VERIFY --> PR([📦 PR])
+    PR --> MERGE([🔀 Merge])
+    MERGE --> DEPLOY([🚀 Deploy])
+    DEPLOY --> DONE([🎉 Done])
+
+    style IDLE fill:#e2e8f0,stroke:#94a3b8
+    style DONE fill:#dcfce7,stroke:#86efac
 ```
-IDLE → RESEARCH → SPEC → DESIGN → BEADS → CODE → TEST
-     → REVIEW → VERIFY → PR → MERGE → DEPLOY → DONE
-```
+
+---
 
 ## Install
 
+**Claude Code:**
 ```bash
 claude plugins marketplace add https://github.com/tunneleven/C4Flow
 claude plugins install c4flow
 ```
 
-**Codex CLI:** Tell Codex:
+**Codex CLI:**
 ```
 Fetch and follow instructions from https://raw.githubusercontent.com/tunneleven/C4Flow/main/.codex/INSTALL.md
 ```
 
-**Antigravity IDE:** Tell Antigravity:
+**Antigravity IDE:**
 ```
 Fetch and follow instructions from https://raw.githubusercontent.com/tunneleven/C4Flow/main/.antigravity/INSTALL.md
 ```
+
+---
 
 ## Usage
 
@@ -37,18 +58,19 @@ Fetch and follow instructions from https://raw.githubusercontent.com/tunneleven/
 /c4flow:status
 ```
 
-That's it. The orchestrator picks up the current phase, dispatches sub-agents for heavy lifting, and asks for your input at key decisions.
+The orchestrator picks up the current phase, dispatches sub-agents for heavy lifting, and asks for your input at key decisions.
 
 ---
 
-## How the Workflow Works
+## How It Works
 
-Each `/c4flow:run` call advances one phase. The state machine persists to `docs/c4flow/.state.json` so you can stop and resume anytime.
+Each `/c4flow:run` call advances one phase. State persists to `docs/c4flow/.state.json` so you can stop and resume anytime.
 
 ### Phase 1 — Research & Spec
+
 **`/c4flow:research`** — Web research via sub-agent. Produces `research.md` with market analysis, competitive landscape, and tech options.
 
-**`/c4flow:spec`** — Interactive spec generation. Produces 4 artifacts:
+**`/c4flow:spec`** — Interactive spec generation. Produces:
 ```
 docs/specs/<feature>/
   proposal.md     # Why + what to build
@@ -58,18 +80,18 @@ docs/specs/<feature>/
 ```
 
 ### Phase 2 — Design & Tasks
+
 **`/c4flow:design`** — Generates a design system (OKLCH tokens, typography, spacing) and screen mockups via [Pencil MCP](https://docs.pencil.dev/getting-started/ai-integration). Produces:
 ```
 docs/c4flow/designs/<feature>/
-  MASTER.md         # Design tokens + component list
-  screen-map.md     # Screen breakdown
-  <feature>.pen     # Pencil file with all screens
+  MASTER.md       # Design tokens + component list
+  screen-map.md   # Screen breakdown
+  <feature>.pen   # Pencil file with all screens
 ```
 
-**`/c4flow:beads`** — Breaks spec into a tracked task epic with linked issues.
+**`/c4flow:beads`** — Breaks the spec into a tracked task epic. Asks your preferred granularity level (compact → atomic) and estimates task count before breaking down.
 
 ### Phase 3–6 — Code → Deploy
-**`code` → `tdd` → `test` → `e2e` → `review` → `verify` → `pr` → `merge` → `deploy`**
 
 Sub-agents implement features task-by-task using TDD, run tests, create PRs, and deploy — while you review and approve at gates.
 
@@ -82,14 +104,13 @@ Sub-agents implement features task-by-task using TDD, run tests, create PRs, and
 /c4flow:init
 ```
 
-### Optional: Pencil MCP (for Design phase)
+### Optional: Pencil MCP
 
-Install from [pencil.dev](https://docs.pencil.dev/getting-started/ai-integration) to get visual mockups. Without it, the DESIGN phase is skipped gracefully.
+Install from [pencil.dev](https://docs.pencil.dev/getting-started/ai-integration) for visual screen mockups. Without it, the Design phase is skipped gracefully.
 
-### Optional: Beads (`bd`)
+### Optional: Beads
 
 ```bash
-# Install task tracker
 npm install -g @tunneleven/beads
 ```
 
@@ -99,21 +120,21 @@ Without Beads, task breakdowns fall back to `tasks.md`.
 
 ## Skills
 
-| Phase | Skill | Status |
-|-------|-------|--------|
-| Orchestrator | `c4flow` | ✅ |
-| Init | `init` | ✅ |
-| Research | `research` | ✅ |
-| Spec | `spec` | ✅ |
-| Design | `design` | ✅ |
-| Task Breakdown | `beads` | ✅ |
-| Implementation | `code`, `tdd` | ✅ |
-| Testing | `test`, `e2e` | ✅ |
-| Review & QA | `review`, `verify` | ✅ |
-| Release | `pr`, `infra`, `merge`, `deploy` | ✅ |
+| Phase | Skill | Description |
+|-------|-------|-------------|
+| Orchestrator | `c4flow` | State machine driver |
+| Init | `init` | Bootstrap project tooling |
+| Research | `research` | Web research sub-agent |
+| Spec | `spec` | Proposal, tech-stack, spec, design docs |
+| Design | `design` | Design system + screen mockups |
+| Task Breakdown | `beads` | Epic + dependency work graph |
+| Implementation | `code`, `tdd` | Feature coding with TDD |
+| Testing | `test`, `e2e` | Unit + end-to-end tests |
+| Review & QA | `review`, `verify` | AI code review + quality gate |
+| Release | `pr`, `infra`, `merge`, `deploy` | PR, infra, merge, deploy |
 
-> Version 0.7.6
+---
 
 ## License
 
-MIT
+MIT — v0.7.6
