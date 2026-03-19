@@ -17,7 +17,8 @@ You are the c4flow orchestrator. You drive a multi-phase workflow that takes a f
 | `DESIGN` | 2: Design | ✅ Implemented |
 | `BEADS` | 2: Task Breakdown | ✅ Implemented |
 | `CODE_LOOP` | 3: Implementation | ✅ Implemented |
-| `DEPLOY` | 6: Release | ⏳ Not implemented |
+| `INFRA` | 6: Release | ✅ Implemented |
+| `DEPLOY` | 6: Release | ✅ Implemented |
 | `DONE` | — | Terminal state |
 
 > **Note**: TEST, REVIEW, VERIFY, PR, and MERGE are no longer top-level states. They execute per-task inside CODE_LOOP.
@@ -114,14 +115,24 @@ You are the c4flow orchestrator. You drive a multi-phase workflow that takes a f
   - If null: start from first ready task
 - Run the code skill (see Skill Dispatch below): `c4flow:code`
 - The code skill runs the full task loop internally — each task goes through TDD → verify → review → PR → merge before the next task starts
-- **CODE_LOOP → DEPLOY**: when `bd ready --assignee <actor>` returns empty and all epic tasks are closed, the code skill advances `currentState` to `"DEPLOY"` directly — no orchestrator action needed
+- **CODE_LOOP → INFRA**: when `bd ready --assignee <actor>` returns empty and all epic tasks are closed, the code skill advances `currentState` to `"INFRA"` directly — no orchestrator action needed
 - If gate fails mid-loop: tell user which task is blocked, offer guidance
 
-### If state is DEPLOY (previously REVIEW/PR/MERGE — now handled inside CODE_LOOP)
+### If state is INFRA
+- Check for existing `infraState` in `.state.json`
+  - If `infraState.appliedAt` is present: tell user "Infrastructure already provisioned (applied: {infraState.appliedAt}). Re-provision or continue to DEPLOY?"
+    - If re-provision: proceed to dispatch
+    - If continue: add INFRA to `completedStates`, advance `currentState` to DEPLOY, write `.state.json`, proceed to DEPLOY
+- Run the infra skill (see Skill Dispatch below)
+- After skill completes, check gate: `infraState.githubSecretsConfigured == true` in `.state.json`
+- If gate passes: add INFRA to `completedStates`, advance `currentState` to DEPLOY, write `.state.json`
+- If gate fails: tell user what's missing, ask what to do
+
+### If state is DEPLOY
 - TEST, REVIEW, PR, and MERGE phases are no longer top-level states
 - These happen per-task inside CODE_LOOP
 - Run the deploy skill (see Skill Dispatch below)
-- After skill completes, check gate: deployment succeeded
+- After skill completes, check gate: deployment succeeded (`gh run view` shows success)
 - If gate passes: add DEPLOY to `completedStates`, advance `currentState` to DONE, write `.state.json`
 - If gate fails: tell user what failed, ask what to do
 
@@ -164,6 +175,12 @@ This runs in the main agent (you). Load the c4flow:design skill and follow its i
 This runs in the main agent (you). Load the c4flow:beads skill and follow its instructions.
 After the skill completes, update `beadsEpic` in `.state.json` with the epic ID (or `null` if using `tasks.md` fallback).
 
+### INFRA (Main agent)
+This runs in the main agent (you). Load the `c4flow:infra` skill and follow its instructions.
+
+### DEPLOY (Main agent)
+This runs in the main agent (you). Load the `c4flow:deploy` skill and follow its instructions.
+
 ### CODE_LOOP (Main agent, dispatches sub-agents per task)
 This runs in the main agent (you). Load the `c4flow:code` skill and follow its instructions.
 
@@ -179,7 +196,7 @@ The code skill runs a **serial task loop** — one task at a time:
 9. `bd close <id> --reason "..."` → `bd dolt push`
 10. Loop back to step 2
 
-When `bd ready` returns empty and all epic tasks are closed, the code skill writes `currentState: "DEPLOY"` to `.state.json` and exits.
+When `bd ready` returns empty and all epic tasks are closed, the code skill writes `currentState: "INFRA"` to `.state.json` and exits.
 
 Pass the actor to the skill:
 ```
