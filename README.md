@@ -4,7 +4,7 @@ An **agentic development workflow** plugin for Claude Code — orchestrates your
 
 ```
 IDLE → RESEARCH → SPEC → DESIGN → BEADS → CODE → TEST
-     → REVIEW → VERIFY → PR → PR_REVIEW_LOOP → MERGE → DEPLOY → DONE
+     → REVIEW → VERIFY → PR → MERGE → DEPLOY → DONE
 ```
 
 ## Install
@@ -111,6 +111,8 @@ Without Beads, task breakdowns fall back to `tasks.md`.
 | Testing | `test`, `e2e` | ✅ |
 | Review & QA | `review`, `verify` | ✅ |
 | Release | `pr`, `infra`, `merge`, `deploy` | ✅ |
+
+> Version 0.7.6
 
 ## License
 
