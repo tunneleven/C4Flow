@@ -8,8 +8,7 @@ flowchart LR
     RESEARCH --> SPEC(["📋 Spec"])
     SPEC --> DESIGN(["🎨 Design"])
     DESIGN --> BEADS(["🧩 Beads"])
-    BEADS --> CODE(["💻 Code"])
-    CODE -- "loop until\nall tasks done" --> CODE
+    BEADS --> CODE(["💻 Code\n↻ task loop"])
     CODE --> TEST(["✅ Test"])
     TEST --> REVIEW(["👁 Review"])
     REVIEW --> VERIFY(["🔒 Verify"])
