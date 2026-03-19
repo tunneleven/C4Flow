@@ -3,24 +3,33 @@
 > Agentic development workflow plugin for Claude Code — from idea to deployment, one phase at a time.
 
 ```mermaid
-flowchart LR
-    IDLE([💤 Idle]) --> RESEARCH([🔍 Research])
+flowchart TD
+    IDLE([💤 Idle]) -->|new feature| RESEARCH([🔍 Research])
+    IDLE -->|skip research| SPEC
+
     RESEARCH --> SPEC([📋 Spec])
     SPEC --> DESIGN([🎨 Design])
     DESIGN --> BEADS([🧩 Beads])
+
     BEADS --> CODE([💻 Code])
-    CODE --> TDD([🧪 TDD])
-    TDD --> TEST([✅ Test])
-    TEST --> E2E([🌐 E2E])
-    E2E --> REVIEW([👁 Review])
+    CODE -->|"bd ready → dispatch sub-agents\nclose tasks → repeat"| CODE
+    CODE -->|all tasks closed ✓| TEST([✅ Test])
+
+    TEST -->|pass ✓| REVIEW([👁 Review])
     REVIEW --> VERIFY([🔒 Verify])
     VERIFY --> PR([📦 PR])
     PR --> MERGE([🔀 Merge])
     MERGE --> DEPLOY([🚀 Deploy])
     DEPLOY --> DONE([🎉 Done])
 
-    style IDLE fill:#e2e8f0,stroke:#94a3b8
-    style DONE fill:#dcfce7,stroke:#86efac
+    DONE -->|"new feature"| IDLE
+
+    REVIEW -->|"gate fail → retry ≤3x\nor go back"| SPEC
+    TEST -->|"gate fail → retry ≤3x\nor go back"| CODE
+
+    style IDLE fill:#e2e8f0,stroke:#94a3b8,color:#000
+    style DONE fill:#dcfce7,stroke:#86efac,color:#000
+    style CODE fill:#fef9c3,stroke:#fde047,color:#000
 ```
 
 ---
