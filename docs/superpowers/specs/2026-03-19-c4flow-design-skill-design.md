@@ -6,7 +6,7 @@ The `/c4flow:design` skill generates a design system and screen mockups for a fe
 
 **Workflow position:** `SPEC → DESIGN → BEADS → CODE → ...`
 
-**Agent type:** Main agent (interactive) + sub-agents (parallel screen composition)
+**Agent type:** Main agent (interactive) + sub-agents (sequential screen composition)
 
 **Dependencies:** Pencil MCP (required), spec artifacts from SPEC phase
 
@@ -222,20 +222,22 @@ docs/c4flow/designs/<feature-slug>/
    - Web app: 1440×900 (desktop), 768×1024 (tablet), 375×812 (mobile)
    - Mobile app: 375×812 (iPhone), 390×844 (iPhone Pro)
    - Landing page: 1440×900+ (scrollable height)
+   - Landscape (if needed): rotate dimensions (e.g., 812×375 for mobile landscape)
    - If `tech-stack.md` specifies a target, use that; otherwise default to 1440×900 for web
 3. Call `find_empty_space_on_canvas()` → find position for screen frame
 4. Call `batch_design()` → create screen frame with determined dimensions
-4. Call `batch_design()` → compose screen by inserting refs to reusable components
-5. Call `get_screenshot()` → screenshot hero screen
-6. Load `references/quality-checklist.md` → run quality check:
+5. Call `batch_design()` → compose screen by inserting refs to reusable components
+6. Call `get_screenshot()` → screenshot hero screen
+7. Load `references/quality-checklist.md` → run quality check:
    - AI Slop Test — does it look AI-generated?
    - Squint test — primary element identifiable in 2 seconds?
    - Contrast check — all text meets WCAG?
    - Layout rhythm — tight grouping for related, generous between sections?
-7. Call `snapshot_layout({problemsOnly:true})` → check structural issues
-8. Present in visual companion → user review
-9. Iterate style, layout, spacing until user approves
-10. Hero screen becomes **reference style** for Phase 2
+8. Call `snapshot_layout({problemsOnly:true})` → check structural issues
+9. Present in visual companion → user review
+10. Iterate style, layout, spacing until user approves
+11. Hero screen becomes **reference style** for Phase 2
+12. Write hero frame ID to `.state.json` as `heroScreen`
 
 ### Phase 2: Sub-Agents (Parallel)
 
@@ -472,7 +474,7 @@ The following changes must be made to `skills/c4flow/SKILL.md`:
 
 1. **State table**: Change DESIGN status from `⏳ Not implemented` to `✅ Implemented`, phase label: `2: Design`
 2. **Transition flow**: Insert DESIGN between SPEC and BEADS. Currently SPEC advances directly to BEADS — change to SPEC → DESIGN → BEADS
-3. **Remove DESIGN from unimplemented catch-all**: Line 115 currently handles DESIGN in the "any other (unimplemented skills)" block — remove it
+3. **Update unimplemented catch-all**: Line 115 currently reads `### If state is any other (unimplemented skills: DESIGN, REVIEW through DEPLOY)`. Change to `### If state is any other (unimplemented skills: E2E, INFRA, DEPLOY, MERGE)` — removing DESIGN (now implemented) and REVIEW/VERIFY/PR (already implemented)
 4. **Add DESIGN dispatch section**:
 
 ```markdown
@@ -488,11 +490,23 @@ The following changes must be made to `skills/c4flow/SKILL.md`:
 Load the c4flow:design skill and follow its instructions.
 ```
 
-5. **Update `phase-transitions.md`**: The DESIGN → BEADS gate must match the 7-point gate condition defined in this spec (not just "User confirmation")
+5. **Update `phase-transitions.md`** (blocking prerequisite): The DESIGN → BEADS gate must be replaced with the 7-point gate condition defined in this spec. The current "User confirmation" gate is insufficient and must be updated before the design skill can be exercised end-to-end
 
 6. **Update BEADS skill** (`skills/beads/SKILL.md`): Add to the Input section:
    - `docs/c4flow/designs/<feature>/MASTER.md` (design tokens)
    - `docs/c4flow/designs/<feature>/screen-map.md` (screen/component breakdown)
+
+---
+
+## Implementation Prerequisites
+
+Before the design skill can be exercised end-to-end, these must be completed in order:
+
+1. **Create reference files** (`skills/design/references/*.md`) — adapt from Impeccable sources per the mapping table above
+2. **Update `phase-transitions.md`** — replace DESIGN gate with 7-point condition from this spec
+3. **Update `skills/c4flow/SKILL.md`** — all 6 orchestrator changes listed above
+4. **Update `skills/beads/SKILL.md`** — add MASTER.md and screen-map.md to Input section
+5. **Write `skills/design/SKILL.md`** — the main skill file implementing the execution flow
 
 ---
 
