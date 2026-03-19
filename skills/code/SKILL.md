@@ -459,9 +459,10 @@ If a task is blocked on something outside the codebase (API key, external servic
 When `bd ready --json` returns empty AND no tasks are `in_progress`:
 
 ```bash
-# Verify all tasks under the epic are closed
-OPEN_COUNT=$(bd list --json 2>/dev/null | \
-  jq --arg epic "$EPIC_ID" '[.[] | select(.status != "closed")] | length')
+# Count all open tasks in THIS epic (scoped by parent, not filtered by assignee)
+# In team mode: gate fires when ALL team members' tasks are closed — last person done triggers it
+OPEN_COUNT=$(bd list --parent "$EPIC_ID" --all --json 2>/dev/null \
+  | jq '[.[] | select(.status != "closed")] | length')
 
 if [ "$OPEN_COUNT" -eq 0 ]; then
   echo "All tasks complete. Ready for testing phase."
@@ -474,6 +475,7 @@ If all tasks are closed, report completion to the orchestrator.
 
 If discovered issues remain open, present them to the user:
 ```bash
+# TODO: scope to $EPIC_ID once bd list supports --parent + --label filtering together
 bd list --json 2>/dev/null | \
   jq '[.[] | select(.status != "closed") | select(.labels[]? | contains("discovered"))]'
 ```
