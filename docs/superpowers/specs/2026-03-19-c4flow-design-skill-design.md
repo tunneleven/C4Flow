@@ -239,7 +239,7 @@ docs/c4flow/designs/<feature-slug>/
 11. Hero screen becomes **reference style** for Phase 2
 12. Write hero frame ID to `.state.json` as `heroScreen`
 
-### Phase 2: Sub-Agents (Parallel)
+### Phase 2: Sub-Agents (Sequential)
 
 **Input:** Approved hero screen + design system + component refs + screen-map
 **Output:** Remaining screens in `.pen` file
