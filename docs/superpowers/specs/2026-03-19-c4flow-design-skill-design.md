@@ -218,8 +218,13 @@ docs/c4flow/designs/<feature-slug>/
 **Output:** 1 approved hero screen in `.pen` file
 
 1. Select most complex screen as hero (typically dashboard or main screen)
-2. Call `find_empty_space_on_canvas()` → find position for screen frame
-3. Call `batch_design()` → create screen frame (e.g. 1440×900)
+2. Determine screen dimensions based on target platform:
+   - Web app: 1440×900 (desktop), 768×1024 (tablet), 375×812 (mobile)
+   - Mobile app: 375×812 (iPhone), 390×844 (iPhone Pro)
+   - Landing page: 1440×900+ (scrollable height)
+   - If `tech-stack.md` specifies a target, use that; otherwise default to 1440×900 for web
+3. Call `find_empty_space_on_canvas()` → find position for screen frame
+4. Call `batch_design()` → create screen frame with determined dimensions
 4. Call `batch_design()` → compose screen by inserting refs to reusable components
 5. Call `get_screenshot()` → screenshot hero screen
 6. Load `references/quality-checklist.md` → run quality check:
@@ -239,13 +244,15 @@ docs/c4flow/designs/<feature-slug>/
 
 1. Main agent reads `screen-map.md` → list remaining screens (excluding hero)
 2. Main agent calls `batch_get()` → extract all reusable component ref IDs
-3. For each remaining screen, dispatch sub-agent with:
+3. **Concurrency:** Sub-agents are dispatched **sequentially** (one at a time), not in parallel. Pencil MCP operates on a single open document — concurrent writes to the same `.pen` file would cause conflicts. Each sub-agent completes before the next starts. Multiple screens can still be composed quickly since each screen is a focused task.
+4. For each remaining screen, dispatch sub-agent with:
    - Screen name, spec refs, component list
    - Component ref IDs (from batch_get)
    - Design tokens (from MASTER.md — key values)
    - Design rules (subset of Impeccable principles)
    - `.pen` file path
-4. Each sub-agent:
+   - Hero screen frame ID as style reference
+5. Each sub-agent:
    - Calls `find_empty_space_on_canvas()` → find position
    - Calls `batch_design()` → create screen frame
    - Calls `batch_design()` → compose using component refs (type:"ref")
@@ -253,7 +260,7 @@ docs/c4flow/designs/<feature-slug>/
    - Calls `snapshot_layout({problemsOnly:true})` → check layout issues
    - If issues → fix via `batch_design()` → re-screenshot (1 retry max)
    - Reports: DONE | DONE_WITH_CONCERNS | BLOCKED
-5. Main agent collects results:
+6. Main agent collects results after all sub-agents complete:
    - Calls `get_screenshot()` for all screens
    - Presents batch review in visual companion
    - User approves or requests fixes for specific screens
@@ -265,7 +272,7 @@ docs/c4flow/designs/<feature-slug>/
 |---|---|---|
 | Simple form (login, register, settings) | `haiku` | 1-2 component types, clear layout |
 | Dashboard / data-heavy / multi-section | `sonnet` | Multi-component composition, layout judgment |
-| Complex flow (multi-step wizard, builder) | default | Design judgment needed |
+| Complex flow (multi-step wizard, builder) | `sonnet` or parent model | Broad design judgment, multi-component coordination |
 
 ### Phase 3: Completion
 
@@ -281,16 +288,27 @@ docs/c4flow/designs/<feature-slug>/
 
 ### Reference File Structure
 
+These reference files are **deliverables of this plan** — they must be created during implementation by adapting content from Impeccable's source skills (Apache 2.0 licensed). See NOTICE.md for attribution.
+
+| File | Source | Content to adapt |
+|---|---|---|
+| `design-principles.md` | Impeccable `frontend-design/SKILL.md` | Context Gathering Protocol, Design Direction, AI Slop Test, all DO/DON'T rules |
+| `color-and-contrast.md` | Impeccable `frontend-design/reference/color-and-contrast.md` | OKLCH, tinted neutrals, 60-30-10, WCAG, dark mode |
+| `typography.md` | Impeccable `frontend-design/reference/typography.md` | Modular scale, font pairing, alternatives, vertical rhythm |
+| `spatial-design.md` | Impeccable `frontend-design/reference/spatial-design.md` | 4pt base, grid systems, squint test, card rules |
+| `component-patterns.md` | Impeccable `interaction-design/SKILL.md` + `arrange/SKILL.md` | Form patterns, focus states, loading/empty/error states, layout composition |
+| `quality-checklist.md` | Impeccable `audit/SKILL.md` + `critique/SKILL.md` + `polish/SKILL.md` | AI Slop detection, visual hierarchy check, accessibility audit, polish checklist |
+
 ```
 skills/design/
 ├── SKILL.md
 └── references/
-    ├── design-principles.md      # From Impeccable frontend-design SKILL.md
-    ├── color-and-contrast.md     # From Impeccable reference
-    ├── typography.md             # From Impeccable reference
-    ├── spatial-design.md         # From Impeccable reference
-    ├── component-patterns.md     # From Impeccable interaction-design + arrange
-    └── quality-checklist.md      # From Impeccable audit + critique + polish
+    ├── design-principles.md
+    ├── color-and-contrast.md
+    ├── typography.md
+    ├── spatial-design.md
+    ├── component-patterns.md
+    └── quality-checklist.md
 ```
 
 ### Reference Loading Per Step
@@ -448,7 +466,14 @@ BEADS skill adds these inputs:
 | Hero screen exists, remaining screens missing | Phase 2 (sub-agents) |
 | All screens exist | Final review |
 
-### Orchestrator Dispatch
+### Orchestrator Changes Required
+
+The following changes must be made to `skills/c4flow/SKILL.md`:
+
+1. **State table**: Change DESIGN status from `⏳ Not implemented` to `✅ Implemented`, phase label: `2: Design`
+2. **Transition flow**: Insert DESIGN between SPEC and BEADS. Currently SPEC advances directly to BEADS — change to SPEC → DESIGN → BEADS
+3. **Remove DESIGN from unimplemented catch-all**: Line 115 currently handles DESIGN in the "any other (unimplemented skills)" block — remove it
+4. **Add DESIGN dispatch section**:
 
 ```markdown
 ### If state is DESIGN (implemented)
@@ -462,6 +487,12 @@ BEADS skill adds these inputs:
 ### DESIGN (Main agent, dispatches sub-agents)
 Load the c4flow:design skill and follow its instructions.
 ```
+
+5. **Update `phase-transitions.md`**: The DESIGN → BEADS gate must match the 7-point gate condition defined in this spec (not just "User confirmation")
+
+6. **Update BEADS skill** (`skills/beads/SKILL.md`): Add to the Input section:
+   - `docs/c4flow/designs/<feature>/MASTER.md` (design tokens)
+   - `docs/c4flow/designs/<feature>/screen-map.md` (screen/component breakdown)
 
 ---
 
@@ -477,6 +508,8 @@ Load the c4flow:design skill and follow its instructions.
 | Canvas space insufficient | Main agent calls `find_empty_space_on_canvas` with larger area, provides new coordinates |
 | User rejects design 3+ times | Ask: "Would you like to adjust the style direction? We can pick different style guide tags or change the aesthetic." |
 | `batch_design` operation fails (rollback) | Review error, fix operation list, retry. Common issues: invalid ref ID, missing parent, wrong schema |
+| `.pen` file corrupted or empty | Delete the file, restart from Step 1.2 (tokens are still in MASTER.md) |
+| Too many screens (>15) | Batch into groups of 5 — complete one group, user review, then next group |
 
 ---
 
@@ -489,6 +522,8 @@ Load the c4flow:design skill and follow its instructions.
 Feature: {feature_name}
 File: {pen_file_path}
 Design System Frame ID: {ds_frame_id}
+Hero Screen Frame ID: {hero_frame_id} (use as style reference — match layout patterns, spacing rhythm, visual weight)
+Screen Dimensions: {width}×{height}
 
 ## Screen Spec
 {full screen spec from screen-map.md}
