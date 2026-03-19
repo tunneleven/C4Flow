@@ -303,7 +303,6 @@ Gate Status: $OVERALL_STATUS
 .state.json updated: prNumber=$PR_NUMBER, currentState=PR_REVIEW_LOOP
 
 Next step: PR is open. Reviewers will see the gate summary.
-Run /c4flow:pr-review when ready to check review status.
 ```
 
 ---
@@ -490,7 +489,6 @@ Quality gate: PASSED
 
 Next steps:
 - Share the PR URL with reviewers
-- Address any PR review comments with /c4flow:pr-review
 - When approved, merge with /c4flow:merge
 
 REMINDER: When closing the epic with bd close, include --reason:

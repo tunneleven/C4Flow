@@ -39,6 +39,19 @@ Ask the user:
 2. Expected timeline? (days, weeks, sprint)
 3. Spec + design approved?
 4. Any hard ordering constraints, or mostly parallel?
+5. **Granularity level** — how detailed should the breakdown be?
+
+   After reading the spec and design, estimate how many tasks each level would produce for *this specific feature*, then present as a concrete choice:
+
+   > Based on this feature, here's what each level looks like:
+   > **A) Compact** (~N tasks) — full components or layers. Best for solo devs or short sprints.
+   > **B) Standard** (~N tasks) — meaningful units of work, 1–2 days each. Good default.
+   > **C) Detailed** (~N tasks) — single file or function group per task. Good for larger teams.
+   > **D) Super detailed** (~N tasks) — atomic steps, hours not days. Maximum parallelism.
+
+   The N values are your estimates based on the actual feature scope — not fixed numbers. Make them feel real and grounded.
+
+   Default to **B (Standard)** if user doesn't specify. Remember this choice for Step 4.
 
 ### Step 3: Check Beads Installation
 
