@@ -59,14 +59,15 @@ Before dispatching any subagent:
 
    **Beads path** (preferred):
    ```bash
-   bd ready --json
+   # MY_NAME resolved in Step 0 — only load tasks for current user
+   bd list --parent "$EPIC_ID" --ready --assignee "$MY_NAME" --json
    ```
-   This returns unclaimed tasks. For full epic view:
+   For full epic view (all members):
    ```bash
-   bd show <epic-id> --json
+   bd children "$EPIC_ID" --json
    ```
 
-   **Fallback path**:
+   **Fallback path** (single-user, skip identity):
    Read `docs/specs/<feature-slug>/tasks.md`
 
 3. **Load execution plan** — resolve in order:
@@ -304,16 +305,25 @@ Read the spec files:
 
 ### Step 2: Get Ready Tasks
 
-Query beads for tasks that have no open blockers:
+Query beads for tasks that are ready **for the current user** in the current epic:
 
 ```bash
-bd ready --json
-```
+# MY_NAME is set in Step 0
+# EPIC_ID is read from .state.json
+MY_TASKS=$(bd list --parent "$EPIC_ID" --ready --assignee "$MY_NAME" --json 2>/dev/null)
 
-This returns all tasks where:
-- Status is `open` (not claimed, not closed)
-- No `blocks` dependencies on open/in_progress tasks
-- Parent is not blocked
+# Warn about unassigned tasks in the epic that may be skipped by everyone
+bd list --parent "$EPIC_ID" --ready --no-assignee --json 2>/dev/null \
+  | jq -r '.[] | "WARNING: Task \(.id) has no assignee — skipping. Assign it in beads first."'
+
+# Guard: halt if no tasks for this user
+if [ "$(echo "$MY_TASKS" | jq 'length')" -eq 0 ]; then
+  echo "No ready tasks assigned to $MY_NAME in this epic."
+  echo "Either all your tasks are done, blocked, or wrong identity."
+  echo "To switch identity: rm docs/c4flow/.personal.json"
+  exit 1
+fi
+```
 
 If no tasks are ready but tasks remain open, check what's blocking:
 
@@ -323,13 +333,27 @@ bd blocked --json
 
 ### Step 3: Claim and Dispatch — The Agent Loop
 
+Before dispatching, split tasks into new work and already-claimed in-flight work (handles restart scenarios):
+
+```bash
+# Separate open tasks (to dispatch) from in-flight tasks (already claimed on a previous run)
+# Filter in-flight by status only — NOT assignee, since --claim may overwrite the assignee field
+TO_DISPATCH=$(echo "$MY_TASKS" | jq '[.[] | select(.status == "open")]')
+
+IN_FLIGHT=$(bd children "$EPIC_ID" --json 2>/dev/null \
+  | jq '[.[] | select(.status == "in_progress")]')
+
+# For IN_FLIGHT tasks: skip dispatch — they are already being worked on
+# For TO_DISPATCH tasks: claim and dispatch as normal
+```
+
 For each batch of ready tasks, follow this loop:
 
 ```
 ┌─────────────────────────────────────┐
-│  bd ready --json                    │
+│  MY_TASKS (filtered to current user)│
 │  ↓                                  │
-│  For each ready task:               │
+│  For each task in TO_DISPATCH:      │
 │    1. bd update <id> --claim        │
 │    2. Dispatch sub-agent            │
 │    3. Sub-agent implements          │
