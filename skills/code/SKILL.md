@@ -17,6 +17,36 @@ Execute plan by dispatching a fresh subagent per task, with two-stage review aft
 **Parallel by default:** Dispatch all ready (unblocked) tasks simultaneously. `bd ready` surfaces tasks with no open blockers — these can safely run in parallel. Sequential execution only when tasks have explicit dependencies.
 
 
+## Step 0: Identity Check
+
+Applies to Beads path only. Skip entirely if `taskSource` in `.state.json` is not `beads` (i.e., operating in `tasks.md` fallback mode — run all tasks as single-user).
+
+1. **Check `docs/c4flow/.personal.json`:**
+   - If it exists: `MY_NAME=$(jq -r '.name' docs/c4flow/.personal.json)` — proceed to Prerequisites
+   - If missing: run the identity prompt below
+
+2. **Identity prompt** (runs once per machine):
+
+   ```bash
+   EPIC_ID=$(jq -r '.beadsEpic' docs/c4flow/.state.json)
+
+   # List unique assignees from epic children
+   ASSIGNEES=$(bd children "$EPIC_ID" --json 2>/dev/null \
+     | jq -r '[.[].assignee // empty] | unique[]')
+   ```
+
+   - If `$ASSIGNEES` is empty: print `"No assignees found in epic — assign tasks in beads first: bd update <task-id> --assignee <name>, then re-run."` and exit.
+   - Present the list and ask the user: **"Who are you on this project? Pick one: [list]"**
+   - Save the choice:
+     ```bash
+     printf '{"name":"%s"}\n' "<chosen-name>" > docs/c4flow/.personal.json
+     ```
+   - Set `MY_NAME` and continue to Prerequisites.
+
+> **To switch identity:** `rm docs/c4flow/.personal.json` then re-run `/c4flow:run`
+
+---
+
 ## Prerequisites
 
 Before dispatching any subagent:
