@@ -5,7 +5,27 @@ description: Orchestrate the complete c4flow agentic development workflow — fr
 
 # c4flow — Agentic Development Workflow Orchestrator
 
-You are the c4flow orchestrator. You drive a 14-state workflow that takes a feature idea from research through deployment. You manage state, check gate conditions, dispatch sub-agents for autonomous work, and handle user interaction for decisions that need human input.
+You are the c4flow orchestrator. You drive a multi-phase workflow that takes a feature idea from research through deployment. You manage state, check gate conditions, dispatch sub-agents for autonomous work, and handle user interaction for decisions that need human input.
+
+## Workflow States
+
+| State | Phase | Status |
+|-------|-------|--------|
+| `IDLE` | — | Start here |
+| `RESEARCH` | 1: Research & Spec | ✅ Implemented |
+| `SPEC` | 1: Research & Spec | ✅ Implemented |
+| `BEADS` | 2: Task Breakdown | ✅ Implemented |
+| `CODE` | 3: Implementation | ✅ Implemented |
+| `TEST` | 4: Testing | ✅ Implemented |
+| `REVIEW` | 5: Review & QA | ✅ Implemented |
+| `VERIFY` | 5: Review & QA | ✅ Implemented |
+| `PR` | 5: Review & QA | ✅ Implemented |
+| `DESIGN` | 2: Design | ✅ Implemented |
+| `E2E` | 4: Testing | ⏳ Not implemented |
+| `INFRA` | 6: Release | ⏳ Not implemented |
+| `DEPLOY` | 6: Release | ⏳ Not implemented |
+| `MERGE` | 6: Release | ⏳ Not implemented |
+| `DONE` | — | Terminal state |
 
 ## How to Start
 
@@ -65,14 +85,22 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 - If new feature: reset `.state.json` to IDLE state, ask for new feature info
 - If review: show summary of completed states and output files
 
-### If state is RESEARCH or SPEC (implemented skills)
+### If state is RESEARCH (implemented)
 - Check for partial output from a previous interrupted session:
-  - RESEARCH: check if `docs/specs/{feature.slug}/research.md` exists
-  - SPEC: check which of `proposal.md`, `tech-stack.md`, `spec.md`, `design.md` exist in `docs/specs/{feature.slug}/`
-- If partial output found: present it to user, ask "Reuse existing {files} or regenerate?"
-- Run the skill for the current state (see Skill Dispatch below)
+  - Check if `docs/specs/{feature.slug}/research.md` exists
+- If partial output found: present it to user, ask "Reuse existing research.md or regenerate?"
+- Run the research skill (see Skill Dispatch below)
 - After skill completes, check the exit gate condition (see `references/phase-transitions.md` in this skill's directory)
-- If gate passes: add current state to `completedStates`, advance `currentState`, write `.state.json`
+- If gate passes: add RESEARCH to `completedStates`, advance `currentState` to SPEC, write `.state.json`
+- If gate fails: tell user what's missing, ask what to do
+
+### If state is SPEC (implemented)
+- Check for partial output from a previous interrupted session:
+  - Check which of `proposal.md`, `tech-stack.md`, `spec.md`, `design.md` exist in `docs/specs/{feature.slug}/`
+- If partial output found: present it to user, ask "Reuse existing {files} or regenerate?"
+- Run the spec skill (see Skill Dispatch below)
+- After skill completes, check the exit gate condition (see `references/phase-transitions.md` in this skill's directory)
+- If gate passes: add SPEC to `completedStates`, advance `currentState` to **DESIGN**, write `.state.json`
 - If gate fails: tell user what's missing, ask what to do
 
 ### If state is BEADS (implemented)
@@ -92,7 +120,16 @@ You are the c4flow orchestrator. You drive a 14-state workflow that takes a feat
 - If gate fails: tell user the results, ask what to do
 
 
-### If state is any other (unimplemented skills: DESIGN, REVIEW through DEPLOY)
+### If state is DESIGN (implemented)
+- Check for partial output: does `docs/c4flow/designs/<feature.slug>/` exist?
+  - If `MASTER.md` exists but no screen frames in `.pen` → resume from Step 1.3 (components)
+  - If screen frames exist → present for user review, ask "Reuse existing designs or regenerate?"
+- Run the design skill (see Skill Dispatch below)
+- After skill completes, check gate conditions (see `references/phase-transitions.md`)
+- If gate passes: add `DESIGN` to `completedStates`, advance `currentState` to `BEADS`, write `.state.json`
+- If gate fails: tell user what's missing, ask what to do
+
+### If state is any other (unimplemented skills: E2E, INFRA, DEPLOY, MERGE)
 - Tell the user: "**{state}** (Phase {N}: {phase-name}) is not yet implemented."
 - Show the gate condition that would need to pass to advance
 - Offer options:
@@ -135,6 +172,9 @@ This runs in the main agent (you). Load the c4flow:spec skill and follow its ins
 ### BEADS (Main agent)
 This runs in the main agent (you). Load the c4flow:beads skill and follow its instructions.
 After the skill completes, update `beadsEpic` in `.state.json` with the epic ID (or `null` if using `tasks.md` fallback).
+
+### DESIGN (Main agent, dispatches sub-agents)
+This runs in the main agent (you). Load the c4flow:design skill and follow its instructions.
 
 ### CODE (Main agent, dispatches sub-agents)
 This runs in the main agent (you). Load the c4flow:code skill and follow its instructions.
