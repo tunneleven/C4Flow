@@ -1,6 +1,6 @@
 ---
 name: c4flow:merge
-description: Merge PR to main — pre-checks, merge strategy, cleanup.
+description: "[NOT IMPLEMENTED] Merge PR to main — pre-checks, merge strategy, cleanup. Tell the user this skill is not yet implemented."
 ---
 
 # /c4flow:merge — Merge

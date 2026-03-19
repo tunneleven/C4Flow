@@ -1,6 +1,6 @@
 ---
 name: c4flow:infra
-description: Generate Infrastructure as Code based on tech-stack.md (manual trigger).
+description: "[NOT IMPLEMENTED] Generate Infrastructure as Code based on tech-stack.md (manual trigger). Tell the user this skill is not yet implemented."
 ---
 
 # /c4flow:infra — Infrastructure as Code

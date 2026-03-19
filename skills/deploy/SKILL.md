@@ -1,6 +1,6 @@
 ---
 name: c4flow:deploy
-description: Deploy to production — detect target, show plan, verify health.
+description: "[NOT IMPLEMENTED] Deploy to production — detect target, show plan, verify health. Tell the user this skill is not yet implemented and suggest running /c4flow:verify first."
 ---
 
 # /c4flow:deploy — Deploy

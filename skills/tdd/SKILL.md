@@ -1,6 +1,6 @@
 ---
 name: c4flow:tdd
-description: Test-driven development — RED-GREEN-REFACTOR cycles for all C4Flow implementation work
+description: "Use when implementing any feature or bugfix in C4Flow — RED-GREEN-REFACTOR cycles, write test first, watch it fail, then implement. Triggers on new features, bug fixes, refactoring, or any time an implementer subagent is about to write production code."
 ---
 
 # /c4flow:tdd — Test-Driven Development

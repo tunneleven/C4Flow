@@ -12,7 +12,9 @@ Execute plan by dispatching a fresh subagent per task, with two-stage review aft
 
 **Why subagents:** Fresh context per task prevents pollution. You construct exactly what each subagent needs — they never inherit session history. This preserves your context for coordination.
 
-**Core principle:** Fresh subagent per task + two-stage review (spec then quality) = high quality, fast iteration
+**Core principle:** Parallel dispatch for independent tasks + two-stage review (spec then quality) per task = high quality, fast iteration
+
+**Parallel by default:** Dispatch all ready (unblocked) tasks simultaneously. `bd ready` surfaces tasks with no open blockers — these can safely run in parallel. Sequential execution only when tasks have explicit dependencies.
 
 
 ## Prerequisites
@@ -196,7 +198,7 @@ The per-task reviews in CODE catch task-level issues. The full-branch Codex revi
 - Start on main/master without explicit user consent
 - Skip reviews (spec compliance OR code quality)
 - Proceed with unfixed issues
-- Dispatch multiple implementer subagents in parallel (conflicts)
+- Run tasks with dependencies in parallel — `bd ready` ensures only unblocked tasks are dispatched; trust it
 - Make subagent read plan file (provide full text)
 - Skip scene-setting context
 - Ignore subagent questions
@@ -319,37 +321,9 @@ This sets `status: in_progress` and `assignee` to the current actor.
 
 #### Dispatching sub-agents
 
-Dispatch one sub-agent per ready task. Independent tasks run in **parallel** — this is the key advantage of the molecule model.
+Dispatch one sub-agent per ready task. Independent tasks (all returned by `bd ready`) run in **parallel** — this is the key advantage of the dependency graph model.
 
-**Sub-agent prompt template:**
-
-```
-You are implementing a single task from a beads work graph.
-
-## Task
-ID: <task-id>
-Title: <task-title>
-Description: <task-description>
-
-## Feature Context
-Spec: docs/specs/<feature-slug>/spec.md
-Design: docs/specs/<feature-slug>/design.md
-Tech Stack: docs/specs/<feature-slug>/tech-stack.md
-
-## Instructions
-1. Read the spec, design, and tech-stack files for context
-2. Implement the task according to its description and acceptance criteria
-3. Write tests for your implementation (follow the testing patterns in tech-stack.md)
-4. If you discover a bug or new requirement during implementation, report it — do NOT silently fix unrelated code
-
-## Output
-Save all code to the appropriate project directories.
-When done, report:
-- FILES_CHANGED: list of files you created or modified
-- TESTS_ADDED: list of test files you created or modified
-- DISCOVERED_ISSUES: any bugs or new requirements found (title + description for each)
-- SUMMARY: brief description of what was implemented
-```
+**Sub-agent prompt template:** Use `skills/code/implementer-prompt.md`. Fill in the task ID, title, full description, feature context paths, and working directory. Do not make the subagent read the plan file — paste the full task text directly into the prompt.
 
 #### Handling discovered issues
 
