@@ -14,7 +14,15 @@ claude plugins marketplace add https://github.com/tunneleven/C4Flow
 claude plugins install c4flow
 ```
 
-> **Codex CLI:** Tell Codex to fetch and follow `https://raw.githubusercontent.com/tunneleven/C4Flow/main/.codex/INSTALL.md`
+**Codex CLI:** Tell Codex:
+```
+Fetch and follow instructions from https://raw.githubusercontent.com/tunneleven/C4Flow/main/.codex/INSTALL.md
+```
+
+**Antigravity IDE:** Tell Antigravity:
+```
+Fetch and follow instructions from https://raw.githubusercontent.com/tunneleven/C4Flow/main/.antigravity/INSTALL.md
+```
 
 ## Usage
 
