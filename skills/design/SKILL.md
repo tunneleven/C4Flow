@@ -138,7 +138,7 @@ If resuming, tell user: "Found existing design artifacts. Resuming from [step]. 
 - Design System Frame ID: `<id>`
 ```
 
-16. Save the active `.pen` document to `docs/c4flow/designs/<slug>/<slug>.pen`
+16. Save the `.pen` file: call `get_editor_state()` to get the current document path, then use the filesystem to confirm the file exists at `docs/c4flow/designs/<slug>/<slug>.pen`. Note: Pencil MCP auto-saves to the path used when `open_document("new")` was called — if the file path is not yet set, call `open_document("save", path: "docs/c4flow/designs/<slug>/<slug>.pen")` to save explicitly.
 
 ### Step 1.3: Reusable Components
 
@@ -200,6 +200,9 @@ If resuming, tell user: "Found existing design artifacts. Resuming from [step]. 
 3. Call `batch_get({patterns: [{reusable: true}], searchDepth: 2})` — extract ALL component ref IDs
 4. For each remaining screen, dispatch a sub-agent with the prompt template below
 5. Wait for each sub-agent to complete before dispatching the next (sequential — same .pen file)
+   - If sub-agent returns **BLOCKED**: pause dispatch, present the blocker to user, ask for guidance before continuing
+   - If sub-agent returns **DONE_WITH_CONCERNS**: present concerns to user, ask "Proceed to next screen or fix this one first?"
+   - If sub-agent returns **DONE**: continue to next screen
 6. After all screens done: call `get_screenshot()` for all screen frames, present batch review
 7. If user requests fixes for a screen: dispatch fix sub-agent for that screen only
 
