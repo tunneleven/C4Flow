@@ -21,9 +21,9 @@ flowchart LR
     TEST -. "fail → go back" .-> CODE
     REVIEW -. "fail → go back" .-> SPEC
 
-    style IDLE fill:#e2e8f0,stroke:#94a3b8
-    style DONE fill:#dcfce7,stroke:#86efac
-    style CODE fill:#fef9c3,stroke:#fbbf24
+    style IDLE fill:#e2e8f0,stroke:#94a3b8,color:#1e293b
+    style DONE fill:#dcfce7,stroke:#86efac,color:#14532d
+    style CODE fill:#fef9c3,stroke:#fbbf24,color:#78350f
 ```
 
 ---
