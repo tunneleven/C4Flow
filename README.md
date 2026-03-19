@@ -111,14 +111,6 @@ Sub-agents implement features task-by-task using TDD, run tests, create PRs, and
 
 Install from [pencil.dev](https://docs.pencil.dev/getting-started/ai-integration) for visual screen mockups. Without it, the Design phase is skipped gracefully.
 
-### Optional: Beads
-
-```bash
-npm install -g @tunneleven/beads
-```
-
-Without Beads, task breakdowns fall back to `tasks.md`.
-
 ---
 
 ## Skills
