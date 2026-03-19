@@ -10,8 +10,12 @@ description: Break down a feature into a detailed beads epic with rich task meta
 **Status**: Implemented
 
 ## Input
-- `docs/specs/<feature>/spec.md` (from spec phase)
-- `docs/specs/<feature>/design.md` (from spec phase)
+- `docs/specs/<feature>/spec.md` (from SPEC phase)
+- `docs/specs/<feature>/design.md` (from SPEC phase)
+- `docs/c4flow/designs/<feature>/MASTER.md` (from DESIGN phase — design tokens, component list)
+- `docs/c4flow/designs/<feature>/screen-map.md` (from DESIGN phase — screens and component breakdown)
+
+> Note: If `MASTER.md` and `screen-map.md` don't exist (DESIGN phase was skipped), proceed with only `spec.md` and `design.md`. The DESIGN phase is not mandatory for the workflow to function.
 
 ## Output
 - Beads epic with rich child tasks (if `bd` installed)
