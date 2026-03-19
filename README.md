@@ -132,4 +132,4 @@ Install from [pencil.dev](https://docs.pencil.dev/getting-started/ai-integration
 
 ## License
 
-MIT — v0.7.6
+MIT — v0.7.7
