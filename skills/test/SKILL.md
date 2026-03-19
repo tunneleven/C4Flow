@@ -11,7 +11,7 @@ description: Run unit and integration tests with coverage checking. Auto-detect 
 
 ## Overview
 
-Run the full test suite after implementation is complete. Detect the test framework, execute tests, classify failures (code bugs vs environment issues), check coverage against threshold, and optionally write additional tests to reach coverage goals.
+Run the full test suite after implementation is complete. Detect the test framework, execute tests, classify failures (code bugs vs environment issues), and check coverage against threshold. Does NOT write test files.
 
 **Based on**: [run-tests](https://github.com/CongChu99/automation-test) skill with coverage checking added for c4flow workflow.
 
@@ -41,7 +41,6 @@ TEST → REVIEW: Tests pass, coverage >= threshold
 | Failure classification | run-tests | Tier 1 (code bugs: deep analysis) / Tier 2 (env issues: quick fix) |
 | Deep analysis | run-tests | Up to 5 unique-file slots, ±10 lines context, HIGH/MEDIUM/LOW confidence |
 | Coverage checking | **NEW** | Parse coverage output, check against threshold |
-| Auto-write tests | **NEW** | Write additional tests when coverage < threshold (max 2 rounds) |
 
 ## Helper Scripts
 

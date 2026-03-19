@@ -15,7 +15,6 @@
 | Counter | Initial | Max | Purpose |
 |---------|---------|-----|---------|
 | `fix_attempts` | 0 | 3 | Tier 1 auto-fix attempts (Step 6) |
-| `coverage_rounds` | 0 | 2 | Coverage-boost test writing rounds (Step 5a) |
 
 These counters are local to the sub-agent session — not persisted to `.state.json`. The orchestrator tracks `failedAttempts` separately for cross-session retries.
 
@@ -139,26 +138,7 @@ If no coverage data can be parsed from the output:
 | Condition | Action |
 |-----------|--------|
 | Coverage ≥ threshold | ✅ Pass — proceed to Step 8 (report) |
-| Coverage < threshold, round 1 | Write additional tests (Step 5a), then re-run |
-| Coverage < threshold, round 2 | Write additional tests (Step 5a), then re-run |
-| Coverage < threshold, round 3+ | Stop — report DONE_WITH_CONCERNS |
-
-### Step 5a: Write Additional Tests (coverage boost)
-
-When coverage is below threshold:
-
-1. **Identify gaps**: List uncovered files/lines from coverage output
-2. **Prioritize**: Focus on files most relevant to the feature (cross-reference with `spec.md`)
-3. **Write tests**: Create test files for uncovered code paths
-   - Follow project naming conventions
-   - Use existing test files as style reference
-   - Focus on the simplest tests that cover the most uncovered lines
-4. **Re-run**: Execute the full test suite again (return to Step 3)
-
-**Constraints:**
-- Maximum 2 rounds of additional test writing
-- Each round targets at most 3 files
-- New tests must follow the project's existing patterns
+| Coverage < threshold | Report DONE_WITH_CONCERNS — list uncovered areas, do NOT write additional tests |
 
 ---
 
@@ -234,7 +214,7 @@ Ready to advance to REVIEW.
 ```
 
 ### DONE_WITH_CONCERNS
-Tests pass but coverage < threshold after 2 rounds of additional tests.
+Tests pass but coverage < threshold.
 
 ```
 Tests: {passed}/{total} passed  ({duration}s)
@@ -245,7 +225,6 @@ Uncovered areas:
 
 Concerns:
   - Coverage is {coverage}% vs {threshold}% threshold
-  - {N} additional tests were written but gap remains
   - Recommend manual review of uncovered paths
 ```
 
@@ -282,9 +261,7 @@ Test failures that require user decisions:
 - Always apply timeout (default 120s)
 - Always append coverage flags when running the full suite
 - Never read more than 5 unique source files for deep analysis
-- Maximum 2 rounds of additional test writing for coverage
-- Each coverage-boost round targets at most 3 files
-- New tests must follow operating project patterns — read existing tests first
+- **Never write or create test files** — only run existing tests
 - If framework detection fails, report BLOCKED — do not proceed without a runner
 - Environment issues (Tier 2) are always BLOCKED — never try to fix environment
 - Report honestly — don't inflate coverage numbers or hide failures
