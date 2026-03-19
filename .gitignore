@@ -25,3 +25,6 @@ skills/init/terraform/github-bootstrap/.terraform.lock.hcl
 skills/init/terraform/github-bootstrap/*.tfstate
 skills/init/terraform/github-bootstrap/*.tfstate.*
 skills/init/terraform/github-bootstrap/terraform.tfvars.json
+
+# Personal identity — local only, never commit
+docs/c4flow/.personal.json
