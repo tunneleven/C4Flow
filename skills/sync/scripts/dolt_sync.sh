@@ -104,6 +104,10 @@ if echo "$MERGE_BASE" | grep -qi "no common ancestor\|error"; then
   # Reset WHILE server is running — this is critical to avoid journal corruption
   (cd "$DOLT_DB" && dolt reset --hard remotes/origin/main) || err "dolt reset --hard failed"
 
+  # After hard reset, journal.idx becomes stale (HEAD changed but journal wasn't rebuilt).
+  # Delete it so dolt rebuilds a clean journal on next start.
+  find "$PROJECT_ROOT/.beads/dolt" -name "journal.idx" -delete 2>/dev/null || true
+
 else
   # Shared history — normal pull
   info "Pulling from DoltHub (shared history)..."
