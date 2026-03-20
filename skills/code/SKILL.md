@@ -89,8 +89,8 @@ SUBSTATE=$(echo "$TASK_LOOP" | jq -r '.subState // empty')
 
 if [ -n "$SUBTASK_ID" ] && [ -n "$SUBSTATE" ]; then
   echo "Resuming task $SUBTASK_ID from subState $SUBSTATE"
-  # Skip PICKUP and BRANCH — jump to the right sub-state
-  # See: Resume Logic section below
+  # Run Step 0.5 (Pre-flight Sync) first, unless subState == "CLOSING"
+  # Then jump to the right sub-state — see: Resume Logic section below
 fi
 ```
 
@@ -440,6 +440,8 @@ MERGED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 ## Step 7: CLOSE + SYNC
 
+> **Resume entry point for `subState == "CLOSING"`** — if arriving here via resume (skip Step 0.5 was triggered), start from the `bd close` command below.
+
 Update subState to CLOSING:
 ```bash
 jq '.taskLoop.subState = "CLOSING"' \
@@ -520,13 +522,15 @@ Show blocked tasks and ask user how to proceed.
 
 On entry to CODE_LOOP skill, if `taskLoop.subState` is non-null:
 
-| subState | Resume action |
-|----------|--------------|
-| `CODING` | Ask user: "Re-run TDD from RED, or continue from where you left off?" |
-| `VERIFYING` | Re-run test suite + bd preflight (skip TDD) |
-| `REVIEWING` | Re-dispatch `c4flow:review` (skip TDD + verify) |
-| `CLOSING` | Re-run `bd close` + `bd dolt push` (skip everything else) |
-| `BLOCKED` | Show block reason, wait for user to resolve |
+> **Step 0.5 (Pre-flight Sync)** runs for all resume states **except `CLOSING`**. Run Step 0.5 first, then jump to the resume action below.
+
+| subState | Run Step 0.5? | Resume action |
+|----------|--------------|---------------|
+| `CODING` | ✅ Yes | Ask user: "Re-run TDD from RED, or continue from where you left off?" |
+| `VERIFYING` | ✅ Yes | Re-run test suite + bd preflight (skip TDD) |
+| `REVIEWING` | ✅ Yes | Re-dispatch `c4flow:review` (skip TDD + verify) |
+| `CLOSING` | ❌ Skip | Re-run `bd close` + `bd dolt push` (skip everything else) |
+| `BLOCKED` | ✅ Yes | Show block reason, wait for user to resolve |
 
 Always confirm branch checkout before resuming:
 ```bash
