@@ -163,7 +163,8 @@ echo "Task $TASK_ID is already claimed. Re-running bd ready..."
 ### Sync to DoltHub
 
 ```bash
-bd dolt push 2>/dev/null && echo "Synced: task $TASK_ID status visible to team"
+bd dolt commit -m "claim: task $TASK_ID in_progress" 2>/dev/null
+bd dolt push 2>/dev/null && echo "Synced: task $TASK_ID in_progress visible to team"
 ```
 
 ### Write taskLoop to .state.json
@@ -458,6 +459,7 @@ bd close "$TASK_ID" --reason "Implemented: $TASK_TITLE. PR: #$PR_NUMBER. Branch:
 ### Sync to DoltHub
 
 ```bash
+bd dolt commit -m "close: task $TASK_ID done" 2>/dev/null
 bd dolt push 2>/dev/null && echo "Synced: task $TASK_ID closed"
 ```
 
