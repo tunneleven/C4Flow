@@ -96,6 +96,28 @@ fi
 
 ---
 
+## Step 0.5: Pre-flight Sync
+
+> **Skip this step** if resuming from `taskLoop.subState == "CLOSING"` — go directly to Step 7.
+
+Invoke `c4flow:sync`. This syncs both Dolt beads from DoltHub and git from GitHub origin.
+
+**On success:**
+→ Proceed to Step 1: PICKUP
+
+**On failure (any sync error):**
+→ Show the error output verbatim
+→ Ask the user:
+  ```
+  Sync failed. How do you want to proceed?
+  [continue] Use local data (may be stale — tasks you see may not reflect latest team activity)
+  [stop]     Exit now to fix the sync issue
+  ```
+→ If user chooses **[continue]**: note the sync failure in the session, proceed to Step 1
+→ If user chooses **[stop]**: exit the skill immediately, leave `.state.json` unchanged
+
+---
+
 ## Step 1: PICKUP — Find and Claim Task
 
 ### Discover unblocked tasks
