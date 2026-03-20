@@ -18,9 +18,10 @@ info() { echo "ℹ️  $*"; }
 [ -d ".beads" ] || err "No .beads/ directory found. Run c4flow:init first."
 
 # ── 2. read .state.json ──────────────────────────────────────────────────────
-STATE_FILE=".beads/.state.json"
+STATE_FILE="docs/c4flow/.state.json"
+[ -f "$STATE_FILE" ] || STATE_FILE=".beads/.state.json"
 [ -f "$STATE_FILE" ] || STATE_FILE=".state.json"
-[ -f "$STATE_FILE" ] || err "No .state.json found — cannot determine DoltHub remote."
+[ -f "$STATE_FILE" ] || err "No .state.json found (checked docs/c4flow/, .beads/, root). Cannot determine DoltHub remote."
 
 DOLT_REMOTE=$(python3 -c "import json,sys; d=json.load(open('$STATE_FILE')); print(d.get('doltRemote',''))" 2>/dev/null)
 [ -n "$DOLT_REMOTE" ] || err "No doltRemote in $STATE_FILE — Dolt sync not configured."
