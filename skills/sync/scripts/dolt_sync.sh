@@ -44,6 +44,7 @@ sleep 1
 # no journal issues, no no-common-ancestor problem.
 if [ ! -d "$DOLT_DB" ]; then
   warn "Inner DB missing — cloning from DoltHub..."
+  mkdir -p "$PROJECT_ROOT/.beads/dolt"
   (cd "$PROJECT_ROOT/.beads/dolt" && dolt clone "$DOLT_REMOTE") \
     || err "dolt clone failed. Check: dolt login"
   info "Starting server and pulling latest..."
