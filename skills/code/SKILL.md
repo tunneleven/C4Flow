@@ -486,7 +486,7 @@ After closing each task, check if more work remains:
 REMAINING=$(bd ready --assignee "$ACTOR" --json 2>/dev/null | jq 'length')
 ```
 
-If `REMAINING` > 0: loop back to Step 1 (PICKUP).
+If `REMAINING` > 0: loop back to Step 1 (PICKUP). Step 0.5 runs once per session on entry — do not re-run it on each iteration.
 
 If `REMAINING` == 0, verify all epic tasks are closed:
 ```bash
