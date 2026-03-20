@@ -61,6 +61,9 @@ elif [ -f "$HOME/.cloudflare" ]; then
     echo "✗ CLOUDFLARE_API_TOKEN: ~/.cloudflare exists but does not export the token"
     ERRORS="${ERRORS} CF_MISSING"
   fi
+  if [ -n "$CLOUDFLARE_ZONE_ID" ]; then
+    echo "✓ CLOUDFLARE_ZONE_ID: [loaded from ~/.cloudflare]"
+  fi
 else
   echo "✗ CLOUDFLARE_API_TOKEN: not found"
   ERRORS="${ERRORS} CF_MISSING"
@@ -103,9 +106,14 @@ AWS_GUIDE
      → Permissions: Zone > DNS > Edit
      → Zone Resources: your domain only
 
-  2. Store it in a dedicated dotfile:
-     echo 'export CLOUDFLARE_API_TOKEN=your-token-here' > ~/.cloudflare
+  2. Store it (and your Zone ID) in a dedicated dotfile:
+     cat > ~/.cloudflare <<'EOF'
+     export CLOUDFLARE_API_TOKEN=your-token-here
+     export CLOUDFLARE_ZONE_ID=your-32-char-zone-id-here
+     EOF
      chmod 600 ~/.cloudflare   # restrict to your user only
+
+  Zone ID: found in the Cloudflare dashboard → your domain → Overview → right sidebar.
 
   3. Auto-load in every new terminal:
      echo '[ -f ~/.cloudflare ] && source ~/.cloudflare' >> ~/.zshrc
@@ -401,6 +409,7 @@ resource "aws_subnet" "public" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
+  availability_zone       = "${var.aws_region}a"  # Pin to AZ 'a' — t3.micro not available in all AZs (e.g. us-east-1e)
   tags                    = { Name = "${var.subdomain}-public" }
 }
 
