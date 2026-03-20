@@ -11,6 +11,117 @@ description: Provision AWS EC2 + nginx + SSL infrastructure and Cloudflare DNS f
 
 Provisions EC2 + nginx + Let's Encrypt SSL on AWS and creates a Cloudflare DNS subdomain via Terraform. Pushes outputs to GitHub Secrets so the DEPLOY phase can run CI/CD without manual configuration.
 
+> **Agent execution model**: All bash commands in this skill MUST be run by the agent using the `Bash` tool. The Bash tool executes in the user's shell session and inherits the user's environment — including AWS credentials from `~/.aws/credentials` and any sourced dotfiles. Never tell the user to run commands manually — execute them directly.
+
+---
+
+## Step 0: Verify Credentials
+
+Run this check **before anything else**. Collect all missing-credential errors and halt once with the full guide — never fail mid-way through.
+
+```bash
+ERRORS=""
+
+# ── AWS ──────────────────────────────────────────────────────────────────────
+# Use `aws sts get-caller-identity` to verify credentials from ANY standard
+# source: env vars, ~/.aws/credentials, ~/.aws/config, SSO, instance profile.
+# Output (Account ID, ARN) is non-sensitive and safe to display.
+if command -v aws &>/dev/null; then
+  AWS_ID_OUTPUT=$(aws sts get-caller-identity 2>&1)
+  if echo "$AWS_ID_OUTPUT" | grep -q '"Account"'; then
+    AWS_ACCOUNT=$(echo "$AWS_ID_OUTPUT" | grep '"Account"' | sed 's/.*"Account": *"\([^"]*\)".*/\1/')
+    echo "✓ AWS: authenticated (account: $AWS_ACCOUNT)"
+  else
+    echo "✗ AWS: not authenticated"
+    ERRORS="${ERRORS}AWS_MISSING"
+  fi
+else
+  # aws CLI not installed — fall back to file check (Terraform reads it natively)
+  if [ -f "$HOME/.aws/credentials" ] && grep -q "aws_access_key_id" "$HOME/.aws/credentials"; then
+    echo "✓ AWS: ~/.aws/credentials found (aws CLI not installed, Terraform will use file directly)"
+  elif [ -n "$AWS_ACCESS_KEY_ID" ] && [ -n "$AWS_SECRET_ACCESS_KEY" ]; then
+    echo "✓ AWS: credentials found via environment variables"
+  else
+    echo "✗ AWS: no credentials found"
+    ERRORS="${ERRORS}AWS_MISSING"
+  fi
+fi
+
+# ── Cloudflare ────────────────────────────────────────────────────────────────
+# Check env var first; fall back to ~/.cloudflare dotfile.
+# Never print the token value.
+if [ -n "$CLOUDFLARE_API_TOKEN" ]; then
+  echo "✓ CLOUDFLARE_API_TOKEN: [set via env]"
+elif [ -f "$HOME/.cloudflare" ]; then
+  # shellcheck source=/dev/null
+  source "$HOME/.cloudflare" 2>/dev/null
+  if [ -n "$CLOUDFLARE_API_TOKEN" ]; then
+    echo "✓ CLOUDFLARE_API_TOKEN: [loaded from ~/.cloudflare]"
+  else
+    echo "✗ CLOUDFLARE_API_TOKEN: ~/.cloudflare exists but does not export the token"
+    ERRORS="${ERRORS} CF_MISSING"
+  fi
+else
+  echo "✗ CLOUDFLARE_API_TOKEN: not found"
+  ERRORS="${ERRORS} CF_MISSING"
+fi
+
+# ── Halt with full guide if anything is missing ───────────────────────────────
+if [ -n "$ERRORS" ]; then
+  echo ""
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "ERROR: Missing credentials — cannot proceed."
+  echo "Fix the items marked ✗ above, then re-run /c4flow:infra."
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  if echo "$ERRORS" | grep -q "AWS_MISSING"; then
+    cat <<'AWS_GUIDE'
+
+  ── AWS credentials ──────────────────────────────────────────────
+  Recommended (stores keys in ~/.aws/credentials, read by all AWS tools):
+
+    aws configure
+    → Enter Access Key ID, Secret Access Key, region (e.g. us-east-1)
+
+  If using SSO:
+    aws configure sso
+    aws sso login
+
+  AWS credentials are NEVER stored or printed by this skill.
+  ~/.aws/credentials is gitignored by default — do not commit it.
+AWS_GUIDE
+  fi
+
+  if echo "$ERRORS" | grep -q "CF_MISSING"; then
+    cat <<'CF_GUIDE'
+
+  ── Cloudflare API token ─────────────────────────────────────────
+  SECURITY: Use a scoped token — never the Global API Key.
+
+  1. Create token at: https://dash.cloudflare.com/profile/api-tokens
+     → "Create Custom Token"
+     → Permissions: Zone > DNS > Edit
+     → Zone Resources: your domain only
+
+  2. Store it in a dedicated dotfile:
+     echo 'export CLOUDFLARE_API_TOKEN=your-token-here' > ~/.cloudflare
+     chmod 600 ~/.cloudflare   # restrict to your user only
+
+  3. Auto-load in every new terminal:
+     echo '[ -f ~/.cloudflare ] && source ~/.cloudflare' >> ~/.zshrc
+
+  4. Load now without restarting:
+     source ~/.cloudflare
+     Then re-run /c4flow:infra.
+
+  NEVER commit ~/.cloudflare or paste the token into any file in the repo.
+CF_GUIDE
+  fi
+
+  exit 1
+fi
+```
+
 ---
 
 ## Step 1: Read State
@@ -520,16 +631,7 @@ echo ""
 echo "$PLAN_SUMMARY"
 echo ""
 
-# Confirm
-read -p "Apply? [yes/N] " CONFIRM
-if [ "$CONFIRM" != "yes" ]; then
-  echo "Apply cancelled. Run /c4flow:infra again when ready."
-  # Clean up plan artifact
-  rm -f tfplan
-  exit 0
-fi
-
-# Apply
+# Apply automatically — no confirmation prompt (agent-driven)
 echo "=== terraform apply ==="
 terraform apply -input=false -auto-approve tfplan
 
