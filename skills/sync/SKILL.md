@@ -12,8 +12,21 @@ description: Sync local project with remote sources — pulls DoltHub beads and 
 
 Safely syncs both Dolt beads and GitHub code to the local workspace:
 
-1. **Dolt sync** — detects history conflicts, fetches from DoltHub, resets if needed
+1. **Dolt sync** — reads remote from `.state.json`, finds correct DB path, fetches from DoltHub, resets if needed
 2. **GitHub sync** — pulls latest code from origin
+
+## Understanding the Dolt DB Structure
+
+`bd` uses a **multi-repo Dolt server** layout. The server is started with `bd dolt start` and serves from `.beads/dolt/`. Inside that directory are named sub-repos:
+
+```
+.beads/dolt/                      ← server data root (NOT a dolt repo itself)
+.beads/dolt/<project-name>/       ← actual dolt repo that bd connects to
+```
+
+Where `<project-name>` is the last segment of the DoltHub remote URL (e.g., `https://doltremoteapi.dolthub.com/org/uml_diagram` → `uml_diagram`).
+
+**This matters**: all `dolt` CLI commands must be run from `.beads/dolt/<project-name>/`, not from `.beads/dolt/`. Running from the wrong directory silently targets a different (empty) DB.
 
 ## The "No Common Ancestor" Problem
 
@@ -31,30 +44,65 @@ Local:    [local-init]   → (empty)
 
 ### Step 1: Detect Local Dolt State
 
-```bash
-# Check if inside a beads project
-[ -d ".beads" ] && echo "BEADS_PRESENT" || echo "NO_BEADS"
+First, check if `.beads/` exists:
 
-# Check configured remote
-cd .beads 2>/dev/null && dolt remote -v 2>/dev/null || echo "NO_REMOTE"
+```bash
+[ -d ".beads" ] && echo "BEADS_PRESENT" || echo "NO_BEADS"
+```
+
+If no `.beads/`, stop and tell user to run `c4flow:init` first.
+
+**Read `.state.json` for DoltHub config** — this is the source of truth:
+
+```bash
+cat .beads/.state.json 2>/dev/null || cat .state.json 2>/dev/null
+```
+
+Extract `doltRemote` from the JSON. If `doltRemote` is present and non-null, use it. This is the URL to sync against.
+
+**Derive the correct Dolt DB path** from the remote URL:
+
+```
+https://doltremoteapi.dolthub.com/org/uml_diagram
+                                              ↑
+                                    project-name = "uml_diagram"
+Dolt DB path = .beads/dolt/<project-name>/
+```
+
+**Check the actual Dolt DB** (the inner one, not the root):
+
+```bash
+DOLT_DB=".beads/dolt/<project-name>"
+
+# Check remote configured in inner DB
+cd "$DOLT_DB" && dolt remote -v 2>/dev/null
 
 # Get local commit count
-cd .beads 2>/dev/null && dolt log --oneline 2>/dev/null | wc -l || echo "0"
+cd "$DOLT_DB" && dolt log --oneline 2>/dev/null | wc -l
 ```
 
 Classify local state:
 
-| `.beads/` | Remote configured | Local commits | State |
-|-----------|------------------|---------------|-------|
-| No | — | — | `NO_BEADS` — run `c4flow:init` first |
-| Yes | No | any | `LOCAL_ONLY` — no sync possible |
-| Yes | Yes | 1 (fresh init) | `FRESH_LOCAL` — likely conflict |
-| Yes | Yes | >1 | `HAS_HISTORY` — normal pull |
+| `.beads/` | `doltRemote` in `.state.json` | Remote in inner DB | Local commits | State |
+|-----------|-------------------------------|-------------------|---------------|-------|
+| No | — | — | — | `NO_BEADS` — run `c4flow:init` first |
+| Yes | No | No | any | `LOCAL_ONLY` — no sync possible |
+| Yes | Yes | No | any | `NEEDS_REMOTE` — configure remote from `.state.json`, then sync |
+| Yes | Yes | Yes | 1 (fresh init) | `FRESH_LOCAL` — likely conflict |
+| Yes | Yes | Yes | >1 | `HAS_HISTORY` — normal pull |
+
+**If `NEEDS_REMOTE`**: automatically add the remote from `.state.json`:
+
+```bash
+cd .beads/dolt/<project-name> && dolt remote add origin <doltRemote-from-state-json>
+```
+
+Then proceed to Step 2.
 
 ### Step 2: Fetch from DoltHub
 
 ```bash
-cd .beads && dolt fetch origin 2>&1
+cd .beads/dolt/<project-name> && dolt fetch origin 2>&1
 ```
 
 Capture output. If fetch fails:
@@ -67,23 +115,16 @@ Capture output. If fetch fails:
 After fetch succeeds, check for common ancestor:
 
 ```bash
-cd .beads && dolt merge-base HEAD remotes/origin/main 2>&1
+cd .beads/dolt/<project-name> && dolt merge-base HEAD remotes/origin/main 2>&1
 ```
 
 - **Returns a commit hash** → histories share a root → normal pull (Step 4a)
 - **Returns error / empty** → no common ancestor → conflict reset (Step 4b)
 
-Also confirm whether local is simply behind (fast-forward case):
-
-```bash
-cd .beads && dolt log remotes/origin/main --oneline -n 1 2>/dev/null
-cd .beads && dolt log HEAD --oneline -n 1 2>/dev/null
-```
-
 ### Step 4a: Normal Pull (shared history)
 
 ```bash
-cd .beads && dolt pull origin main 2>&1
+cd .beads/dolt/<project-name> && dolt pull origin main 2>&1
 ```
 
 If pull succeeds, continue to Step 5.
@@ -91,8 +132,7 @@ If pull succeeds, continue to Step 5.
 If pull shows conflicts:
 
 ```bash
-# Show conflicting rows
-cd .beads && dolt conflicts cat issues 2>/dev/null
+cd .beads/dolt/<project-name> && dolt conflicts cat issues 2>/dev/null
 ```
 
 Report conflicts to user and ask how to resolve. Do NOT auto-resolve.
@@ -107,26 +147,29 @@ Warn the user before resetting:
 >
 > Running: `dolt reset --hard remotes/origin/main`
 
-Only proceed automatically if local commit count is 1 (fresh init with no real data). If local has >1 commit, stop and ask the user before resetting — they may have local-only beads that would be lost.
+Only proceed automatically if local commit count is ≤3 (fresh init with schema migration commits, no real bead data). If local has more commits, stop and ask the user before resetting — they may have local-only beads that would be lost.
 
 ```bash
-cd .beads && dolt reset --hard remotes/origin/main 2>&1
+cd .beads/dolt/<project-name> && dolt reset --hard remotes/origin/main 2>&1
 ```
 
 Verify reset succeeded:
 
 ```bash
-cd .beads && dolt log -n 3 2>/dev/null
-cd .beads && dolt status 2>/dev/null
+cd .beads/dolt/<project-name> && dolt log -n 3 2>/dev/null
+cd .beads/dolt/<project-name> && dolt status 2>/dev/null
 ```
 
-### Step 5: Verify Beads
+### Step 5: Restart bd server and Verify Beads
+
+After any reset or fetch, restart the bd server so it picks up the new HEAD:
 
 ```bash
+bd dolt stop 2>&1; sleep 1; bd dolt start 2>&1; sleep 3
 bd list 2>&1
 ```
 
-Show the bead count and top-level epics. If `bd list` fails, try `bd dolt start` first, then retry.
+Show the bead count and top-level epics. If `bd list` is still empty after restart, check that the reset succeeded and the server is serving the right database.
 
 ### Step 6: Sync GitHub (git pull)
 
@@ -180,14 +223,16 @@ Or per-item status if one failed.
 |-------|-----------|-----|
 | `no common ancestor` | `bd init` ran locally after DoltHub already had data | Step 4b reset |
 | `authentication required` | Not logged into DoltHub | `dolt login` |
-| `remote not found` | No DoltHub remote configured | Run `c4flow:init --remote <url>` |
+| `remote not found` | No DoltHub remote configured | Read from `.state.json`, add via `dolt remote add` |
+| `bd list` empty after reset | Reset ran on wrong (outer) DB | Make sure commands run in `.beads/dolt/<project-name>/` |
 | `merge conflict` in Dolt | Concurrent edits to same bead | Report to user, no auto-resolve |
 | git `merge conflict` | Diverged branches | Report to user, no auto-resolve |
 
 ## IMPORTANT Rules
 
-1. **Never `dolt reset --hard` if local has >1 commit** — data loss risk. Always confirm with user.
-2. **Never `git reset --hard`** — only `git pull`.
-3. **`bd dolt start` auto-starts** the server — no need to run `dolt sql-server` manually.
-4. **Never run `bd doctor`** — hangs indefinitely.
-5. After reset, always verify with `bd list` before declaring success.
+1. **Always target `.beads/dolt/<project-name>/`** — never `.beads/dolt/` directly. The outer directory is the server root, not a Dolt repo.
+2. **Read `doltRemote` from `.state.json` first** — don't give up if the inner DB has no remote; configure it from `.state.json` automatically.
+3. **Never `dolt reset --hard` if local has many commits** — data loss risk. Always confirm with user if >3 local commits.
+4. **Never `git reset --hard`** — only `git pull`.
+5. **Restart bd server after any dolt reset** — the server caches state; a restart is needed to serve the new HEAD.
+6. **Never run `bd doctor`** — hangs indefinitely.
