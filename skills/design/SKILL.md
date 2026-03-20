@@ -1,6 +1,6 @@
 ---
 name: c4flow:design
-description: Generate design system and UI mockups for a feature using Pencil MCP. Runs after SPEC phase, before BEADS. Produces MASTER.md (design tokens), screen-map.md (screen breakdown), and a .pen file with reusable components and screen frames. Use when the workflow reaches DESIGN state or user asks to design screens/UI. Integrates impeccable best practices: OKLCH colors, tinted neutrals, modular typography, spatial rhythm, motion tokens, 8-state component design, and UX writing.
+description: Generate design system and UI mockups for a feature using Pencil MCP. Runs after SPEC phase, before BEADS. Produces MASTER.md (design tokens), screen-map.md (screen breakdown), and a .pen file with reusable components and screen frames. Use when the workflow reaches DESIGN state or user asks to design screens/UI. Integrates impeccable best practices OKLCH colors, tinted neutrals, modular typography, spatial rhythm, motion tokens, 8-state component design, and UX writing.
 ---
 
 # /c4flow:design — Design System + Mockups
