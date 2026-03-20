@@ -440,7 +440,7 @@ MERGED_AT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 ## Step 7: CLOSE + SYNC
 
-> **Resume entry point for `subState == "CLOSING"`** — if arriving here via resume (skip Step 0.5 was triggered), start from the `bd close` command below.
+> **Resume entry point for `subState == "CLOSING"`** — if arriving here via resume (Step 0.5 was skipped), start from the `bd close` command below.
 
 Update subState to CLOSING:
 ```bash
