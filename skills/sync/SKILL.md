@@ -83,13 +83,25 @@ cd "$DOLT_DB" && dolt log --oneline 2>/dev/null | wc -l
 
 Classify local state:
 
-| `.beads/` | `doltRemote` in `.state.json` | Remote in inner DB | Local commits | State |
-|-----------|-------------------------------|-------------------|---------------|-------|
-| No | — | — | — | `NO_BEADS` — run `c4flow:init` first |
-| Yes | No | No | any | `LOCAL_ONLY` — no sync possible |
-| Yes | Yes | No | any | `NEEDS_REMOTE` — configure remote from `.state.json`, then sync |
-| Yes | Yes | Yes | 1 (fresh init) | `FRESH_LOCAL` — likely conflict |
-| Yes | Yes | Yes | >1 | `HAS_HISTORY` — normal pull |
+| `.beads/` | `doltRemote` in `.state.json` | Inner DB dir exists | Remote configured | Local commits | State |
+|-----------|-------------------------------|--------------------|--------------------|---------------|-------|
+| No | — | — | — | — | `NO_BEADS` — run `c4flow:init` first |
+| Yes | No | — | No | any | `LOCAL_ONLY` — no sync possible |
+| Yes | Yes | No | — | — | `MISSING_DB` — inner DB dir missing, need to init |
+| Yes | Yes | Yes | No | any | `NEEDS_REMOTE` — configure remote from `.state.json`, then sync |
+| Yes | Yes | Yes | Yes | 1–3 (fresh init) | `FRESH_LOCAL` — likely conflict |
+| Yes | Yes | Yes | Yes | >3 | `HAS_HISTORY` — normal pull |
+
+**If `MISSING_DB`**: the inner DB directory was deleted or never created (can happen after a system reinstall or when first cloning the git repo). Create and initialize it:
+
+```bash
+mkdir -p .beads/dolt/<project-name>
+cd .beads/dolt/<project-name>
+dolt init
+dolt remote add origin <doltRemote-from-state-json>
+```
+
+Then proceed to Step 2.
 
 **If `NEEDS_REMOTE`**: automatically add the remote from `.state.json`:
 
