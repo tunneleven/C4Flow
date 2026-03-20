@@ -38,25 +38,17 @@ info "Dolt DB path   : $DOLT_DB"
 bd dolt stop 2>/dev/null || true
 sleep 1
 
-# ── 4. handle MISSING_DB ─────────────────────────────────────────────────────
+# ── 4. handle MISSING_DB — init empty repo, start server, then run bd init --force ──
+# bd init --force must run AFTER the server is up so it creates the schema via the server.
+MISSING_DB=false
 if [ ! -d "$DOLT_DB" ]; then
   warn "Inner DB missing — initializing fresh at $DOLT_DB"
   mkdir -p "$DOLT_DB"
   (cd "$DOLT_DB" && dolt init) || err "dolt init failed"
+  MISSING_DB=true
 fi
 
-# ── 5. ensure remote is configured in inner DB ──────────────────────────────
-EXISTING_REMOTE=$(cd "$DOLT_DB" && dolt remote -v 2>/dev/null | head -1 | awk '{print $2}' || true)
-if [ -z "$EXISTING_REMOTE" ]; then
-  info "Adding DoltHub remote..."
-  (cd "$DOLT_DB" && dolt remote add origin "$DOLT_REMOTE") || err "Failed to add remote"
-elif [ "$EXISTING_REMOTE" != "$DOLT_REMOTE" ]; then
-  warn "Remote mismatch: local=$EXISTING_REMOTE, state=$DOLT_REMOTE"
-  warn "Updating remote to match .state.json..."
-  (cd "$DOLT_DB" && dolt remote remove origin && dolt remote add origin "$DOLT_REMOTE")
-fi
-
-# ── 6. start server BEFORE any fetch/reset ──────────────────────────────────
+# ── 5. start server BEFORE any fetch/reset ───────────────────────────────────
 # Critical: dolt reset --hard MUST run while server is live, or journal corrupts.
 info "Starting bd server..."
 bd dolt start 2>/dev/null || true
@@ -65,6 +57,23 @@ sleep 3
 # Confirm server is up
 if ! bd dolt status 2>/dev/null | grep -q "running"; then
   err "bd server failed to start. Check: bd dolt status"
+fi
+
+# If we just created a fresh DB, run bd init --force to create the schema through the server
+if [ "$MISSING_DB" = true ]; then
+  info "Creating DB schema via bd init --force..."
+  bd init --force 2>/dev/null || err "bd init --force failed"
+fi
+
+# ── 6. ensure remote is configured in inner DB ──────────────────────────────
+EXISTING_REMOTE=$(cd "$DOLT_DB" && dolt remote -v 2>/dev/null | head -1 | awk '{print $2}' || true)
+if [ -z "$EXISTING_REMOTE" ]; then
+  info "Adding DoltHub remote..."
+  (cd "$DOLT_DB" && dolt remote add origin "$DOLT_REMOTE") || err "Failed to add remote"
+elif [ "$EXISTING_REMOTE" != "$DOLT_REMOTE" ]; then
+  warn "Remote mismatch: local=$EXISTING_REMOTE, state=$DOLT_REMOTE"
+  warn "Updating remote to match .state.json..."
+  (cd "$DOLT_DB" && dolt remote remove origin && dolt remote add origin "$DOLT_REMOTE")
 fi
 
 # ── 7. fetch from DoltHub ────────────────────────────────────────────────────
