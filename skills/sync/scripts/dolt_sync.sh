@@ -2,13 +2,17 @@
 # dolt_sync.sh — sync beads from DoltHub
 # Usage: bash dolt_sync.sh [project-root]
 # Must be run from the project root, or pass project root as $1
+#
+# KEY INSIGHT: dolt CLI (fetch, reset) must run with server STOPPED.
+# When server is running, refs are managed in-memory; CLI cannot see them
+# after server stops. Running CLI offline writes refs to disk directly.
 
 set -euo pipefail
 
 PROJECT_ROOT="${1:-$(pwd)}"
 cd "$PROJECT_ROOT"
 
-# ── helpers ─────────────────────────────────────────────────────────────────
+# ── helpers ──────────────────────────────────────────────────────────────────
 ok()   { echo "✅ $*"; }
 warn() { echo "⚠️  $*"; }
 err()  { echo "❌ $*" >&2; exit 1; }
@@ -21,62 +25,43 @@ info() { echo "ℹ️  $*"; }
 STATE_FILE="docs/c4flow/.state.json"
 [ -f "$STATE_FILE" ] || STATE_FILE=".beads/.state.json"
 [ -f "$STATE_FILE" ] || STATE_FILE=".state.json"
-[ -f "$STATE_FILE" ] || err "No .state.json found (checked docs/c4flow/, .beads/, root). Cannot determine DoltHub remote."
+[ -f "$STATE_FILE" ] || err "No .state.json found (checked docs/c4flow/, .beads/, root)."
 
-DOLT_REMOTE=$(python3 -c "import json,sys; d=json.load(open('$STATE_FILE')); print(d.get('doltRemote',''))" 2>/dev/null)
+DOLT_REMOTE=$(python3 -c "import json; d=json.load(open('$STATE_FILE')); print(d.get('doltRemote',''))" 2>/dev/null)
 [ -n "$DOLT_REMOTE" ] || err "No doltRemote in $STATE_FILE — Dolt sync not configured."
 
-# derive project name from URL last segment
 PROJECT_NAME=$(basename "$DOLT_REMOTE")
 DOLT_DB="$PROJECT_ROOT/.beads/dolt/$PROJECT_NAME"
 
 info "DoltHub remote : $DOLT_REMOTE"
 info "Dolt DB path   : $DOLT_DB"
 
-# ── 3. ensure server is STOPPED before touching files ────────────────────────
-# We'll start it fresh at the right time. Stop gently so journal is flushed.
+# ── 3. stop server — ALL dolt CLI ops must run offline ───────────────────────
+# When server is running, dolt manages refs in-memory. Fetched refs from the
+# server session are NOT accessible to CLI after server stops. Running everything
+# offline makes dolt write refs directly to disk, which persists correctly.
+info "Stopping bd server (all sync ops run offline)..."
 bd dolt stop 2>/dev/null || true
 sleep 1
 
-# ── 4. handle MISSING_DB — init empty repo, start server, then run bd init --force ──
-# bd init --force must run AFTER the server is up so it creates the schema via the server.
-MISSING_DB=false
+# ── 4. create inner DB if missing ───────────────────────────────────────────
 if [ ! -d "$DOLT_DB" ]; then
-  warn "Inner DB missing — initializing fresh at $DOLT_DB"
+  warn "Inner DB missing — initializing at $DOLT_DB"
   mkdir -p "$DOLT_DB"
   (cd "$DOLT_DB" && dolt init) || err "dolt init failed"
-  MISSING_DB=true
 fi
 
-# ── 5. start server BEFORE any fetch/reset ───────────────────────────────────
-# Critical: dolt reset --hard MUST run while server is live, or journal corrupts.
-info "Starting bd server..."
-bd dolt start 2>/dev/null || true
-sleep 3
-
-# Confirm server is up
-if ! bd dolt status 2>/dev/null | grep -q "running"; then
-  err "bd server failed to start. Check: bd dolt status"
-fi
-
-# If we just created a fresh DB, run bd init --force to create the schema through the server
-if [ "$MISSING_DB" = true ]; then
-  info "Creating DB schema via bd init --force..."
-  bd init --force 2>/dev/null || err "bd init --force failed"
-fi
-
-# ── 6. ensure remote is configured in inner DB ──────────────────────────────
+# ── 5. ensure remote is configured (offline CLI) ─────────────────────────────
 EXISTING_REMOTE=$(cd "$DOLT_DB" && dolt remote -v 2>/dev/null | head -1 | awk '{print $2}' || true)
 if [ -z "$EXISTING_REMOTE" ]; then
   info "Adding DoltHub remote..."
   (cd "$DOLT_DB" && dolt remote add origin "$DOLT_REMOTE") || err "Failed to add remote"
 elif [ "$EXISTING_REMOTE" != "$DOLT_REMOTE" ]; then
-  warn "Remote mismatch: local=$EXISTING_REMOTE, state=$DOLT_REMOTE"
-  warn "Updating remote to match .state.json..."
+  warn "Remote mismatch — updating to match .state.json..."
   (cd "$DOLT_DB" && dolt remote remove origin && dolt remote add origin "$DOLT_REMOTE")
 fi
 
-# ── 7. fetch from DoltHub ────────────────────────────────────────────────────
+# ── 6. fetch from DoltHub (offline CLI — refs written to disk) ───────────────
 info "Fetching from DoltHub..."
 FETCH_OUT=$((cd "$DOLT_DB" && dolt fetch origin 2>&1) || true)
 if echo "$FETCH_OUT" | grep -qi "authentication"; then
@@ -86,54 +71,45 @@ if echo "$FETCH_OUT" | grep -qi "not found\|does not exist"; then
   err "Remote repo not found: $DOLT_REMOTE"
 fi
 
-# ── 8. check for common ancestor ─────────────────────────────────────────────
+# ── 7. merge or reset ────────────────────────────────────────────────────────
 MERGE_BASE=$((cd "$DOLT_DB" && dolt merge-base HEAD remotes/origin/main 2>&1) || true)
 
 if echo "$MERGE_BASE" | grep -qi "no common ancestor\|error"; then
-  # No shared history — check if local is safe to discard
   LOCAL_COMMITS=$((cd "$DOLT_DB" && dolt log --oneline 2>/dev/null | wc -l | tr -d ' ') || echo "0")
 
   if [ "$LOCAL_COMMITS" -gt 5 ]; then
-    warn "Local DB has $LOCAL_COMMITS commits and no common ancestor with DoltHub."
-    warn "This could mean local-only beads exist. Aborting — please review manually."
-    warn "If safe, run: cd $DOLT_DB && dolt reset --hard remotes/origin/main"
+    warn "Local DB has $LOCAL_COMMITS commits, no common ancestor with DoltHub."
+    warn "May have local-only beads. Aborting — review manually."
+    warn "To force: cd $DOLT_DB && dolt reset --hard remotes/origin/main"
     exit 1
   fi
 
-  info "Fresh local DB ($LOCAL_COMMITS commits, schema-only). Resetting to DoltHub history..."
-
-  # Stop server before reset — hard reset changes HEAD in ways the running server
-  # cannot track, corrupting the journal. We do it offline then wipe the journal.
-  info "Stopping server before hard reset..."
-  bd dolt stop 2>/dev/null || true
-  sleep 2
-
+  info "Fresh local DB ($LOCAL_COMMITS commits). Resetting to DoltHub history..."
   (cd "$DOLT_DB" && dolt reset --hard remotes/origin/main) || err "dolt reset --hard failed"
 
-  # Wipe ALL journal files so dolt rebuilds them cleanly on next start.
-  # (journal.idx is the index, but the journal data file itself also gets stale.)
-  find "$PROJECT_ROOT/.beads/dolt" -path "*/.dolt/noms/journal*" -delete 2>/dev/null || true
-
 else
-  # Shared history — normal pull (server can stay running)
   info "Pulling from DoltHub (shared history)..."
   PULL_OUT=$((cd "$DOLT_DB" && dolt pull origin main 2>&1) || true)
   if echo "$PULL_OUT" | grep -qi "conflict"; then
-    warn "Merge conflicts detected — resolve manually."
+    warn "Merge conflicts — resolve manually."
     echo "$PULL_OUT"
     exit 1
   fi
 fi
 
-# ── 9. start server fresh ─────────────────────────────────────────────────────
+# ── 8. start server ──────────────────────────────────────────────────────────
 info "Starting bd server..."
-bd dolt start 2>/dev/null || err "Server failed to start after sync"
+bd dolt start 2>/dev/null || err "Server failed to start"
 sleep 3
 
-# ── 10. verify ───────────────────────────────────────────────────────────────
+if ! bd dolt status 2>/dev/null | grep -q "running"; then
+  err "Server started but not responding. Check: cat $PROJECT_ROOT/.beads/dolt-server.log | tail -20"
+fi
+
+# ── 9. verify ────────────────────────────────────────────────────────────────
 HEAD_HASH=$(cd "$DOLT_DB" && dolt log --oneline -n 1 2>/dev/null | awk '{print substr($1,1,8)}' || echo "unknown")
 HEAD_MSG=$(cd "$DOLT_DB" && dolt log --oneline -n 1 2>/dev/null | cut -d' ' -f2- || echo "")
-BEAD_COUNT=$(bd list 2>/dev/null | grep -c "^[│├└]" || echo "0")
+BEAD_COUNT=$(bd list 2>/dev/null | grep -c "^[│├└○]" || echo "0")
 
 ok "Dolt sync complete"
 echo "   Remote : $DOLT_REMOTE"
