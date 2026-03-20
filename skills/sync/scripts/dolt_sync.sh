@@ -101,15 +101,21 @@ if echo "$MERGE_BASE" | grep -qi "no common ancestor\|error"; then
   fi
 
   info "Fresh local DB ($LOCAL_COMMITS commits, schema-only). Resetting to DoltHub history..."
-  # Reset WHILE server is running — this is critical to avoid journal corruption
+
+  # Stop server before reset — hard reset changes HEAD in ways the running server
+  # cannot track, corrupting the journal. We do it offline then wipe the journal.
+  info "Stopping server before hard reset..."
+  bd dolt stop 2>/dev/null || true
+  sleep 2
+
   (cd "$DOLT_DB" && dolt reset --hard remotes/origin/main) || err "dolt reset --hard failed"
 
-  # After hard reset, journal.idx becomes stale (HEAD changed but journal wasn't rebuilt).
-  # Delete it so dolt rebuilds a clean journal on next start.
-  find "$PROJECT_ROOT/.beads/dolt" -name "journal.idx" -delete 2>/dev/null || true
+  # Wipe ALL journal files so dolt rebuilds them cleanly on next start.
+  # (journal.idx is the index, but the journal data file itself also gets stale.)
+  find "$PROJECT_ROOT/.beads/dolt" -path "*/.dolt/noms/journal*" -delete 2>/dev/null || true
 
 else
-  # Shared history — normal pull
+  # Shared history — normal pull (server can stay running)
   info "Pulling from DoltHub (shared history)..."
   PULL_OUT=$((cd "$DOLT_DB" && dolt pull origin main 2>&1) || true)
   if echo "$PULL_OUT" | grep -qi "conflict"; then
@@ -119,11 +125,9 @@ else
   fi
 fi
 
-# ── 9. restart server to pick up new HEAD ────────────────────────────────────
-info "Restarting bd server to pick up new HEAD..."
-bd dolt stop 2>/dev/null || true
-sleep 2
-bd dolt start 2>/dev/null || err "Server failed to restart after sync"
+# ── 9. start server fresh ─────────────────────────────────────────────────────
+info "Starting bd server..."
+bd dolt start 2>/dev/null || err "Server failed to start after sync"
 sleep 3
 
 # ── 10. verify ───────────────────────────────────────────────────────────────
