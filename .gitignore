@@ -10,6 +10,9 @@
 # C4Flow quality gate (ephemeral, regenerated each review run)
 quality-gate-status.json
 
+# C4Flow workflow state (per-user, local-only — never commit)
+docs/c4flow/.state.json
+
 # Local git worktrees
 .worktrees/
 .beads/

@@ -56,6 +56,7 @@ You are the c4flow orchestrator. You drive a multi-phase workflow that takes a f
      - `slug`: kebab-cased version used for directory paths (e.g., `docs/specs/<slug>/`)
      - `description`: the full feature description provided by the user
    - If the file exists but is invalid JSON, warn the user that state was lost and create a fresh file
+   - **Local-only state:** `.state.json` is gitignored and never committed to git. Each team member maintains their own copy tracking personal workflow progress and current task. Shared feature state lives in beads (synced via DoltHub) and spec artifacts under `docs/specs/`. When a new team member joins, they run `/c4flow:run` to create their own `.state.json`.
 
 2. Display the current state using the format from `/c4flow:status`
 

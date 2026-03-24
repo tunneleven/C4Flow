@@ -12,11 +12,11 @@ Each state transition requires its gate condition to be met before advancing.
 | DESIGN → BEADS | Design system + mockups approved | User confirmation |
 | BEADS → CODE_LOOP | Epic + tasks created, user confirmed | Check beads epic or `tasks.md` exists |
 | CODE_LOOP (per task) | TDD → verify → review → PR → merge per task | Each task: tests pass, preflight pass, 0 CRITICAL/HIGH, PR merged |
-| CODE_LOOP → DEPLOY | All tasks closed (`bd ready` returns empty) | `bd ready --assignee <actor>` returns 0 tasks |
+| CODE_LOOP → INFRA | All tasks closed (`bd ready` returns empty) | `bd ready --assignee <actor>` returns 0 tasks |
+| INFRA → DEPLOY | Infrastructure provisioned | `infraState.githubSecretsConfigured == true` in `.state.json` |
 | DEPLOY → DONE | Deploy verified healthy | Health check passed |
 
 > **Note**: TEST, REVIEW, VERIFY, PR, and MERGE are no longer top-level states. They execute per-task inside the CODE_LOOP task loop. Each task gets its own TDD cycle, verification, review, and PR before the next task starts.
-| DEPLOY → DONE | Deploy verified healthy | Health check passed |
 
 ## Error Handling
 

@@ -23,7 +23,7 @@ One task at a time. Each task is a complete cycle: pickup → branch → TDD →
 │  6. PR/MERGE c4flow:pr → merge to main                │
 │  7. CLOSE    bd close --reason → dolt push            │
 │                                                       │
-│  no tasks left → advance currentState to DEPLOY       │
+│  no tasks left → advance currentState to INFRA        │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -133,7 +133,7 @@ No unblocked tasks assigned to <actor>.
 All tasks may be blocked, in progress, or complete.
 Check status with: bd dep tree <epic-id>
 ```
-→ If all tasks closed, advance to DEPLOY (see Completion Gate).
+→ If all tasks closed, advance to INFRA (see Completion Gate).
 → Otherwise, show blocked tasks and wait for user.
 
 If `READY_COUNT` > 1 — show list and ask user to confirm or select:
@@ -492,7 +492,7 @@ jq --arg id "$TASK_ID" \
 
 ---
 
-## Completion Gate → Advance to DEPLOY
+## Completion Gate → Advance to INFRA
 
 After closing each task, check if more work remains:
 
@@ -500,7 +500,15 @@ After closing each task, check if more work remains:
 REMAINING=$(bd ready --assignee "$ACTOR" --json 2>/dev/null | jq 'length')
 ```
 
-If `REMAINING` > 0: loop back to Step 1 (PICKUP). Step 0.5 runs once per session on entry — do not re-run it on each iteration.
+If `REMAINING` > 0: run inter-iteration beads sync before the next pickup:
+
+```bash
+# Inter-iteration sync: pull latest bead states to prevent stale claims
+bd dolt pull 2>/dev/null && echo "Beads synced before next pickup" \
+  || echo "WARNING: Beads sync failed — using local data"
+```
+
+Then loop back to Step 1 (PICKUP). Step 0.5 (full Dolt+Git sync) runs once per session on entry; inter-iteration sync only refreshes bead state from DoltHub.
 
 If `REMAINING` == 0, verify all epic tasks are closed:
 ```bash
@@ -512,7 +520,7 @@ If `OPEN_COUNT` == 0:
 ```bash
 # All tasks done — advance to DEPLOY
 jq '
-  .currentState = "DEPLOY"
+  .currentState = "INFRA"
   | .completedStates += ["CODE_LOOP"]
   | .taskLoop = null
   | .failedAttempts = 0
@@ -520,7 +528,7 @@ jq '
 ' docs/c4flow/.state.json > docs/c4flow/.state.json.tmp \
   && mv -f docs/c4flow/.state.json.tmp docs/c4flow/.state.json
 
-echo "CODE_LOOP complete. All tasks closed. Advancing to DEPLOY."
+echo "CODE_LOOP complete. All tasks closed. Advancing to INFRA."
 ```
 
 If `OPEN_COUNT` > 0 but `REMAINING` == 0:

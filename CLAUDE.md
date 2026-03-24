@@ -58,9 +58,9 @@ Commands in `commands/` are the user-facing entry points (`run.md`, `status.md`)
 
 ### State Machine
 
-The orchestrator (`skills/c4flow/SKILL.md`) drives a state machine persisted at `docs/c4flow/.state.json`.
+The orchestrator (`skills/c4flow/SKILL.md`) drives a state machine persisted at `docs/c4flow/.state.json` (local-only, gitignored — each team member has their own copy).
 
-**State flow:** `IDLE → RESEARCH → SPEC → DESIGN → BEADS → CODE_LOOP → DEPLOY → DONE`
+**State flow:** `IDLE → RESEARCH → SPEC → DESIGN → BEADS → CODE_LOOP → INFRA → DEPLOY → DONE`
 
 > TEST, REVIEW, VERIFY, PR, and MERGE are **not** top-level states — they run per-task inside `CODE_LOOP`.
 

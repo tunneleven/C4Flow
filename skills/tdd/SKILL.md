@@ -50,20 +50,7 @@ Does this test correctly capture the requirement? [yes / adjust]
 
 Thinking "skip TDD just this once"? Stop. That's rationalization.
 
-## When to Use
 
-**Always:**
-- New features
-- Bug fixes
-- Refactoring
-- Behavior changes
-
-**Exceptions (ask the user):**
-- Throwaway prototypes
-- Generated code
-- Configuration files
-
-Thinking "skip TDD just this once"? Stop. That's rationalization.
 
 ## The Iron Law
 
