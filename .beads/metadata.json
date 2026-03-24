@@ -1,7 +1,0 @@
-{
-  "database": "dolt",
-  "backend": "dolt",
-  "dolt_mode": "server",
-  "dolt_database": "C4Flow",
-  "project_id": "e1701a78-af3e-40d0-b3e6-21ecbd287026"
-}
