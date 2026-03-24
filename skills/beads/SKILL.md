@@ -355,26 +355,79 @@ If score ≤ 3, explicitly call it out and propose fixes before finalizing.
 
 ### Step 4b: Fallback to tasks.md (no Beads)
 
-Create `docs/specs/<feature>/tasks.md` with the same level of detail:
+Create `docs/specs/<feature>/tasks.md` with the same level of detail as the Beads path. The format must be machine-readable by `c4flow:code` — keep the headings and field names exact.
 
 ```markdown
 # Tasks: <feature-name>
 
 > Spec: docs/specs/<feature>/spec.md
+> Generated: <ISO date>
 
-## Person A (Role)
-### [ ] Task 1: <title> [P1] [backend,medium]
-- **Depends on:** none (parallel)
+## Layer 0 (start immediately — no dependencies)
+
+### T-01: <title> [P1] [backend,medium]
+- **Status:** open
 - **Assignee:** Person A
-- **Description:** ...
+- **Claimed by:** —
+- **Depends on:** none
 - **Acceptance criteria:**
   - [ ] ...
   - [ ] ...
-- **Design notes:** ...
-- **Files:** src/...
-- **Spec ref:** spec.md#section
-- **Notes:** ...
+- **Description:** Why this task exists and how it fits the feature.
+- **Input:** What's needed to start (files, APIs, outputs from other tasks).
+- **Deliverables:** Concrete outputs (files, endpoints, migrations).
+- **Files:** `src/auth/login.ts`, `src/api/routes.ts`
+- **Design notes:** Architecture decisions — patterns to follow, gotchas.
+- **Spec ref:** spec.md#requirement-section
+- **Notes:** Implementation context, warnings, related work.
+
+### T-02: <title> [P2] [frontend,medium]
+- **Status:** open
+- **Assignee:** Person B
+- **Claimed by:** —
+- **Depends on:** none
+...
+
+## Layer 1 (after Layer 0 completes)
+
+### T-03: <title> [P1] [backend,medium]
+- **Status:** open
+- **Assignee:** Person A
+- **Claimed by:** —
+- **Depends on:** T-01 (needs schema), T-02 (needs UI contract)
+...
+
+## Layer 2 (integration)
+
+### T-04: <title> [P1] [fullstack,small]
+- **Status:** open
+- **Assignee:** Person A
+- **Claimed by:** —
+- **Depends on:** T-01, T-02, T-03
+...
 ```
+
+**Status lifecycle** — `c4flow:code` updates these fields in place:
+
+| Status | Meaning | Transition |
+|--------|---------|-----------|
+| `open` | Not started | → `in-progress` when claimed |
+| `in-progress` | Being worked on | → `done` or `blocked` |
+| `blocked` | Dependency not met | → `open` when unblocked |
+| `done` | Completed and merged | Terminal state |
+
+**When claiming a task** (in `c4flow:code`), update the line:
+```
+- **Status:** in-progress
+- **Claimed by:** <actor-name> (<ISO datetime>)
+```
+
+**When completing a task**, update:
+```
+- **Status:** done
+```
+
+**Dependency resolution** — `c4flow:code` uses the `Depends on:` field to determine what's safe to start. A task is "ready" when all tasks listed in its `Depends on:` field have `Status: done`. Tasks with `Depends on: none` are always ready.
 
 Tell user: "Using `tasks.md` fallback. Run `/c4flow:init` to install Beads for dependency resolution and atomic task claiming."
 

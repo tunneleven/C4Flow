@@ -2,9 +2,30 @@
 
 ## Step 1: Clarifying Questions
 
-**Before starting any research**, pause and ask the user 2-5 clarifying questions to sharpen the research scope. Better input → dramatically better output.
+**Before starting any research**, assess whether the feature description is clear enough to research effectively — then decide how many questions to ask.
 
-**Question categories** (pick the most relevant):
+### Assess description completeness
+
+Score the description across these dimensions:
+
+| Dimension | Clear | Vague |
+|-----------|-------|-------|
+| **Who** | Target users or segment named | "users", "people", no specifics |
+| **What problem** | Specific pain point described | Generic or missing |
+| **Scope** | Standalone vs part of bigger system clear | Unknown |
+| **Context** | Domain, platform, or constraints mentioned | None |
+
+**Decision rules:**
+
+| Score | Action |
+|-------|--------|
+| **3-4 dimensions clear** | Ask **0-1 questions** — only for the most critical gap. Note assumptions for the rest. |
+| **2 dimensions clear** | Ask **2-3 questions** — the most important unknowns. |
+| **0-1 dimensions clear** | Ask **3-5 questions** — description too vague to research well. |
+
+> **Why this matters:** Asking 5 questions for a well-described feature adds unnecessary round-trips. Asking 0 questions for a vague one produces research that misses the mark. Match depth to need.
+
+### Question categories (pick the most relevant)
 
 | Category | Example Questions |
 |----------|------------------|
@@ -17,13 +38,12 @@
 | **Competitive context** | "Bạn đã biết competitor nào chưa? Có tool nào bạn thích/ghét?" |
 
 **Rules:**
-- **Always ask** — even if the idea seems clear. There are always hidden assumptions worth surfacing.
-- Ask **2-5 questions** depending on complexity. Simple ideas → 2-3 questions. Complex/broad ideas → 4-5 questions.
-- Questions should be **specific to the feature**, not generic templates. Adapt based on what the user described.
-- **Do NOT proceed** to Step 2 until the user responds.
-- If the user says "skip" or "just go", proceed with reasonable assumptions and note them in the output.
+- Questions must be **specific to the feature** — never ask generic templates verbatim.
+- If asking 0 questions, state what assumptions you're making before proceeding: "Proceeding with the following assumptions: [list]. Let me know if any of these are wrong."
+- If the user says "skip" or "just go" at any point, proceed with reasonable assumptions and note them in the output.
+- **Do NOT proceed** to Step 2 if you asked questions and are waiting for a response.
 
-**After receiving answers**, incorporate them into your research context and proceed to Step 2.
+**After receiving answers** (or if asking 0 questions), incorporate context into your research and proceed to Step 2.
 
 ---
 

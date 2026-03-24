@@ -140,7 +140,44 @@ Confirm:
 - Failure message is expected
 - Fails because feature missing (not typos)
 
-**Test passes?** You're testing existing behavior. Fix test.
+**Test passes?** Two possibilities — distinguish them carefully:
+
+1. **Test is trivial** — it passes because it tests nothing meaningful. Rewrite it.
+2. **Code already exists** — the feature was already implemented. Verify this, then write a test for an *unimplemented* edge case or extend the feature.
+
+**TRIVIAL TEST examples** — these are invalid, rewrite them:
+
+```typescript
+// ❌ Trivial: tests language semantics, not your code
+test('adds numbers', () => {
+  expect(1 + 1).toBe(2);
+});
+
+// ❌ Trivial: tests a getter that was already there before this task
+test('returns name', () => {
+  const user = new User({ name: 'Alice' });
+  expect(user.name).toBe('Alice');  // getter existed before this task
+});
+
+// ❌ Trivial: undefined === undefined, not a behavior test
+test('uninitialized cache returns nothing', () => {
+  const cache = new Cache();
+  expect(cache.get('key')).toBeUndefined();  // passes before any implementation
+});
+```
+
+**Valid RED that happens to look like it passes** — check first if the implementation already exists:
+
+```typescript
+// This test passes? Check if retryOperation() exists in the codebase.
+// If it doesn't exist → the test runner found a syntax error or name conflict, not a pass.
+// If it does exist → prior work already shipped this. Write a test for something NOT yet done.
+test('retries failed operations 3 times', async () => {
+  ...
+});
+```
+
+**When rewriting a trivial test**, ask: "What behavior would break if I deleted the implementation?" Write that test instead.
 
 **Test errors?** Fix error, re-run until it fails correctly.
 

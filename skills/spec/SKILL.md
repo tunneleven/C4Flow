@@ -294,6 +294,8 @@ If any check fails, fix the artifact before reporting completion.
 
 | Situation | What to Do |
 |-----------|-----------|
+| **User rejects all directions (Step 2.2)** | Ask which specific aspect doesn't work: scope too large/small? Wrong audience? Wrong architecture? Then re-propose 2 directions that specifically address the complaint. If rejected again, ask the user to describe their preferred direction in their own words — use that as the agreed direction instead of proposing further. |
+| **User rejects direction partially** | Acknowledge what they want to keep, what to drop. Restate as a new blended direction for confirmation before proceeding. "So your direction is: [X from A] + [Y from B] — is that right?" |
 | User rejects artifact 3+ times | Ask: "Would you like to adjust the proposal scope? The current requirements may be misaligned with your vision." Offer to go back to proposal |
 | `research.md` missing or incomplete | Note which sections are missing. Proceed with available data. Flag gaps in each artifact: "[Note: research.md lacked Competitive Landscape — this section is based on general knowledge]" |
 | Artifact conflict (e.g., tech-stack doesn't support spec requirement) | Surface the conflict to user immediately: "The chosen tech [X] doesn't support requirement [Y]. Options: 1) Change tech stack, 2) Modify requirement, 3) Accept as tech debt" |
