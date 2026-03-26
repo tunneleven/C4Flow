@@ -46,6 +46,11 @@ Fetch and follow instructions from https://raw.githubusercontent.com/tunneleven/
 Fetch and follow instructions from https://raw.githubusercontent.com/tunneleven/C4Flow/main/.antigravity/INSTALL.md
 ```
 
+**OpenCode:**
+```
+Fetch and follow instructions from https://raw.githubusercontent.com/tunneleven/C4Flow/main/.opencode/INSTALL.md
+```
+
 ---
 
 ## Usage
