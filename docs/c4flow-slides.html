@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C4Flow — Cách sử dụng AI trong Hackathon</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal-dark:#1a6b5a;
+  --teal:#2d9f8f;
+  --teal-light:#3bbaa8;
+  --cyan:#4dd4c0;
+  --white:#ffffff;
+  --white-90:rgba(255,255,255,.9);
+  --white-70:rgba(255,255,255,.7);
+  --white-50:rgba(255,255,255,.5);
+  --white-30:rgba(255,255,255,.3);
+  --white-15:rgba(255,255,255,.15);
+  --white-08:rgba(255,255,255,.08);
+  --white-05:rgba(255,255,255,.05);
+  --red:#ff6b6b;
+  --green:#51cf66;
+  --yellow:#ffd43b;
+  --font-body:'Inter',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+html,body{width:100%;height:100%;overflow:hidden;font-family:var(--font-body);background:#111}
+/* ═══════════ SLIDE ENGINE ═══════════ */
+.deck{position:relative;width:100%;height:100%}
+.slide{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;justify-content:flex-start;
+  padding:80px 80px 60px;
+  opacity:0;visibility:hidden;
+  transition:opacity .5s ease,transform .5s ease;
+  transform:translateX(40px);
+  overflow-y:auto;
+  background:linear-gradient(135deg,#1a5c4e 0%,#22806e 30%,#2d9f8f 60%,#3bbaa8 100%);
+}
+.slide.active{opacity:1;visibility:visible;transform:translateX(0)}
+.slide.prev{transform:translateX(-40px)}
+
+/* ═══════════ BACKGROUND ═══════════ */
+.slide-bg{
+  position:absolute;inset:0;z-index:0;
+  pointer-events:none;
+}
+/* geometric diamonds */
+.slide-bg .diamond{
+  position:absolute;
+  width:180px;height:180px;
+  border:2px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  transform:rotate(45deg);
+  border-radius:12px;
+}
+.slide-bg .d1{left:-40px;top:20%;width:200px;height:200px;background:rgba(255,255,255,.07)}
+.slide-bg .d2{left:40px;top:35%;width:160px;height:160px;background:rgba(255,255,255,.05)}
+.slide-bg .d3{left:-20px;top:55%;width:120px;height:120px;background:rgba(255,255,255,.03)}
+.slide-bg .d4{right:5%;bottom:10%;width:100px;height:100px;background:rgba(255,255,255,.03);border-color:rgba(255,255,255,.06)}
+
+/* binary watermark */
+.slide-bg .binary{
+  position:absolute;right:0;top:0;bottom:0;width:45%;
+  overflow:hidden;opacity:.06;
+  font-family:var(--font-mono);font-size:13px;line-height:1.6;
+  color:#fff;letter-spacing:2px;
+  word-wrap:break-word;word-break:break-all;
+  padding:20px;
+  pointer-events:none;
+}
+.slide > *{position:relative;z-index:1}
+
+/* ═══════════ TYPOGRAPHY ═══════════ */
+.slide h1{font-size:68px;font-weight:800;color:var(--white);line-height:1.12;margin-bottom:16px;letter-spacing:-.02em}
+.slide h2{font-size:52px;font-weight:700;color:var(--white);line-height:1.15;margin-bottom:20px;letter-spacing:-.01em}
+.slide h3{font-size:24px;font-weight:600;color:var(--cyan);margin:16px 0 10px;text-transform:uppercase;letter-spacing:.04em}
+.slide p,.slide li{font-size:26px;color:var(--white-90);line-height:1.55}
+.slide .subtitle{font-size:32px;color:var(--white-70);font-weight:400;margin-bottom:20px}
+.slide .tagline{font-size:26px;color:var(--cyan);font-style:italic;margin-top:16px;font-weight:400}
+.slide ul{list-style:none;padding:0}
+.slide ul li{padding:7px 0;padding-left:30px;position:relative}
+.slide ul li::before{content:'▸';position:absolute;left:0;color:var(--cyan);font-weight:700}
+.slide .emoji-bullet li::before{content:none}
+.slide .emoji-bullet li{padding-left:0}
+.slide strong{color:var(--white);font-weight:600}
+.slide em{color:var(--cyan)}
+
+/* ═══════════ BLOCKQUOTE ═══════════ */
+.slide blockquote{
+  border-left:4px solid var(--cyan);
+  padding:22px 30px;margin:20px 0;
+  background:var(--white-05);border-radius:0 8px 8px 0;
+  font-style:italic;color:var(--white-70);font-size:24px;line-height:1.6;
+}
+
+/* ═══════════ CODE BLOCKS ═══════════ */
+.code-block{
+  background:rgba(0,0,0,.35);border:1px solid var(--white-15);
+  border-radius:10px;padding:22px 26px;margin:14px 0;
+  font-family:var(--font-mono);font-size:18px;color:var(--cyan);
+  line-height:1.6;overflow-x:auto;white-space:pre;
+  backdrop-filter:blur(8px);
+}
+.code-block .comment{color:var(--white-30)}
+.code-block .cmd{color:var(--green)}
+.code-block .flag{color:var(--yellow)}
+.code-block .str{color:#ffa94d}
+.code-block .kw{color:#e599f7}
+
+/* ═══════════ TABLES ═══════════ */
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:22px}
+th{
+  background:var(--white-08);color:var(--cyan);font-weight:600;
+  text-align:left;padding:16px 20px;
+  border-bottom:2px solid var(--white-15);
+  text-transform:uppercase;letter-spacing:.03em;font-size:17px;
+}
+td{
+  padding:14px 20px;color:var(--white-90);font-size:21px;
+  border-bottom:1px solid var(--white-08);
+  vertical-align:top;
+}
+tr:hover td{background:var(--white-05)}
+
+/* ═══════════ CARDS / GRID ═══════════ */
+.card-grid{display:grid;gap:18px;margin:18px 0}
+.card-grid.cols-3{grid-template-columns:repeat(3,1fr)}
+.card-grid.cols-2{grid-template-columns:repeat(2,1fr)}
+.card{
+  background:var(--white-05);border:1px solid var(--white-15);
+  border-radius:12px;padding:28px;
+  backdrop-filter:blur(8px);
+  transition:transform .2s,border-color .2s;
+}
+.card:hover{transform:translateY(-2px);border-color:var(--cyan)}
+.card h4{font-size:24px;font-weight:600;color:var(--white);margin-bottom:10px}
+.card .stars{color:var(--yellow);font-size:17px;font-weight:600;margin-bottom:10px}
+.card p,.card li{font-size:20px;color:var(--white-70);line-height:1.55}
+.card ul li{padding:4px 0;padding-left:22px;font-size:20px}
+.card ul li::before{font-size:16px}
+
+/* ═══════════ COMPARISON ═══════════ */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin:18px 0}
+.compare-col{background:var(--white-05);border:1px solid var(--white-15);border-radius:12px;padding:24px 28px}
+.compare-col.bad{border-color:rgba(255,180,100,.4)}
+.compare-col.good{border-color:rgba(255,255,255,.25)}
+.compare-col h4{font-size:22px;font-weight:600;margin-bottom:12px;text-transform:uppercase;letter-spacing:.03em}
+.compare-col.bad h4{color:#ffcf99}
+.compare-col.good h4{color:var(--white)}
+
+/* ═══════════ FLOW DIAGRAM ═══════════ */
+.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:16px 0}
+.flow-item{
+  background:var(--white-08);border:1px solid var(--white-15);border-radius:8px;
+  padding:12px 20px;font-size:19px;font-weight:500;color:var(--white-90);
+  white-space:nowrap;
+}
+.flow-item.active{background:rgba(77,212,192,.2);border-color:var(--cyan);color:var(--cyan)}
+.flow-arrow{color:var(--white-30);font-size:22px}
+.flow-group{display:flex;align-items:center;gap:6px;padding:6px 0}
+.flow-group-label{font-size:12px;color:var(--white-50);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-right:8px;min-width:80px}
+
+/* ═══════════ BADGE ═══════════ */
+.badge{
+  display:inline-block;padding:7px 18px;border-radius:99px;
+  font-size:16px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;
+}
+.badge.red{background:rgba(0,0,0,.4);color:#ffd4a8;border:1px solid rgba(255,200,150,.4)}
+.badge.green{background:rgba(0,0,0,.35);color:#c0ffd0;border:1px solid rgba(180,255,200,.4)}
+.badge.yellow{background:rgba(0,0,0,.35);color:#fff0a0;border:1px solid rgba(255,240,120,.4)}
+.badge.teal{background:rgba(0,0,0,.3);color:#b0fff0;border:1px solid rgba(176,255,240,.35)}
+
+/* ═══════════ TWO COL LAYOUT ═══════════ */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin:10px 0}
+
+/* ═══════════ PROGRESS BAR ═══════════ */
+#progress{position:fixed;top:0;left:0;height:3px;background:var(--cyan);z-index:999;transition:width .4s ease}
+/* slide counter */
+#counter{
+  position:fixed;bottom:20px;right:30px;z-index:999;
+  font-family:var(--font-mono);font-size:16px;color:var(--white-50);
+}
+/* nav hint */
+#nav-hint{
+  position:fixed;bottom:20px;left:30px;z-index:999;
+  font-size:14px;color:var(--white-30);
+}
+/* logo */
+.logo{
+  position:absolute;top:28px;left:80px;z-index:2;
+  display:flex;align-items:center;gap:10px;
+  font-weight:700;font-size:18px;color:var(--white-70);
+  letter-spacing:.02em;
+}
+.logo-icon{
+  width:32px;height:32px;
+  background:var(--white-15);border:2px solid var(--white-30);
+  transform:rotate(45deg);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+}
+.logo-icon span{transform:rotate(-45deg);font-size:14px;font-weight:800;color:var(--white)}
+
+/* ═══════════ TITLE SLIDE SPECIAL ═══════════ */
+.slide.title-slide{justify-content:center;align-items:flex-start;padding-left:80px}
+.slide.title-slide h1{font-size:76px;max-width:850px}
+.slide.title-slide .subtitle{font-size:32px;max-width:750px}
+
+/* content slides: center content vertically, top padding for logo */
+.slide:not(.title-slide){padding-top:80px;justify-content:center}
+
+/* ═══════════ CLOSING ═══════════ */
+.closing-msg{
+  background:var(--white-08);border:1px solid var(--white-15);
+  border-radius:16px;padding:32px 40px;margin:20px 0;
+  text-align:center;
+}
+.closing-msg h2{font-size:30px;margin-bottom:10px}
+.closing-msg p{font-size:22px;color:var(--white-70)}
+
+.links-grid{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.link-chip{
+  background:var(--white-08);border:1px solid var(--white-15);
+  border-radius:8px;padding:10px 22px;
+  font-size:17px;color:var(--cyan);font-weight:500;
+}
+
+/* section label inside slide */
+.section-label{
+  font-size:16px;font-weight:600;color:var(--cyan);
+  text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;
+  opacity:.8;
+}
+
+/* scrollbar */
+.slide::-webkit-scrollbar{width:4px}
+.slide::-webkit-scrollbar-track{background:transparent}
+.slide::-webkit-scrollbar-thumb{background:var(--white-15);border-radius:4px}
+
+/* animation for items */
+.slide.active .fade-up{animation:fadeUp .6s ease both}
+.slide.active .fade-up:nth-child(2){animation-delay:.1s}
+.slide.active .fade-up:nth-child(3){animation-delay:.2s}
+.slide.active .fade-up:nth-child(4){animation-delay:.3s}
+.slide.active .fade-up:nth-child(5){animation-delay:.4s}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+@media (max-width:900px){
+  .slide{padding:30px 30px 60px}
+  .slide h1{font-size:36px}
+  .slide h2{font-size:26px}
+  .card-grid.cols-3,.card-grid.cols-2,.two-col,.compare{grid-template-columns:1fr}
+  .flow{flex-direction:column;align-items:flex-start}
+  .logo{left:30px}
+}
+</style>
+</head>
+<body>
+
+<div id="progress"></div>
+<div id="counter"></div>
+<div id="nav-hint">← →  hoặc click để chuyển slide</div>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 1 — TITLE ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<div class="deck">
+<section class="slide title-slide" data-slide="1">
+  <div class="slide-bg">
+    <div class="diamond d1"></div>
+    <div class="diamond d2"></div>
+    <div class="diamond d3"></div>
+    <div class="diamond d4"></div>
+    <div class="binary" id="bin1"></div>
+  </div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+  <div class="fade-up">
+    <h1>Cách chúng tôi sử dụng AI trong Hackathon</h1>
+    <p class="subtitle">Từ ý tưởng đến sản phẩm — Xây dựng C4Flow để thi đấu</p>
+    <p class="tagline">"AI không chỉ viết code — AI điều khiển cả workflow"</p>
+  </div>
+</section>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 2 — PROBLEM ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<section class="slide" data-slide="2">
+  <div class="slide-bg"><div class="diamond d1"></div><div class="diamond d2"></div><div class="diamond d3"></div><div class="binary" id="bin2"></div></div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+
+  <div class="section-label fade-up">Vấn đề</div>
+  <h2 class="fade-up">Dùng AI coding trong hackathon<br>không đơn giản</h2>
+
+  <ul class="fade-up" style="margin-bottom:20px">
+    <li>⏱️ Thời gian giới hạn → cần tốc độ tối đa</li>
+    <li>🤖 AI giỏi viết code — nhưng <strong>ai quản lý workflow?</strong></li>
+    <li>🧠 Mỗi session AI mới = <strong>mất toàn bộ context</strong> trước đó</li>
+    <li>🔀 Research riêng, spec riêng, code riêng → <strong>fragmented</strong></li>
+    <li>💀 Kết quả: code lặp lại, chất lượng thấp, mất thời gian quý báu</li>
+  </ul>
+
+  <div class="code-block fade-up"><span class="comment">// Câu chuyện thật:</span>
+<span class="str">"Lần đầu dùng AI trong hackathon, chúng tôi mất 2 tiếng
+ chỉ vì AI quên context giữa chừng."</span></div>
+</section>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 3 — INSPIRATIONS ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<section class="slide" data-slide="3">
+  <div class="slide-bg"><div class="diamond d1"></div><div class="diamond d2"></div><div class="diamond d3"></div><div class="binary" id="bin3"></div></div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+
+  <div class="section-label fade-up">Nguồn cảm hứng</div>
+  <h2 class="fade-up">Chúng tôi học được gì từ cộng đồng</h2>
+
+  <div class="card-grid cols-3 fade-up">
+    <div class="card">
+      <h4>🔷 Superpowers</h4>
+      <div class="stars">⭐ 125k stars · obra/superpowers</div>
+      <ul>
+        <li>Agentic skills framework</li>
+        <li><strong>Skills tự động kích hoạt</strong></li>
+        <li>Brainstorming → Plans → TDD → Review</li>
+        <li>Triết lý: systematic over ad-hoc</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🔷 OpenSpec</h4>
+      <div class="stars">⭐ 35.6k stars · Fission-AI/OpenSpec</div>
+      <ul>
+        <li>Spec-Driven Development cho AI</li>
+        <li>propose → specs → design → tasks</li>
+        <li><strong>Mỗi change có folder riêng</strong></li>
+        <li>Fluid, iterative workflow</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🔷 Spec Kit</h4>
+      <div class="stars">⭐ 83.7k stars · github/spec-kit</div>
+      <ul>
+        <li>GitHub official toolkit</li>
+        <li>Constitution → Plan → Tasks</li>
+        <li><strong>Specs → executable code</strong></li>
+        <li>Extensions & presets system</li>
+      </ul>
+    </div>
+  </div>
+
+  <blockquote class="fade-up">"Ba dự án này đều giải quyết cùng 1 vấn đề: làm sao để AI coding có structure, không phải vibe coding."</blockquote>
+</section>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 4 — C4FLOW COMPARISON ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<section class="slide" data-slide="4">
+  <div class="slide-bg"><div class="diamond d1"></div><div class="diamond d2"></div><div class="diamond d3"></div><div class="binary" id="bin4"></div></div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+
+  <div class="section-label fade-up">So sánh</div>
+  <h2 class="fade-up">C4Flow — Học hỏi và custom cho riêng mình</h2>
+
+  <div class="two-col fade-up">
+    <div>
+      <h3>Điểm chung</h3>
+      <ul class="emoji-bullet">
+        <li>✅ Spec-driven: Research → Spec → Design → Code</li>
+        <li>✅ Sub-agent driven: mỗi phase có agent riêng</li>
+        <li>✅ Skills system: markdown + shell</li>
+        <li>✅ TDD bắt buộc, quality gates</li>
+      </ul>
+    </div>
+    <div>
+      <h3>C4Flow làm thêm gì?</h3>
+      <table>
+        <tr><th>Tính năng</th><th>Others</th><th>C4Flow</th></tr>
+        <tr><td>Task mgmt</td><td><span class="badge red">Markdown</span></td><td><span class="badge green">Beads DB</span></td></tr>
+        <tr><td>Session persist</td><td><span class="badge red">Mất khi compact</span></td><td><span class="badge green">Dolt DB</span></td></tr>
+        <tr><td>Dependencies</td><td><span class="badge red">Text → suy luận</span></td><td><span class="badge green">DB enforce</span></td></tr>
+        <tr><td>State machine</td><td><span class="badge red">Implicit</span></td><td><span class="badge green">.state.json</span></td></tr>
+        <tr><td>Design system</td><td><span class="badge red">Không có</span></td><td><span class="badge green">OKLCH + Pencil</span></td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 5 — WHY NOT MARKDOWN ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<section class="slide" data-slide="5">
+  <div class="slide-bg"><div class="diamond d1"></div><div class="diamond d2"></div><div class="diamond d3"></div><div class="binary" id="bin5"></div></div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+
+  <div class="section-label fade-up">Deep Dive</div>
+  <h2 class="fade-up">Tại sao Beads, không phải Markdown?</h2>
+
+  <div class="card-grid cols-2 fade-up">
+    <div class="card" style="border-color:rgba(255,200,150,.4)">
+      <h4 style="color:#ffcf99">🔴 Agent Amnesia</h4>
+      <div class="code-block" style="font-size:13px">Agent làm Task 1 được 50%
+→ Context window đầy → Compact
+→ Đọc lại tasks.md
+→ Thấy "- [ ] Task 1" (chưa check!)
+→ <span class="str">LÀM LẠI TỪ ĐẦU! 😱</span></div>
+    </div>
+    <div class="card" style="border-color:rgba(255,200,150,.4)">
+      <h4 style="color:#ffcf99">🔴 Implicit Dependencies</h4>
+      <p>"depends on" nghĩa là <strong>block</strong> hay chỉ <strong>liên quan</strong>?</p>
+      <p style="margin-top:8px">Suy luận = tốn tokens + <strong>có thể sai</strong></p>
+    </div>
+    <div class="card" style="border-color:rgba(255,200,150,.4)">
+      <h4 style="color:#ffcf99">🔴 Chỉ 2 trạng thái</h4>
+      <p><code>[ ]</code> TODO vs <code>[x]</code> DONE</p>
+      <p style="margin-top:8px">Không có: "đang làm 50%", "đang đợi review", "bị block"</p>
+    </div>
+    <div class="card" style="border-color:rgba(255,200,150,.4)">
+      <h4 style="color:#ffcf99">🔴 Không scale</h4>
+      <p>File 500 dòng = <strong>2000 tokens</strong> mỗi lần đọc</p>
+      <p style="margin-top:8px">Agent đọc 3 lần = <strong>6000 tokens</strong> chỉ để biết task nào cần làm</p>
+    </div>
+  </div>
+</section>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 6 — BEADS ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<section class="slide" data-slide="6">
+  <div class="slide-bg"><div class="diamond d1"></div><div class="diamond d2"></div><div class="diamond d3"></div><div class="binary" id="bin6"></div></div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+
+  <div class="section-label fade-up">Giải pháp</div>
+  <h2 class="fade-up">Beads — Issue Tracker cho AI Agent</h2>
+
+  <blockquote class="fade-up">"Markdown là danh sách task để ĐỌC và TỰ HIỂU.<br>Beads là hệ thống để HỎI và NHẬN câu trả lời."</blockquote>
+
+  <div class="compare fade-up">
+    <div class="compare-col bad">
+      <h4>❌ Markdown</h4>
+      <div class="code-block" style="font-size:14px;color:#ffd4a8">Agent đọc tasks.md (2000 tokens)
+→ Parse text, tìm [ ] và [x]
+→ Suy luận dependency
+→ Có thể sai, tốn tokens</div>
+    </div>
+    <div class="compare-col good">
+      <h4>✅ Beads</h4>
+      <div class="code-block" style="font-size:13px"><span class="cmd">$ bd ready --json</span>      <span class="comment"># 50 tokens</span>
+[{"id":"bd-1","title":"Setup DB","priority":1}]
+<span class="comment"># → Chính xác, đã filter + sort</span></div>
+    </div>
+  </div>
+
+  <div class="card-grid cols-3 fade-up" style="margin-top:12px">
+    <div class="card" style="padding:16px 20px"><h4 style="font-size:14px">🎯 Auto-ready</h4><p>Chỉ tasks không bị block</p></div>
+    <div class="card" style="padding:16px 20px"><h4 style="font-size:14px">📊 Rich status</h4><p>open · in_progress · blocked · closed</p></div>
+    <div class="card" style="padding:16px 20px"><h4 style="font-size:14px">🔗 Git-native</h4><p>Sync qua git, không cần server</p></div>
+  </div>
+</section>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 7 — STATE MACHINE ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<section class="slide" data-slide="7">
+  <div class="slide-bg"><div class="diamond d1"></div><div class="diamond d2"></div><div class="diamond d3"></div><div class="binary" id="bin7"></div></div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+
+  <div class="section-label fade-up">Architecture</div>
+  <h2 class="fade-up">12 Phases, 1 State Machine</h2>
+
+  <div class="fade-up" style="margin-bottom:20px">
+    <div style="margin-bottom:8px"><span class="badge teal">🔍 DISCOVERY</span></div>
+    <div class="flow">
+      <div class="flow-item active">IDLE</div><span class="flow-arrow">→</span>
+      <div class="flow-item">RESEARCH</div><span class="flow-arrow">→</span>
+      <div class="flow-item">SPEC</div><span class="flow-arrow">→</span>
+      <div class="flow-item">DESIGN</div>
+    </div>
+
+    <div style="margin:8px 0"><span class="badge yellow">🔨 BUILD</span></div>
+    <div class="flow">
+      <div class="flow-item">BEADS</div><span class="flow-arrow">→</span>
+      <div class="flow-item active">CODE ↻</div><span class="flow-arrow">→</span>
+      <div class="flow-item">TEST</div><span class="flow-arrow">→</span>
+      <div class="flow-item">REVIEW</div><span class="flow-arrow">→</span>
+      <div class="flow-item">VERIFY</div>
+    </div>
+
+    <div style="margin:8px 0"><span class="badge green">🚀 SHIP</span></div>
+    <div class="flow">
+      <div class="flow-item">PR</div><span class="flow-arrow">→</span>
+      <div class="flow-item">MERGE</div><span class="flow-arrow">→</span>
+      <div class="flow-item">DEPLOY</div><span class="flow-arrow">→</span>
+      <div class="flow-item active">DONE</div>
+    </div>
+  </div>
+
+  <ul class="fade-up">
+    <li>State persist tại <code>docs/c4flow/.state.json</code></li>
+    <li>Mỗi <code>/c4flow:run</code> advance 1 phase → dừng/resume bất cứ lúc nào</li>
+    <li>Feedback loops: TEST fail → CODE, REVIEW fail → SPEC</li>
+    <li>Graceful degradation: không có tool → skip hoặc fallback</li>
+  </ul>
+</section>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 8 — RESEARCH & SPEC ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<section class="slide" data-slide="8">
+  <div class="slide-bg"><div class="diamond d1"></div><div class="diamond d2"></div><div class="diamond d3"></div><div class="binary" id="bin8"></div></div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+
+  <div class="section-label fade-up">Phase 1–2</div>
+  <h2 class="fade-up">Research & Spec</h2>
+
+  <div class="two-col fade-up">
+    <div>
+      <h3>🔍 Research</h3>
+      <div class="code-block"><span class="cmd">/c4flow:research</span></div>
+      <ul style="margin-top:12px">
+        <li>Sub-agent tự web research</li>
+        <li>2 layers: <strong>Market Analysis</strong> + <strong>Technical Research</strong></li>
+        <li>Output: <code>research.md</code></li>
+      </ul>
+    </div>
+    <div>
+      <h3>📋 Spec</h3>
+      <div class="code-block"><span class="cmd">/c4flow:spec</span></div>
+      <ul style="margin-top:12px">
+        <li><strong>Interactive</strong> — agent hỏi bạn ở quyết định quan trọng</li>
+        <li>Output 4 files:</li>
+      </ul>
+      <table style="margin-top:8px">
+        <tr><td><code>proposal.md</code></td><td>Why + what to build</td></tr>
+        <tr><td><code>tech-stack.md</code></td><td>Technology decisions</td></tr>
+        <tr><td><code>spec.md</code></td><td>GIVEN/WHEN/THEN specs</td></tr>
+        <tr><td><code>design.md</code></td><td>Technical architecture</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <blockquote class="fade-up">"Spec tốt = code nhanh. Trong hackathon, spec phase là critical."</blockquote>
+</section>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 9 — DESIGN ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<section class="slide" data-slide="9">
+  <div class="slide-bg"><div class="diamond d1"></div><div class="diamond d2"></div><div class="diamond d3"></div><div class="binary" id="bin9"></div></div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+
+  <div class="section-label fade-up">Phase 3</div>
+  <h2 class="fade-up">Design: AI tự tạo Design System + Components</h2>
+
+  <div class="card-grid cols-3 fade-up">
+    <div class="card">
+      <h4>1. Design Tokens</h4>
+      <div class="code-block" style="font-size:12px"><span class="kw">Primary</span>   oklch(0.65 0.24 265)
+<span class="kw">Secondary</span> oklch(0.55 0.18 300)
+<span class="kw">Neutral</span>   oklch(0.92 0.01 265)
+<span class="kw">Danger</span>    oklch(0.65 0.22 25)</div>
+      <p style="margin-top:8px">+ Typography, spacing (4px grid), radius, shadows</p>
+    </div>
+    <div class="card">
+      <h4>2. Shared Components</h4>
+      <p>Đọc spec → xác định components dùng lại:</p>
+      <p style="margin-top:6px"><span class="badge teal">Button</span> <span class="badge teal">Input</span> <span class="badge teal">Card</span> <span class="badge teal">Modal</span> <span class="badge teal">Table</span> <span class="badge teal">Nav</span></p>
+      <p style="margin-top:8px">Output: <code>MASTER.md</code> — component library</p>
+    </div>
+    <div class="card">
+      <h4>3. Screen Mockups</h4>
+      <p>Agent compose screens từ shared components</p>
+      <p style="margin-top:6px">Pencil MCP → <code>.pen</code> files</p>
+      <p style="margin-top:6px">Output: <code>screen-map.md</code></p>
+    </div>
+  </div>
+
+  <div class="compare fade-up" style="margin-top:14px">
+    <div class="compare-col bad">
+      <h4>❌ Không có Design phase</h4>
+      <ul><li>Mỗi screen code riêng → inconsistent</li><li>AI tự chọn màu → mỗi lần 1 kiểu</li><li>Đổi brand color = sửa 50 files</li><li>Code phase chậm — phải quyết UI</li></ul>
+    </div>
+    <div class="compare-col good">
+      <h4>✅ Có Design phase</h4>
+      <ul><li>Shared components → code 1 lần, dùng N nơi</li><li>OKLCH tokens → consistent toàn app</li><li>Đổi 1 token = đổi toàn bộ</li><li>Code phase nhanh — design đã quyết</li></ul>
+    </div>
+  </div>
+</section>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 10 — CODE LOOP ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<section class="slide" data-slide="10">
+  <div class="slide-bg"><div class="diamond d1"></div><div class="diamond d2"></div><div class="diamond d3"></div><div class="binary" id="bin10"></div></div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+
+  <div class="section-label fade-up">Phase 4–5</div>
+  <h2 class="fade-up">Beads Breakdown → TDD Code Loop</h2>
+
+  <div class="two-col fade-up">
+    <div>
+      <h3>📦 Task Breakdown</h3>
+      <div class="code-block"><span class="cmd">/c4flow:beads</span>
+<span class="comment"># Đọc spec → tạo epic + dependency graph</span>
+<span class="comment"># Chọn: compact | balanced | atomic</span>
+<span class="comment"># Agent ước lượng → bạn approve</span></div>
+
+      <h3 style="margin-top:16px">🔄 Code Loop</h3>
+      <div class="code-block" style="font-size:13px"><span class="cmd">bd ready</span> → <span class="cmd">bd update --status in_progress</span>
+→ TDD (<span class="str">RED</span>→<span class="flag">GREEN</span>→<span class="kw">REFACTOR</span>)
+→ Test → Review → Verify
+→ <span class="cmd">bd close</span> → Next task</div>
+    </div>
+    <div>
+      <h3>🧪 TDD bắt buộc</h3>
+      <div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap">
+        <span class="badge red">RED — Test fail trước</span>
+        <span class="badge green">GREEN — Code vừa đủ pass</span>
+        <span class="badge yellow">REFACTOR — Clean up</span>
+      </div>
+
+      <h3 style="margin-top:16px">🔄 Recovery sau Compact</h3>
+      <div class="code-block" style="font-size:13px"><span class="cmd">$ bd ready --json</span>
+<span class="comment"># Không có task ready</span>
+<span class="cmd">$ bd list --status in_progress</span>
+<span class="comment"># Tìm task đang làm dở</span>
+<span class="cmd">$ bd show bd-1</span>
+<span class="comment"># Đọc notes → biết đang ở đâu</span>
+→ <span class="str">TIẾP TỤC ĐÚNG CHỖ!</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 11 — GITNEXUS ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<section class="slide" data-slide="11">
+  <div class="slide-bg"><div class="diamond d1"></div><div class="diamond d2"></div><div class="diamond d3"></div><div class="binary" id="bin11"></div></div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+
+  <div class="section-label fade-up">Bonus Tool</div>
+  <h2 class="fade-up">GitNexus — Code Intelligence cho AI Agent</h2>
+
+  <blockquote class="fade-up" style="margin-bottom:14px">"Like DeepWiki, but deeper. DeepWiki giúp bạn hiểu code. GitNexus giúp bạn <strong>phân tích</strong> code."
+  <span style="display:block;margin-top:4px;font-size:13px;color:var(--white-50)">⭐ 20.8k stars · abhigyanpatwari/GitNexus</span></blockquote>
+
+  <div class="two-col fade-up">
+    <div>
+      <h3>Vấn đề</h3>
+      <ul>
+        <li>AI sửa <code>UserService.validate()</code> → <strong>không biết 47 functions depend on nó</strong></li>
+        <li>AI chỉ thấy file đang mở → <strong>thiếu toàn cảnh</strong></li>
+        <li>Search code bằng grep → <strong>tốn tokens, bỏ sót</strong></li>
+      </ul>
+
+      <h3 style="margin-top:14px">MCP Tools cho Agent</h3>
+      <div class="code-block" style="font-size:13px"><span class="cmd">npx gitnexus analyze</span>
+<span class="comment"># Agent tự động có:</span>
+<span class="flag">impact()</span>  → blast radius analysis
+<span class="flag">query()</span>   → semantic code search
+<span class="flag">context()</span> → architectural overview</div>
+    </div>
+    <div>
+      <h3>Kết hợp với C4Flow</h3>
+      <table>
+        <tr><th></th><th>Không có GitNexus</th><th>Có GitNexus</th></tr>
+        <tr><td>Search</td><td><span class="badge red">grep → bỏ sót</span></td><td><span class="badge green">Knowledge graph</span></td></tr>
+        <tr><td>Edit</td><td><span class="badge red">Không biết ai gọi</span></td><td><span class="badge green">Blast radius</span></td></tr>
+        <tr><td>Context</td><td><span class="badge red">Đọc nhiều file</span></td><td><span class="badge green">Pre-computed</span></td></tr>
+        <tr><td>Small LLM</td><td><span class="badge red">Miss deps</span></td><td><span class="badge green">Tools do lifting</span></td></tr>
+      </table>
+      <blockquote style="margin-top:12px;font-size:14px">Beads nói <strong>"làm task gì"</strong><br>GitNexus nói <strong>"sửa code nào an toàn"</strong></blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 12 — QUALITY GATES ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<section class="slide" data-slide="12">
+  <div class="slide-bg"><div class="diamond d1"></div><div class="diamond d2"></div><div class="diamond d3"></div><div class="binary" id="bin12"></div></div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+
+  <div class="section-label fade-up">Quality</div>
+  <h2 class="fade-up">Quality Gates — AI cũng không cheat được</h2>
+
+  <div class="two-col fade-up">
+    <div>
+      <h3>Layer 1 — Beads Gates</h3>
+      <div class="card" style="margin-top:10px">
+        <p><code>bd close</code> từ chối đóng task khi chưa pass gates</p>
+        <p style="margin-top:8px">Phải <code>--force</code> để bypass → <strong>logged!</strong></p>
+      </div>
+
+      <h3 style="margin-top:16px">Layer 2 — Claude Code Hooks</h3>
+      <table style="margin-top:8px">
+        <tr><th>Hook</th><th>Trigger</th><th>Action</th></tr>
+        <tr><td><code>PreToolUse</code></td><td><code>bd close</code></td><td>Check gates JSON</td></tr>
+        <tr><td><code>Stop</code></td><td>Session end</td><td>Block nếu gates open</td></tr>
+        <tr><td><code>TaskCompleted</code></td><td>Task done</td><td>Verify gates</td></tr>
+      </table>
+    </div>
+    <div>
+      <h3>Tại sao quan trọng?</h3>
+      <div class="card" style="margin-top:10px;border-color:rgba(81,207,102,.3)">
+        <ul class="emoji-bullet" style="font-size:16px">
+          <li>⚡ Tốc độ ≠ bỏ qua chất lượng</li>
+          <li>🛡️ Quality gates đảm bảo code merge-ready</li>
+          <li>👨‍⚖️ Ban giám khảo thấy: code có test, có review</li>
+          <li>🔒 Ngay cả khi bạn muốn skip — gates ngăn chặn</li>
+        </ul>
+      </div>
+      <blockquote style="margin-top:14px">"Hackathon hay tempt bạn skip testing. Quality gates ngăn chặn điều đó."</blockquote>
+    </div>
+  </div>
+</section>
+
+<!-- ▀▀▀▀▀▀▀▀▀▀▀▀ SLIDE 13 — CLOSING ▀▀▀▀▀▀▀▀▀▀▀▀ -->
+<section class="slide" data-slide="13">
+  <div class="slide-bg"><div class="diamond d1"></div><div class="diamond d2"></div><div class="diamond d3"></div><div class="diamond d4"></div><div class="binary" id="bin13"></div></div>
+  <div class="logo"><div class="logo-icon"><span>C4</span></div> SAVVYCOM</div>
+
+  <div class="section-label fade-up">Closing</div>
+  <h2 class="fade-up">Hãy tự xây workflow của riêng bạn</h2>
+
+  <div class="closing-msg fade-up">
+    <h2 style="color:var(--cyan);font-size:22px">⚡ C4Flow KHÔNG được xây cho mọi thứ</h2>
+    <p>Nó chỉ được xây cho <strong>cuộc thi này</strong> — với team này, project này, timeline này.</p>
+  </div>
+
+  <div class="card-grid cols-3 fade-up">
+    <div class="card">
+      <h4>1. Học MCP & Skills</h4>
+      <p><strong>MCP</strong> = standard kết nối AI với tools</p>
+      <p><strong>Skills</strong> = dạy AI quy trình riêng</p>
+      <p style="margin-top:6px;color:var(--cyan)">C4Flow chỉ là 1 cách triển khai — có hàng trăm cách khác</p>
+    </div>
+    <div class="card">
+      <h4>2. Mỗi project, 1 workflow</h4>
+      <p>Solo? <code>tasks.md</code> đủ</p>
+      <p>Team 10? Có thể cần Jira</p>
+      <p>Hackathon 24h? Skip research</p>
+      <p style="margin-top:6px;color:var(--cyan)">Không có "one-size-fits-all"</p>
+    </div>
+    <div class="card">
+      <h4>3. Công thức</h4>
+      <p>Hiểu tools → Hiểu vấn đề → Combine → Iterate</p>
+      <p style="margin-top:6px;color:var(--cyan)">Lắp ghép tools phù hợp thành workflow riêng</p>
+    </div>
+  </div>
+
+  <div class="fade-up" style="margin-top:16px">
+    <h3>📚 Nên khám phá</h3>
+    <div class="links-grid">
+      <span class="link-chip">MCP Protocol</span>
+      <span class="link-chip">Superpowers</span>
+      <span class="link-chip">OpenSpec</span>
+      <span class="link-chip">Spec Kit</span>
+      <span class="link-chip">Beads CLI</span>
+      <span class="link-chip">GitNexus</span>
+      <span class="link-chip">Claude Code Hooks</span>
+    </div>
+  </div>
+
+  <blockquote class="fade-up" style="margin-top:16px;font-size:17px;text-align:center;border-left:none;border-top:2px solid var(--cyan);border-radius:8px">
+    "AI agent mạnh nhất không phải agent thông minh nhất —<br>
+    mà là agent có <strong style="color:var(--cyan)">workflow tốt nhất</strong>.<br>
+    Và workflow tốt nhất là workflow <strong style="color:var(--cyan)">bạn tự xây cho project của mình</strong>."
+  </blockquote>
+</section>
+</div><!-- /deck -->
+
+<script>
+// ═══════════ BINARY WATERMARK GENERATOR ═══════════
+function genBinary(len){
+  let s='';for(let i=0;i<len;i++)s+=Math.random()>.5?'1':'0';
+  return s;
+}
+document.querySelectorAll('.binary').forEach(el=>{el.textContent=genBinary(3000)});
+
+// ═══════════ SLIDE ENGINE ═══════════
+const slides=document.querySelectorAll('.slide');
+const total=slides.length;
+let current=0;
+
+function goTo(n){
+  if(n<0||n>=total)return;
+  slides.forEach((s,i)=>{
+    s.classList.remove('active','prev');
+    if(i===n)s.classList.add('active');
+    else if(i<n)s.classList.add('prev');
+  });
+  current=n;
+  updateUI();
+}
+function next(){goTo(current+1)}
+function prev(){goTo(current-1)}
+
+function updateUI(){
+  document.getElementById('progress').style.width=((current+1)/total*100)+'%';
+  document.getElementById('counter').textContent=(current+1)+' / '+total;
+}
+
+// init
+slides[0].classList.add('active');
+updateUI();
+
+// keyboard
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'||e.key===' '||e.key==='Enter')next();
+  else if(e.key==='ArrowLeft'||e.key==='Backspace')prev();
+  else if(e.key==='Home')goTo(0);
+  else if(e.key==='End')goTo(total-1);
+});
+
+// click to advance
+document.addEventListener('click',e=>{
+  if(e.target.closest('a,button,code,pre,.code-block'))return;
+  const x=e.clientX/window.innerWidth;
+  if(x>.65)next();
+  else if(x<.35)prev();
+});
+
+// touch swipe
+let touchX=0;
+document.addEventListener('touchstart',e=>{touchX=e.touches[0].clientX});
+document.addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-touchX;
+  if(dx<-50)next();
+  else if(dx>50)prev();
+});
+</script>
+</body>
+</html>
